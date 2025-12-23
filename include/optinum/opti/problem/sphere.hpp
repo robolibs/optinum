@@ -2,7 +2,7 @@
 
 #include <optinum/simd/tensor.hpp>
 
-namespace optinum::calc {
+namespace optinum::opti {
 
     /**
      * Sphere function - simplest benchmark for optimization
@@ -42,4 +42,4 @@ namespace optinum::calc {
         }
     };
 
-} // namespace optinum::calc
+} // namespace optinum::opti

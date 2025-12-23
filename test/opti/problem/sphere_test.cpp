@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
-#include <optinum/calc/problem/sphere.hpp>
+#include <optinum/opti/problem/sphere.hpp>
 
-using optinum::calc::Sphere;
+using optinum::opti::Sphere;
 using optinum::simd::Tensor;
 
 TEST_CASE("Sphere evaluate") {

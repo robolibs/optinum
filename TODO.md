@@ -25,21 +25,22 @@ namespace on = optinum;  // alias
 │                         User Code                                   │
 │                                                                     │
 │   #include <optinum/optinum.hpp>                                    │
-│   on::simd::Matrix<float, 4, 4> A;                                  │
-│   on::calc::Adam optimizer;                                         │
+│   on::simd::Matrix<float, 4, 4> A, B;                               │
+│   auto C = on::lina::matmul(A, B);                                  │
+│   on::opti::Adam optimizer;                                         │
 └─────────────────────────────────┬───────────────────────────────────┘
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          optinum                                    │
-│  ┌─────────────────────────┐   ┌─────────────────────────────────┐  │
-│  │      on::calc           │──▶│         on::simd                │  │
-│  │   (optimization)        │   │   (SIMD tensor math)            │  │
-│  └─────────────────────────┘   └───────────────┬─────────────────┘  │
-│                                                │                    │
-└────────────────────────────────────────────────┼────────────────────┘
-                                                 │
-                                                 ▼
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐   │
+│  │   on::opti   │─▶│   on::lina   │─▶│        on::simd          │   │
+│  │ (optimizers) │  │ (linear alg) │  │ (types + SIMD primitives)│   │
+│  └──────────────┘  └──────────────┘  └────────────┬─────────────┘   │
+│                                                   │                 │
+└───────────────────────────────────────────────────┼─────────────────┘
+                                                    │
+                                                    ▼
                               ┌─────────────────────────────────────┐
                               │            datapod                  │
                               │   dp::scalar, dp::tensor, dp::matrix│
@@ -53,14 +54,21 @@ namespace on = optinum;  // alias
 
 ```
 optinum (on)
-├── simd        # SIMD-accelerated tensor math
+├── simd        # SIMD types + primitives
 │   ├── Scalar<T>                    # wraps dp::scalar<T>
 │   ├── Tensor<T, N>                 # wraps dp::tensor<T, N>
 │   ├── Matrix<T, R, C>              # wraps dp::matrix<T, R, C>
 │   ├── SIMDVec<T, Width>            # CPU register abstraction
-│   └── einsum, matmul, inverse...   # operations
+│   └── arch, backend                # low-level SIMD infrastructure
 │
-└── calc        # Numerical optimization
+├── lina        # Linear algebra operations
+│   ├── matmul, transpose, inverse   # matrix operations
+│   ├── lu, qr, svd, cholesky        # decompositions
+│   ├── solve, lstsq                 # linear solvers
+│   ├── einsum, contraction          # tensor algebra
+│   └── norm, dot, cross             # vector operations
+│
+└── opti        # Numerical optimization
     ├── GradientDescent, SGD, Adam...
     ├── LBFGS, CMA-ES, PSO...
     └── callbacks, schedulers...
@@ -71,51 +79,73 @@ optinum (on)
 ## Architecture Graph
 
 ```
-                              ┌──────────────────────────────────────────────┐
-                              │              on::calc                        │
-                              │         (Optimization Layer)                 │
-                              │                                              │
-                              │  ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │
-                              │  │gradient/│ │adaptive/│ │  evolutionary/  │ │
-                              │  │ gd, sgd │ │adam,rmsp│ │ cmaes, de, pso  │ │
-                              │  └────┬────┘ └────┬────┘ └───────┬─────────┘ │
-                              │       │           │               │          │
-                              │  ┌────┴───────────┴───────────────┴────┐     │
-                              │  │             core/                   │     │
-                              │  │   function, traits, callbacks       │     │
-                              │  └─────────────────┬───────────────────┘     │
-                              └────────────────────┼─────────────────────────┘
-                                                   │
-                                                   │ uses
-                                                   ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                                on::simd                                      │
-│                          (SIMD Math Layer)                                   │
+│                              on::opti                                        │
+│                         (Optimization Layer)                                 │
 │                                                                              │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────────────────┐  │
-│  │  linalg/   │  │  algebra/  │  │   expr/    │  │       tensor/          │  │
-│  │matmul, inv │  │  einsum,   │  │ lazy eval, │  │ Scalar<T>              │  │
-│  │ lu, qr,svd │  │contraction │  │ views      │  │ Tensor<T,N>            │  │
-│  └─────┬──────┘  └─────┬──────┘  └─────┬──────┘  │ Matrix<T,R,C>          │  │
-│        │               │               │         └───────────┬────────────┘  │
-│        └───────────────┴───────────────┴─────────────────────┤               │
-│                                                              │               │
-│  ┌───────────────────────────────────────────────────────────┴─────────────┐ │
-│  │                         intrinsic/                                      │ │
-│  │              SIMDVec<T, Width> - CPU register abstraction               │ │
-│  │                    SSE / AVX / AVX-512 / NEON                           │ │
-│  └───────────────────────────────────────────────────────────┬─────────────┘ │
-│                                                              │               │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┴─────────────┐ │
-│  │     math/       │  │     meta/       │  │          config/              │ │
-│  │ sin,cos,exp,log │  │  metaprogramming│  │   platform, cpuid, macros     │ │
-│  └─────────────────┘  └─────────────────┘  └───────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                         │
-                                         │ wraps (composition)
-                                         ▼
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌────────────────────────┐  │
+│  │  gradient/  │ │  adaptive/  │ │quasi_newton/│ │     evolutionary/      │  │
+│  │  gd, sgd    │ │ adam, rmsp  │ │   lbfgs     │ │  cmaes, de, pso, sa    │  │
+│  └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └───────────┬────────────┘  │
+│         │               │               │                    │               │
+│  ┌──────┴───────────────┴───────────────┴────────────────────┴─────────┐     │
+│  │                            core/                                    │     │
+│  │            function, traits, callbacks, schedule, search            │     │
+│  └─────────────────────────────────┬───────────────────────────────────┘     │
+└────────────────────────────────────┼─────────────────────────────────────────┘
+                                     │
+                                     │ uses
+                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                                datapod (dp::)                                │
+│                              on::lina                                        │
+│                       (Linear Algebra Layer)                                 │
+│                                                                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   basic/    │  │  decompose/ │  │   solve/    │  │      algebra/       │  │
+│  │matmul, trans│  │ lu, qr, svd │  │ solve, lstsq│  │ einsum, contraction │  │
+│  │ inv, det    │  │cholesky, eig│  │             │  │ inner, outer, perm  │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│         │                │               │                     │             │
+│  ┌──────┴────────────────┴───────────────┴─────────────────────┴───────────┐ │
+│  │                            expr/                                        │ │
+│  │              Expression templates, lazy evaluation, views               │ │
+│  └─────────────────────────────────┬───────────────────────────────────────┘ │
+└────────────────────────────────────┼─────────────────────────────────────────┘
+                                     │
+                                     │ operates on
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              on::simd                                        │
+│                      (SIMD Types + Primitives)                               │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐    │
+│  │                         User-facing Types                            │    │
+│  │    Scalar<T>           Tensor<T, N>           Matrix<T, R, C>        │    │
+│  │      (rank-0)            (rank-1)                (rank-2)            │    │
+│  └──────────────────────────────────┬───────────────────────────────────┘    │
+│                                     │                                        │
+│  ┌──────────────────────────────────┴───────────────────────────────────┐    │
+│  │                          backend/                                    │    │
+│  │     elementwise (add, sub, mul, div), reduce (sum, min, max)         │    │
+│  │     dot, norm, matmul, transpose                                     │    │
+│  └──────────────────────────────────┬───────────────────────────────────┘    │
+│                                     │                                        │
+│  ┌──────────────────────────────────┴───────────────────────────────────┐    │
+│  │                         intrinsic/                                   │    │
+│  │            SIMDVec<T, Width> - CPU register abstraction              │    │
+│  │                  SSE / AVX / AVX-512 / NEON                          │    │
+│  └──────────────────────────────────┬───────────────────────────────────┘    │
+│                                     │                                        │
+│  ┌─────────────────┐  ┌─────────────┴─────────────┐  ┌───────────────────┐   │
+│  │     math/       │  │          arch/            │  │      meta/        │   │
+│  │ sin,cos,exp,log │  │  platform, cpuid, macros  │  │ metaprogramming   │   │
+│  └─────────────────┘  └───────────────────────────┘  └───────────────────┘   │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     │ wraps (composition)
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              datapod (dp::)                                  │
 │                            (POD Data Storage)                                │
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐    │
@@ -139,82 +169,195 @@ optinum (on)
 
 ---
 
+## SIMD Architecture (Bottom-Up)
+
+This is how SIMD operations flow through the library layers:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           User API Layer                                    │
+│                                                                             │
+│   simd::Tensor<float, 8> a, b;                                              │
+│   auto c = a + b;                    // Element-wise add                    │
+│   auto d = lina::dot(a, b);          // Dot product                         │
+│   simd::Matrix<float,4,4> M1, M2;                                           │
+│   auto M3 = lina::matmul(M1, M2);    // Matrix multiply                     │
+│                                                                             │
+└─────────────────────────────────────┬───────────────────────────────────────┘
+                                      │ calls
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Backend Layer                                     │
+│                       (simd/backend/*.hpp)                                  │
+│                                                                             │
+│   backend::add<float, 8>(dst, src1, src2);    // Element-wise ops           │
+│   backend::reduce_sum<float, 8>(src);          // Reductions                │
+│   backend::dot<float, 8>(src1, src2);          // Dot product               │
+│   backend::matmul<float,4,4,4>(dst, A, B);     // Matrix multiply           │
+│                                                                             │
+│   - Chooses best implementation based on size                               │
+│   - Handles alignment, loop tiling, remainder                               │
+│                                                                             │
+└─────────────────────────────────────┬───────────────────────────────────────┘
+                                      │ uses
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Intrinsic Layer                                     │
+│                     (simd/intrinsic/*.hpp)                                  │
+│                                                                             │
+│   SIMDVec<float, 4> v1, v2;     // Wraps __m128 (SSE)                       │
+│   SIMDVec<float, 8> v3, v4;     // Wraps __m256 (AVX)                       │
+│   SIMDVec<float, 16> v5, v6;    // Wraps __m512 (AVX-512)                   │
+│                                                                             │
+│   auto v = SIMDVec<float,4>::load(ptr);                                     │
+│   auto w = v1 + v2;                                                         │
+│   auto s = v.hsum();            // Horizontal sum                           │
+│   w.store(ptr);                                                             │
+│                                                                             │
+└─────────────────────────────────────┬───────────────────────────────────────┘
+                                      │ wraps
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Arch Layer                                        │
+│                       (simd/arch/*.hpp)                                     │
+│                                                                             │
+│   OPTINUM_HAS_SSE, OPTINUM_HAS_AVX, OPTINUM_HAS_AVX512, OPTINUM_HAS_NEON    │
+│   OPTINUM_SIMD_LEVEL = 128 / 256 / 512                                      │
+│   OPTINUM_INLINE, OPTINUM_SIMD_ALIGN                                        │
+│                                                                             │
+│   #include <immintrin.h>  // x86                                            │
+│   #include <arm_neon.h>   // ARM                                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Current vs Target Implementation
+
+### Current (Scalar Loops)
+```cpp
+// simd/tensor.hpp - Current implementation
+constexpr Tensor& operator+=(const Tensor& rhs) noexcept {
+    for (size_type i = 0; i < N; ++i)
+        pod_[i] += rhs.pod_[i];  // One element at a time
+    return *this;
+}
+```
+
+### Target (SIMD Backend)
+```cpp
+// simd/tensor.hpp - Target implementation
+Tensor& operator+=(const Tensor& rhs) noexcept {
+    if constexpr (std::is_constant_evaluated()) {
+        // Compile-time: scalar fallback (constexpr)
+        for (size_type i = 0; i < N; ++i)
+            pod_[i] += rhs.pod_[i];
+    } else {
+        // Runtime: SIMD backend
+        backend::add<T, N>(data(), data(), rhs.data());
+    }
+    return *this;
+}
+```
+
+---
+
+## SIMDVec Type Mapping
+
+| Type   | SSE (128-bit) | AVX (256-bit) | AVX-512 (512-bit) | NEON (128-bit) |
+|--------|---------------|---------------|-------------------|----------------|
+| float  | `__m128` (4)  | `__m256` (8)  | `__m512` (16)     | `float32x4_t` (4) |
+| double | `__m128d` (2) | `__m256d` (4) | `__m512d` (8)     | `float64x2_t` (2) |
+| int32  | `__m128i` (4) | `__m256i` (8) | `__m512i` (16)    | `int32x4_t` (4) |
+
+---
+
 ## Folder Structure
 
 ```
 include/optinum/
 ├── optinum.hpp                      # Master header + namespace alias
 │
-├── simd/                            # on::simd namespace
+├── simd/                            # on::simd namespace (Types + SIMD primitives)
 │   ├── simd.hpp                     # simd module header
 │   │
-│   ├── config/                      # Platform detection
-│   │   ├── config.hpp               #   compiler, OS, C++ version
-│   │   ├── cpuid.hpp                #   CPU feature detection
-│   │   └── macros.hpp               #   FASTOR_INLINE, etc.
+│   ├── arch/                        # Architecture detection [DONE]
+│   │   ├── arch.hpp                 #   ✓ SSE/AVX/AVX512/NEON detection
+│   │   └── macros.hpp               #   ✓ OPTINUM_INLINE, alignment, etc.
 │   │
 │   ├── meta/                        # Template metaprogramming
 │   │   └── meta.hpp                 #   pack_prod, type traits
 │   │
 │   ├── intrinsic/                   # SIMD register abstraction
-│   │   ├── simd_vec.hpp             #   SIMDVec<T, Width>
-│   │   ├── abi.hpp                  #   sse, avx, avx512, neon
-│   │   ├── float.hpp                #   float specializations
-│   │   ├── double.hpp               #   double specializations
-│   │   └── ops.hpp                  #   load, store, add, mul, fma
+│   │   ├── simd_vec.hpp             #   SIMDVec<T, Width> main template
+│   │   ├── sse.hpp                  #   SSE: float(__m128), double(__m128d)
+│   │   ├── avx.hpp                  #   AVX: float(__m256), double(__m256d)
+│   │   ├── avx512.hpp               #   AVX-512: float(__m512), double(__m512d)
+│   │   └── neon.hpp                 #   ARM NEON: float32x4_t, float64x2_t
 │   │
 │   ├── math/                        # Vectorized math functions
 │   │   └── math.hpp                 #   sin, cos, exp, log, pow, etc.
 │   │
-│   ├── tensor/                      # Wrappers over dp:: types
-│   │   ├── scalar.hpp               #   Scalar<T> wraps dp::scalar<T>
-│   │   ├── tensor.hpp               #   Tensor<T,N> wraps dp::tensor<T,N>
-│   │   ├── matrix.hpp               #   Matrix<T,R,C> wraps dp::matrix<T,R,C>
-│   │   └── traits.hpp               #   type traits for tensors
+│   ├── backend/                     # SIMD operation implementations
+│   │   ├── backend.hpp              #   Dispatcher header
+│   │   ├── elementwise.hpp          #   add, sub, mul, div (vector ops)
+│   │   ├── reduce.hpp               #   sum, min, max (reductions)
+│   │   ├── dot.hpp                  #   Dot product
+│   │   ├── norm.hpp                 #   L2 norm, normalize
+│   │   ├── matmul.hpp               #   Matrix multiplication
+│   │   └── transpose.hpp            #   Matrix transpose
 │   │
-│   ├── expr/                        # Expression templates
-│   │   ├── abstract.hpp             #   CRTP base class
-│   │   ├── binary/                  #   binary operations
-│   │   │   ├── arithmetic.hpp       #     +, -, *, /
-│   │   │   ├── compare.hpp          #     <, >, ==, !=
-│   │   │   └── math.hpp             #     pow, atan2, hypot
-│   │   ├── unary/                   #   unary operations
-│   │   │   ├── math.hpp             #     sqrt, abs, sin, cos
-│   │   │   └── bool.hpp             #     !, all_of, any_of
-│   │   └── views/                   #   tensor views/slices
-│   │       ├── view.hpp             #     1D/2D/ND views
-│   │       ├── diag.hpp             #     diagonal view
-│   │       └── filter.hpp           #     boolean mask filter
+│   ├── scalar.hpp                   # ✓ Scalar<T> wraps dp::scalar<T>
+│   ├── tensor.hpp                   # ✓ Tensor<T,N> wraps dp::tensor<T,N>
+│   ├── matrix.hpp                   # ✓ Matrix<T,R,C> wraps dp::matrix<T,R,C>
+│   └── traits.hpp                   #   Type traits for tensors
+│
+├── lina/                            # on::lina namespace (Linear Algebra Operations)
+│   ├── lina.hpp                     # lina module header
 │   │
-│   ├── linalg/                      # Linear algebra
-│   │   ├── linalg.hpp               #   module header
-│   │   ├── matmul.hpp               #   matrix multiplication
-│   │   ├── transpose.hpp            #   transpose
-│   │   ├── inverse.hpp              #   matrix inverse
-│   │   ├── determinant.hpp          #   determinant
-│   │   ├── trace.hpp                #   trace
-│   │   ├── norm.hpp                 #   frobenius, L2, etc.
-│   │   ├── solve.hpp                #   linear solve Ax=b
-│   │   └── decompose/               #   matrix decompositions
-│   │       ├── lu.hpp               #     LU factorization
-│   │       ├── qr.hpp               #     QR factorization
-│   │       └── svd.hpp              #     singular value decomposition
+│   ├── basic/                       # Basic matrix operations
+│   │   ├── matmul.hpp               #   Matrix multiplication
+│   │   ├── transpose.hpp            #   Transpose
+│   │   ├── inverse.hpp              #   Matrix inverse
+│   │   ├── determinant.hpp          #   Determinant
+│   │   ├── trace.hpp                #   Trace
+│   │   └── norm.hpp                 #   Frobenius, L2, etc.
+│   │
+│   ├── decompose/                   # Matrix decompositions
+│   │   ├── lu.hpp                   #   LU factorization
+│   │   ├── qr.hpp                   #   QR factorization
+│   │   ├── svd.hpp                  #   Singular value decomposition
+│   │   ├── cholesky.hpp             #   Cholesky decomposition
+│   │   └── eig.hpp                  #   Eigendecomposition
+│   │
+│   ├── solve/                       # Linear solvers
+│   │   ├── solve.hpp                #   Solve Ax = b
+│   │   └── lstsq.hpp                #   Least squares
 │   │
 │   ├── algebra/                     # Tensor algebra
-│   │   ├── algebra.hpp              #   module header
 │   │   ├── einsum.hpp               #   Einstein summation
-│   │   ├── contraction.hpp          #   tensor contraction
-│   │   ├── permute.hpp              #   tensor permutation
-│   │   ├── inner.hpp                #   inner product
-│   │   └── outer.hpp                #   outer product
+│   │   ├── contraction.hpp          #   Tensor contraction
+│   │   ├── permute.hpp              #   Tensor permutation
+│   │   ├── inner.hpp                #   Inner product
+│   │   └── outer.hpp                #   Outer product
 │   │
-│   └── backend/                     # Internal optimized kernels
-│       ├── matmul/                  #   SIMD matmul kernels
-│       ├── transpose/               #   SIMD transpose kernels
-│       └── reduce/                  #   SIMD reduction kernels
+│   └── expr/                        # Expression templates
+│       ├── abstract.hpp             #   CRTP base class
+│       ├── binary/                  #   Binary operations
+│       │   ├── arithmetic.hpp       #     +, -, *, /
+│       │   ├── compare.hpp          #     <, >, ==, !=
+│       │   └── math.hpp             #     pow, atan2, hypot
+│       ├── unary/                   #   Unary operations
+│       │   ├── math.hpp             #     sqrt, abs, sin, cos
+│       │   └── bool.hpp             #     !, all_of, any_of
+│       └── views/                   #   Tensor views/slices
+│           ├── view.hpp             #     1D/2D/ND views
+│           ├── diag.hpp             #     Diagonal view
+│           └── filter.hpp           #     Boolean mask filter
 │
-└── calc/                            # on::calc namespace
-    ├── calc.hpp                     # calc module header
+└── opti/                            # on::opti namespace (Optimization)
+    ├── opti.hpp                     # opti module header
     │
     ├── core/                        # Core infrastructure
     │   ├── function.hpp             #   Function wrapper with mixins
@@ -231,7 +374,7 @@ include/optinum/
     │   └── timer.hpp                #   Time-based stopping
     │
     ├── gradient/                    # First-order methods
-    │   ├── gradient.hpp             #   module header
+    │   ├── gradient.hpp             #   Module header
     │   ├── gd.hpp                   #   Gradient Descent
     │   ├── sgd/                     #   SGD family
     │   │   ├── sgd.hpp              #     Stochastic GD
@@ -245,7 +388,7 @@ include/optinum/
     │       └── hogwild.hpp          #     Hogwild! (lock-free SGD)
     │
     ├── adaptive/                    # Adaptive learning rate
-    │   ├── adaptive.hpp             #   module header
+    │   ├── adaptive.hpp             #   Module header
     │   ├── adam/                    #   Adam family
     │   │   ├── adam.hpp             #     Adam
     │   │   ├── adamax.hpp           #     AdaMax
@@ -263,18 +406,18 @@ include/optinum/
     │   └── lookahead.hpp            #   Lookahead wrapper
     │
     ├── variance/                    # Variance reduction
-    │   ├── variance.hpp             #   module header
+    │   ├── variance.hpp             #   Module header
     │   ├── svrg.hpp                 #   SVRG
     │   ├── sarah.hpp                #   SARAH / SARAH+
     │   └── katyusha.hpp             #   Katyusha
     │
     ├── quasi_newton/                # Second-order methods
-    │   ├── quasi_newton.hpp         #   module header
+    │   ├── quasi_newton.hpp         #   Module header
     │   ├── lbfgs.hpp                #   L-BFGS
     │   └── iqn.hpp                  #   Incremental Quasi-Newton
     │
     ├── proximal/                    # Proximal methods
-    │   ├── proximal.hpp             #   module header
+    │   ├── proximal.hpp             #   Module header
     │   ├── fbs.hpp                  #   Forward-Backward Splitting
     │   ├── fista.hpp                #   FISTA
     │   ├── fasta.hpp                #   FASTA
@@ -284,14 +427,14 @@ include/optinum/
     │       └── constraint.hpp       #     Constraint types
     │
     ├── constrained/                 # Constrained optimization
-    │   ├── constrained.hpp          #   module header
+    │   ├── constrained.hpp          #   Module header
     │   ├── augmented.hpp            #   Augmented Lagrangian
     │   └── sdp/                     #   Semidefinite programming
     │       ├── primal_dual.hpp      #     Primal-dual solver
     │       └── lrsdp.hpp            #     Low-rank SDP
     │
     ├── evolutionary/                # Derivative-free / evolutionary
-    │   ├── evolutionary.hpp         #   module header
+    │   ├── evolutionary.hpp         #   Module header
     │   ├── cmaes/                   #   CMA-ES family
     │   │   ├── cmaes.hpp            #     CMA-ES
     │   │   ├── active.hpp           #     Active CMA-ES
@@ -304,7 +447,7 @@ include/optinum/
     │   └── cne.hpp                  #   Conventional Neural Evolution
     │
     ├── multiobjective/              # Multi-objective optimization
-    │   ├── multiobjective.hpp       #   module header
+    │   ├── multiobjective.hpp       #   Module header
     │   ├── nsga2.hpp                #   NSGA-II
     │   ├── agemoea.hpp              #   AGE-MOEA
     │   ├── moead.hpp                #   MOEA/D
@@ -314,20 +457,20 @@ include/optinum/
     │       └── hypervolume.hpp      #     Hypervolume indicator
     │
     ├── schedule/                    # Learning rate scheduling
-    │   ├── schedule.hpp             #   module header
+    │   ├── schedule.hpp             #   Module header
     │   ├── cyclical.hpp             #   Cyclical LR (SGDR)
     │   ├── warmup.hpp               #   Warm restarts
     │   └── adaptive.hpp             #   SPALeRA, Big Batch
     │
     ├── search/                      # Hyperparameter search
-    │   ├── search.hpp               #   module header
+    │   ├── search.hpp               #   Module header
     │   └── grid.hpp                 #   Grid search
     │
     └── problem/                     # Benchmark functions
-        ├── problem.hpp              #   module header
+        ├── problem.hpp              #   Module header
         ├── unconstrained/           #   Single-objective test functions
         │   ├── rosenbrock.hpp       #     Rosenbrock function
-        │   ├── sphere.hpp           #     Sphere function
+        │   ├── sphere.hpp           #     ✓ Sphere function
         │   ├── rastrigin.hpp        #     Rastrigin function
         │   └── ackley.hpp           #     Ackley function
         └── multiobjective/          #   Multi-objective test functions
@@ -338,221 +481,165 @@ include/optinum/
 
 ---
 
+## Implementation Roadmap
+
+### Phase 1: SIMD Foundation [IN PROGRESS]
+
+#### 1.1 Architecture Detection [DONE]
+- [x] `simd/arch/arch.hpp` - Platform & SIMD capability detection
+  - [x] Compiler detection (GCC, Clang, MSVC, Intel)
+  - [x] Platform detection (Windows, Linux, macOS)
+  - [x] x86 SIMD: SSE, SSE2, SSE3, SSSE3, SSE4.1, SSE4.2
+  - [x] x86 SIMD: AVX, AVX2, AVX-512 (F, VL, BW, DQ, CD)
+  - [x] x86 SIMD: FMA, F16C, BMI1, BMI2
+  - [x] ARM SIMD: NEON, SVE, SVE2
+  - [x] SIMD width constants
+  - [x] Feature query functions: `has_sse()`, `has_avx()`, etc.
+- [x] `simd/arch/macros.hpp` - Utility macros
+  - [x] `OPTINUM_INLINE` / `OPTINUM_NOINLINE`
+  - [x] `OPTINUM_SIMD_ALIGN` / `OPTINUM_SIMD_ALIGNMENT`
+  - [x] `OPTINUM_RESTRICT`
+  - [x] `OPTINUM_LIKELY` / `OPTINUM_UNLIKELY`
+  - [x] `OPTINUM_PREFETCH_READ` / `OPTINUM_PREFETCH_WRITE`
+  - [x] `OPTINUM_UNREACHABLE` / `OPTINUM_ASSUME`
+  - [x] `OPTINUM_VECTORIZE` / `OPTINUM_UNROLL`
+
+#### 1.2 SIMD Register Abstraction [TODO]
+- [ ] `simd/intrinsic/simd_vec.hpp` - Main SIMDVec template
+- [ ] `simd/intrinsic/sse.hpp` - SSE specializations
+  - [ ] `SIMDVec<float, 4>` wrapping `__m128`
+  - [ ] `SIMDVec<double, 2>` wrapping `__m128d`
+  - [ ] Operations: load, loadu, store, storeu, set1, setzero
+  - [ ] Operations: add, sub, mul, div, fma
+  - [ ] Operations: sqrt, rsqrt, min, max
+  - [ ] Operations: hsum (horizontal sum)
+- [ ] `simd/intrinsic/avx.hpp` - AVX specializations
+- [ ] `simd/intrinsic/avx512.hpp` - AVX-512 specializations
+- [ ] `simd/intrinsic/neon.hpp` - ARM NEON specializations
+
+#### 1.3 Backend Operations [TODO]
+- [ ] `simd/backend/backend.hpp` - Common utilities
+- [ ] `simd/backend/elementwise.hpp` - add, sub, mul, div
+- [ ] `simd/backend/reduce.hpp` - sum, min, max
+- [ ] `simd/backend/dot.hpp` - Dot product
+- [ ] `simd/backend/norm.hpp` - L2 norm, normalize
+- [ ] `simd/backend/matmul.hpp` - Matrix multiplication
+- [ ] `simd/backend/transpose.hpp` - Matrix transpose
+
+#### 1.4 Update Tensor/Matrix to Use Backend [TODO]
+- [ ] Update `simd/tensor.hpp` to use backend
+- [ ] Update `simd/matrix.hpp` to use backend
+- [ ] Maintain `constexpr` for compile-time evaluation
+
+### Phase 2: Linear Algebra [FUTURE]
+- [ ] `lina/basic/` - matmul, transpose, inverse, determinant
+- [ ] `lina/decompose/` - LU, QR, SVD, Cholesky, Eigen
+- [ ] `lina/solve/` - Linear solvers
+- [ ] `lina/algebra/` - einsum, contraction
+- [ ] `lina/expr/` - Expression templates
+
+### Phase 3: Optimization Core [FUTURE]
+- [ ] `opti/core/` - Function traits, interface
+- [ ] `opti/callback/` - Callback system
+- [ ] `opti/gradient/` - GD, SGD
+
+### Phase 4: Optimizers [FUTURE]
+- [ ] `opti/adaptive/` - Adam, RMSProp, etc.
+- [ ] `opti/quasi_newton/` - L-BFGS
+- [ ] `opti/evolutionary/` - CMA-ES, DE, PSO
+
+### Phase 5: Advanced [FUTURE]
+- [ ] `opti/proximal/` - FISTA, Frank-Wolfe
+- [ ] `opti/constrained/` - Augmented Lagrangian
+- [ ] `opti/multiobjective/` - NSGA-II, MOEA/D
+
+---
+
 ## Component Details
 
-### on::simd - SIMD Math Layer
-
-#### Tensor Wrappers (Composition over dp::)
-
-```cpp
-namespace optinum::simd {
-namespace dp = ::datapod;
-
-template <typename T>
-class Scalar {
-    dp::scalar<T> pod_{};
-public:
-    constexpr dp::scalar<T>& pod() noexcept { return pod_; }
-    // SIMD ops...
-};
-
-template <typename T, std::size_t N>
-class Tensor {
-    dp::tensor<T, N> pod_{};
-public:
-    constexpr dp::tensor<T, N>& pod() noexcept { return pod_; }
-    // SIMD ops: dot, norm, +, -, *, /
-};
-
-template <typename T, std::size_t R, std::size_t C>
-class Matrix {
-    dp::matrix<T, R, C> pod_{};
-public:
-    constexpr dp::matrix<T, R, C>& pod() noexcept { return pod_; }
-    // SIMD ops: matmul, transpose, inverse, det, trace
-};
-
-} // namespace optinum::simd
-```
-
-#### SIMD Intrinsics Abstraction
+### SIMDVec<T, Width> Interface
 
 ```cpp
 namespace optinum::simd {
 
 template <typename T, std::size_t Width>
 class SIMDVec {
-    // Wraps __m128, __m256, __m512, float32x4_t, etc.
 public:
+    using value_type = T;
+    static constexpr std::size_t width = Width;
+    
+    // Construction
+    SIMDVec() = default;
+    explicit SIMDVec(T val);                    // Broadcast scalar
+    
+    // Load/Store (aligned)
     static SIMDVec load(const T* ptr);
-    static SIMDVec loadu(const T* ptr);  // unaligned
     void store(T* ptr) const;
-    void storeu(T* ptr) const;           // unaligned
-
+    
+    // Load/Store (unaligned)
+    static SIMDVec loadu(const T* ptr);
+    void storeu(T* ptr) const;
+    
+    // Arithmetic
     SIMDVec operator+(SIMDVec rhs) const;
     SIMDVec operator-(SIMDVec rhs) const;
     SIMDVec operator*(SIMDVec rhs) const;
     SIMDVec operator/(SIMDVec rhs) const;
-
-    static SIMDVec fma(SIMDVec a, SIMDVec b, SIMDVec c);  // a*b+c
-    T hsum() const;  // horizontal sum
+    SIMDVec operator-() const;                  // Negation
+    
+    // FMA (Fused Multiply-Add)
+    static SIMDVec fma(SIMDVec a, SIMDVec b, SIMDVec c);  // a*b + c
+    static SIMDVec fms(SIMDVec a, SIMDVec b, SIMDVec c);  // a*b - c
+    
+    // Math
+    SIMDVec sqrt() const;
+    SIMDVec rsqrt() const;                      // 1/sqrt(x) approximate
+    SIMDVec abs() const;
+    
+    // Min/Max
+    static SIMDVec min(SIMDVec a, SIMDVec b);
+    static SIMDVec max(SIMDVec a, SIMDVec b);
+    
+    // Reductions
+    T hsum() const;                             // Horizontal sum
+    T hmin() const;                             // Horizontal min
+    T hmax() const;                             // Horizontal max
+    
+private:
+    native_type data_;  // __m128, __m256, etc.
 };
 
 } // namespace optinum::simd
 ```
 
----
-
-### on::calc - Optimization Layer
-
-#### Function Interface
+### Backend Usage Pattern
 
 ```cpp
-namespace optinum::calc {
+// simd/backend/elementwise.hpp
+namespace optinum::simd::backend {
 
-// User provides a function with these methods:
-// - T Evaluate(const MatType& x)
-// - void Gradient(const MatType& x, GradType& g)
-// - T EvaluateWithGradient(const MatType& x, GradType& g)
-
-template <typename FunctionType, typename MatType = on::simd::Tensor<double, 0>>
-class Optimizer {
-public:
-    MatType Optimize(FunctionType& fn, MatType& x);
-};
-
-} // namespace optinum::calc
-```
-
-#### Optimizer Example
-
-```cpp
-namespace optinum::calc {
-
-class Adam {
-public:
-    Adam(double lr = 0.001, double beta1 = 0.9, double beta2 = 0.999, double eps = 1e-8);
-
-    template <typename FunctionType, typename MatType>
-    MatType Optimize(FunctionType& fn, MatType& x);
-
-private:
-    double lr_, beta1_, beta2_, eps_;
-};
-
-} // namespace optinum::calc
-```
-
----
-
-## Usage Examples
-
-### Basic SIMD Operations
-
-```cpp
-#include <optinum/optinum.hpp>
-
-namespace dp = datapod;
-
-int main() {
-    // Create from datapod
-    dp::matrix<float, 4, 4> raw{};
-    raw.set_identity();
-
-    // Wrap in optinum for SIMD operations
-    on::simd::Matrix<float, 4, 4> A(raw);
-    on::simd::Matrix<float, 4, 4> B;
-    B.fill(2.0f);
-
-    // SIMD-accelerated operations
-    auto C = A * B;           // matmul
-    auto D = transpose(C);    // transpose
-    auto det = determinant(A);
-
-    // Get back to datapod for serialization/storage
-    dp::matrix<float, 4, 4>& result = C.pod();
-}
-```
-
-### Optimization
-
-```cpp
-#include <optinum/optinum.hpp>
-
-// Define objective function
-struct Rosenbrock {
-    double Evaluate(const on::simd::Tensor<double, 2>& x) {
-        double a = 1.0 - x[0];
-        double b = x[1] - x[0] * x[0];
-        return a * a + 100.0 * b * b;
+template<typename T, std::size_t N>
+OPTINUM_INLINE void add(T* OPTINUM_RESTRICT dst, 
+                        const T* OPTINUM_RESTRICT src1, 
+                        const T* OPTINUM_RESTRICT src2) {
+    constexpr std::size_t W = arch::simd_width<T>();
+    constexpr std::size_t main_loop = (N / W) * W;
+    
+    // Main SIMD loop
+    for (std::size_t i = 0; i < main_loop; i += W) {
+        auto a = SIMDVec<T, W>::loadu(src1 + i);
+        auto b = SIMDVec<T, W>::loadu(src2 + i);
+        (a + b).storeu(dst + i);
     }
-
-    void Gradient(const on::simd::Tensor<double, 2>& x,
-                  on::simd::Tensor<double, 2>& g) {
-        g[0] = -2.0 * (1.0 - x[0]) - 400.0 * x[0] * (x[1] - x[0] * x[0]);
-        g[1] = 200.0 * (x[1] - x[0] * x[0]);
+    
+    // Remainder (scalar)
+    for (std::size_t i = main_loop; i < N; ++i) {
+        dst[i] = src1[i] + src2[i];
     }
-};
-
-int main() {
-    Rosenbrock fn;
-    on::simd::Tensor<double, 2> x;
-    x[0] = -1.0;
-    x[1] = 1.0;
-
-    on::calc::Adam optimizer(0.01);
-    auto result = optimizer.Optimize(fn, x);
-    // result ≈ [1.0, 1.0]
 }
+
+} // namespace optinum::simd::backend
 ```
-
-### Using Callbacks
-
-```cpp
-#include <optinum/optinum.hpp>
-
-int main() {
-    Rosenbrock fn;
-    on::simd::Tensor<double, 2> x;
-
-    on::calc::Adam optimizer;
-    on::calc::PrintLoss printer;
-    on::calc::EarlyStop stopper(1e-6, 10);
-
-    optimizer.Optimize(fn, x, printer, stopper);
-}
-```
-
----
-
-## Implementation Roadmap
-
-### Phase 1: Foundation
-- [ ] `simd/config/` - Platform detection
-- [ ] `simd/meta/` - Metaprogramming utilities
-- [ ] `simd/intrinsic/` - SIMDVec abstraction
-- [ ] `simd/tensor/` - Scalar, Tensor, Matrix wrappers
-
-### Phase 2: SIMD Math
-- [ ] `simd/math/` - Vectorized transcendentals
-- [ ] `simd/expr/` - Expression templates
-- [ ] `simd/linalg/` - matmul, inverse, decompose
-- [ ] `simd/algebra/` - einsum, contraction
-
-### Phase 3: Optimization Core
-- [ ] `calc/core/` - Function traits, interface
-- [ ] `calc/callback/` - Callback system
-- [ ] `calc/gradient/` - GD, SGD
-
-### Phase 4: Optimizers
-- [ ] `calc/adaptive/` - Adam, RMSProp, etc.
-- [ ] `calc/quasi_newton/` - L-BFGS
-- [ ] `calc/evolutionary/` - CMA-ES, DE, PSO
-
-### Phase 5: Advanced
-- [ ] `calc/proximal/` - FISTA, Frank-Wolfe
-- [ ] `calc/constrained/` - Augmented Lagrangian
-- [ ] `calc/multiobjective/` - NSGA-II, MOEA/D
 
 ---
 
@@ -560,31 +647,18 @@ int main() {
 
 **Every header file in `include/` must have a corresponding test file in `test/`.**
 
-The `test/` folder structure mirrors `include/`:
-
 ```
-include/optinum/simd/scalar.hpp  ->  test/simd/scalar_test.cpp
-include/optinum/simd/tensor.hpp  ->  test/simd/tensor_test.cpp
-include/optinum/simd/matrix.hpp  ->  test/simd/matrix_test.cpp
-include/optinum/calc/core/function.hpp  ->  test/calc/core/function_test.cpp
+include/optinum/simd/arch/arch.hpp       ->  test/simd/arch/arch_test.cpp       ✓
+include/optinum/simd/scalar.hpp          ->  test/simd/scalar_test.cpp          ✓
+include/optinum/simd/tensor.hpp          ->  test/simd/tensor_test.cpp          ✓
+include/optinum/simd/matrix.hpp          ->  test/simd/matrix_test.cpp          ✓
+include/optinum/simd/intrinsic/sse.hpp   ->  test/simd/intrinsic/sse_test.cpp
+include/optinum/simd/backend/dot.hpp     ->  test/simd/backend/dot_test.cpp
+include/optinum/lina/basic/matmul.hpp    ->  test/lina/basic/matmul_test.cpp
+include/optinum/opti/problem/sphere.hpp  ->  test/opti/problem/sphere_test.cpp  ✓
 ```
 
-Tests use **doctest**. Do NOT add `DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN` - it's already configured in CMake/xmake.
-
-Example test file:
-
-```cpp
-#include <doctest/doctest.h>
-#include <optinum/simd/scalar.hpp>
-
-TEST_CASE("Scalar basic operations") {
-    optinum::simd::Scalar<float> a(3.0f);
-    optinum::simd::Scalar<float> b(2.0f);
-
-    CHECK(a.get() == 3.0f);
-    CHECK((a + b).get() == 5.0f);
-}
-```
+Tests use **doctest**. Do NOT add `DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN`.
 
 ---
 
@@ -594,9 +668,10 @@ TEST_CASE("Scalar basic operations") {
 2. **Composition over inheritance**: `on::simd::*` wraps `dp::*` via `.pod()`
 3. **Zero-cost abstractions**: Expression templates, compile-time dimensions
 4. **SIMD everywhere**: All math operations vectorized when possible
-5. **POD-friendly**: Easy serialization via `datapod`
-6. **Modern C++**: Requires C++20 (concepts, constexpr, fold expressions)
-7. **Use datapod over std**: Prefer `dp::` types over `std::` equivalents everywhere
+5. **Constexpr friendly**: Scalar fallback for compile-time evaluation
+6. **POD-friendly**: Easy serialization via `datapod`
+7. **Modern C++**: Requires C++20 (concepts, constexpr, fold expressions)
+8. **Use datapod over std**: Prefer `dp::` types over `std::` equivalents
 
 ---
 
@@ -613,26 +688,28 @@ TEST_CASE("Scalar basic operations") {
 | `std::variant<Ts...>` | `dp::Variant<Ts...>` |
 | `std::pair<K,V>` | `dp::Pair<K,V>` |
 | `std::tuple<Ts...>` | `dp::Tuple<Ts...>` |
-| `std::unique_ptr<T>` | `dp::UniquePtr<T>` |
 | `std::unordered_map<K,V>` | `dp::Map<K,V>` |
 | `std::unordered_set<T>` | `dp::Set<T>` |
-| `std::queue<T>` | `dp::Queue<T>` |
-| `std::stack<T>` | `dp::Stack<T>` |
 | Exceptions | `dp::Result<T,E>` |
-
-**Unique datapod types to use:**
-- `dp::Result<T,E>` - Rust-style error handling (use instead of exceptions)
-- `dp::Error` - Error type with code + message
-- `dp::Strong<T,Tag>` - Type-safe wrappers (newtype idiom)
-- `dp::scalar<T>`, `dp::tensor<T,N>`, `dp::matrix<T,R,C>` - Math primitives
 
 ---
 
 ## Requirements
 
 - **C++20** or later
-- **datapod** library (sibling directory)
+- **datapod** library (fetched automatically via CMake/xmake)
 - **Optional**: AVX2/AVX-512 for best SIMD performance
+
+---
+
+## Build & Test
+
+```bash
+make config    # Configure (preserves cache)
+make build     # Build examples and tests
+make test      # Run all tests
+make clean     # Clean build artifacts
+```
 
 ---
 

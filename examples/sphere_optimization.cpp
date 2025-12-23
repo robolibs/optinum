@@ -1,10 +1,11 @@
 #include <iostream>
+#include <optinum/opti/problem/sphere.hpp>
 #include <optinum/optinum.hpp>
 
 int main() {
     // Sphere function: f(x) = sum(x_i^2)
     // Global minimum at origin: f(0,0,0) = 0
-    optinum::calc::Sphere<double, 3> sphere;
+    optinum::opti::Sphere<double, 3> sphere;
 
     // Starting point
     optinum::simd::Tensor<double, 3> x;
