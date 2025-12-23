@@ -1,14 +1,28 @@
 #pragma once
 
-// Linear Algebra Operations
-// Uses types from optinum::simd (Tensor, Matrix)
+// =============================================================================
+// optinum/lina/lina.hpp
+// Linear algebra (fixed-size) on optinum::simd types
+// =============================================================================
 
-namespace optinum::lina {
+#include <optinum/lina/algebra/contraction.hpp>
+#include <optinum/lina/algebra/einsum.hpp>
 
-    // TODO: Implement linear algebra operations
-    // - basic/: matmul, transpose, inverse, determinant, trace, norm
-    // - decompose/: lu, qr, svd, cholesky, eig
-    // - solve/: solve, lstsq
-    // - algebra/: einsum, contraction, permute, inner, outer
+#include <optinum/lina/basic/determinant.hpp>
+#include <optinum/lina/basic/inverse.hpp>
+#include <optinum/lina/basic/matmul.hpp>
+#include <optinum/lina/basic/norm.hpp>
+#include <optinum/lina/basic/transpose.hpp>
 
-} // namespace optinum::lina
+#include <optinum/lina/decompose/cholesky.hpp>
+#include <optinum/lina/decompose/eigen.hpp>
+#include <optinum/lina/decompose/lu.hpp>
+#include <optinum/lina/decompose/qr.hpp>
+#include <optinum/lina/decompose/svd.hpp>
+
+#include <optinum/lina/expr/expr.hpp>
+
+#include <optinum/lina/solve/lstsq.hpp>
+#include <optinum/lina/solve/solve.hpp>
+
+namespace optinum::lina {}

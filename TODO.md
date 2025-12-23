@@ -531,12 +531,12 @@ include/optinum/
 - [x] Update `simd/matrix.hpp` to use backend
 - [x] Maintain `constexpr` for compile-time evaluation (`std::is_constant_evaluated()` scalar fallback)
 
-### Phase 2: Linear Algebra [FUTURE]
-- [ ] `lina/basic/` - matmul, transpose, inverse, determinant
-- [ ] `lina/decompose/` - LU, QR, SVD, Cholesky, Eigen
-- [ ] `lina/solve/` - Linear solvers
-- [ ] `lina/algebra/` - einsum, contraction
-- [ ] `lina/expr/` - Expression templates
+### Phase 2: Linear Algebra [DONE]
+- [x] `lina/basic/` - matmul, transpose, inverse, determinant
+- [x] `lina/decompose/` - LU, QR, SVD, Cholesky, Eigen
+- [x] `lina/solve/` - Linear solvers + lstsq
+- [x] `lina/algebra/` - einsum, contraction, inner/outer
+- [x] `lina/expr/` - Minimal expression templates
 
 ### Phase 3: Optimization Core [FUTURE]
 - [ ] `opti/core/` - Function traits, interface
@@ -663,7 +663,22 @@ include/optinum/simd/backend/dot.hpp     ->  test/simd/backend/dot_test.cpp     
 include/optinum/simd/backend/norm.hpp    ->  test/simd/backend/norm_test.cpp    ✓
 include/optinum/simd/backend/matmul.hpp  ->  test/simd/backend/matmul_test.cpp  ✓
 include/optinum/simd/backend/transpose.hpp -> test/simd/backend/transpose_test.cpp ✓
-include/optinum/lina/basic/matmul.hpp    ->  test/lina/basic/matmul_test.cpp
+include/optinum/lina/lina.hpp                  ->  test/lina/lina_test.cpp ✓
+include/optinum/lina/basic/matmul.hpp          ->  test/lina/basic/lina_matmul_test.cpp ✓
+include/optinum/lina/basic/transpose.hpp       ->  test/lina/basic/lina_transpose_test.cpp ✓
+include/optinum/lina/basic/determinant.hpp     ->  test/lina/basic/determinant_test.cpp ✓
+include/optinum/lina/basic/inverse.hpp         ->  test/lina/basic/inverse_test.cpp ✓
+include/optinum/lina/basic/norm.hpp            ->  test/lina/basic/lina_norm_test.cpp ✓
+include/optinum/lina/decompose/lu.hpp          ->  test/lina/decompose/lu_test.cpp ✓
+include/optinum/lina/decompose/qr.hpp          ->  test/lina/decompose/qr_test.cpp ✓
+include/optinum/lina/decompose/cholesky.hpp    ->  test/lina/decompose/cholesky_test.cpp ✓
+include/optinum/lina/decompose/eigen.hpp       ->  test/lina/decompose/eigen_test.cpp ✓
+include/optinum/lina/decompose/svd.hpp         ->  test/lina/decompose/svd_test.cpp ✓
+include/optinum/lina/solve/solve.hpp           ->  test/lina/solve/solve_test.cpp ✓
+include/optinum/lina/solve/lstsq.hpp           ->  test/lina/solve/lstsq_test.cpp ✓
+include/optinum/lina/algebra/einsum.hpp        ->  test/lina/algebra/einsum_test.cpp ✓
+include/optinum/lina/algebra/contraction.hpp   ->  test/lina/algebra/contraction_test.cpp ✓
+include/optinum/lina/expr/expr.hpp             ->  test/lina/expr/expr_test.cpp ✓
 include/optinum/opti/problem/sphere.hpp  ->  test/opti/problem/sphere_test.cpp  ✓
 ```
 
