@@ -218,7 +218,7 @@ if has_config("tests") and os.projectdir() == os.curdir() then
             set_kind("binary")
             add_files(filepath)
             add_deps("optinum")
-            add_packages("doctest")
+            add_packages("datapod", "doctest")
             add_includedirs("include")
             add_defines("DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
             

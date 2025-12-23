@@ -556,6 +556,38 @@ int main() {
 
 ---
 
+## Testing
+
+**Every header file in `include/` must have a corresponding test file in `test/`.**
+
+The `test/` folder structure mirrors `include/`:
+
+```
+include/optinum/simd/scalar.hpp  ->  test/simd/scalar_test.cpp
+include/optinum/simd/tensor.hpp  ->  test/simd/tensor_test.cpp
+include/optinum/simd/matrix.hpp  ->  test/simd/matrix_test.cpp
+include/optinum/calc/core/function.hpp  ->  test/calc/core/function_test.cpp
+```
+
+Tests use **doctest**. Do NOT add `DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN` - it's already configured in CMake/xmake.
+
+Example test file:
+
+```cpp
+#include <doctest/doctest.h>
+#include <optinum/simd/scalar.hpp>
+
+TEST_CASE("Scalar basic operations") {
+    optinum::simd::Scalar<float> a(3.0f);
+    optinum::simd::Scalar<float> b(2.0f);
+
+    CHECK(a.get() == 3.0f);
+    CHECK((a + b).get() == 5.0f);
+}
+```
+
+---
+
 ## Design Principles
 
 1. **Header-only**: No compilation, just include
