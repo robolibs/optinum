@@ -596,6 +596,35 @@ TEST_CASE("Scalar basic operations") {
 4. **SIMD everywhere**: All math operations vectorized when possible
 5. **POD-friendly**: Easy serialization via `datapod`
 6. **Modern C++**: Requires C++20 (concepts, constexpr, fold expressions)
+7. **Use datapod over std**: Prefer `dp::` types over `std::` equivalents everywhere
+
+---
+
+## datapod Type Mapping
+
+**Always prefer datapod types over std equivalents:**
+
+| Instead of | Use |
+|------------|-----|
+| `std::vector<T>` | `dp::Vector<T>` |
+| `std::array<T,N>` | `dp::Array<T,N>` |
+| `std::string` | `dp::String` |
+| `std::optional<T>` | `dp::Optional<T>` |
+| `std::variant<Ts...>` | `dp::Variant<Ts...>` |
+| `std::pair<K,V>` | `dp::Pair<K,V>` |
+| `std::tuple<Ts...>` | `dp::Tuple<Ts...>` |
+| `std::unique_ptr<T>` | `dp::UniquePtr<T>` |
+| `std::unordered_map<K,V>` | `dp::Map<K,V>` |
+| `std::unordered_set<T>` | `dp::Set<T>` |
+| `std::queue<T>` | `dp::Queue<T>` |
+| `std::stack<T>` | `dp::Stack<T>` |
+| Exceptions | `dp::Result<T,E>` |
+
+**Unique datapod types to use:**
+- `dp::Result<T,E>` - Rust-style error handling (use instead of exceptions)
+- `dp::Error` - Error type with code + message
+- `dp::Strong<T,Tag>` - Type-safe wrappers (newtype idiom)
+- `dp::scalar<T>`, `dp::tensor<T,N>`, `dp::matrix<T,R,C>` - Math primitives
 
 ---
 
