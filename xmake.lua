@@ -80,6 +80,29 @@ option("short_namespace")
     set_description("Enable short namespace alias (dp)")
 option_end()
 
+-- Define datapod package (from git)
+package("datapod")
+    add_deps("cmake")
+    set_sourcedir(path.join(os.projectdir(), "build/_deps/datapod-src"))
+
+    on_fetch(function (package)
+        local sourcedir = package:sourcedir()
+        if not os.isdir(sourcedir) then
+            print("Fetching datapod from git...")
+            os.mkdir(path.directory(sourcedir))
+            os.execv("git", {"clone", "--quiet", "--depth", "1", "--branch", "0.0.4",
+                            "-c", "advice.detachedHead=false",
+                            "https://github.com/robolibs/datapod.git", sourcedir})
+        end
+    end)
+
+    on_install(function (package)
+        local configs = {}
+        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
+        import("package.tools.cmake").install(package, configs)
+    end)
+package_end()
+
 -- Define rerun_sdk package (from ~/.local installation)
 package("rerun_sdk")
     set_kind("library", {headeronly = false})
@@ -110,6 +133,9 @@ package("rerun_sdk")
     end)
 package_end()
 
+-- Add required packages
+add_requires("datapod")
+
 -- Add required packages conditionally
 if has_config("examples") then
     add_requires("rerun_sdk")
@@ -131,6 +157,9 @@ target("optinum")
     -- Add header files
     add_headerfiles("include/(optinum/**.hpp)")
     add_includedirs("include", {public = true})
+
+    -- Link dependencies
+    add_packages("datapod")
 
     -- Add SHORT_NAMESPACE define if enabled
     if has_config("short_namespace") then
@@ -155,7 +184,7 @@ target("optinum")
     end)
 target_end()
 
--- Examples (only build when datapod is the main project)
+-- Examples (only build when optinum is the main project)
 if has_config("examples") and os.projectdir() == os.curdir() then
     for _, filepath in ipairs(os.files("examples/*.cpp")) do
         local filename = path.basename(filepath)
@@ -163,6 +192,7 @@ if has_config("examples") and os.projectdir() == os.curdir() then
             set_kind("binary")
             add_files(filepath)
             add_deps("optinum")
+            add_packages("datapod")
 
             -- Always enable SHORT_NAMESPACE for examples
             add_defines("SHORT_NAMESPACE")
@@ -180,7 +210,7 @@ if has_config("examples") and os.projectdir() == os.curdir() then
     end
 end
 
--- Tests (only build when datapod is the main project)
+-- Tests (only build when optinum is the main project)
 if has_config("tests") and os.projectdir() == os.curdir() then
     for _, filepath in ipairs(os.files("test/**.cpp")) do
         local filename = path.basename(filepath)

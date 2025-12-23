@@ -26,6 +26,10 @@ include(FetchContent)
 # --------------------------------------------------------------------------------------------------
 set(ext_deps)
 
+FetchContent_Declare(datapod GIT_REPOSITORY https://github.com/robolibs/datapod.git GIT_TAG 0.0.4)
+FetchContent_MakeAvailable(datapod)
+list(APPEND ext_deps datapod::datapod)
+
 
 # --------------------------------------------------------------------------------------------------
 # Collect all source files from src directory
@@ -50,6 +54,7 @@ else()
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
     )
+    target_link_libraries(${project_name} INTERFACE ${ext_deps})
     # Add SHORT_NAMESPACE define if enabled (for header-only mode)
     if(SHORT_NAMESPACE)
         target_compile_definitions(${project_name} INTERFACE SHORT_NAMESPACE)
