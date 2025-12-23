@@ -1,5 +1,5 @@
-set_project("datapod")
-set_version("0.0.4")
+set_project("optinum")
+set_version("0.0.1")
 set_xmakever("2.7.0")
 
 -- Set C++ standard
@@ -122,14 +122,14 @@ if has_config("tests") then
 end
 
 -- Main library target
-target("datapod")
+target("optinum")
     set_kind("static")
 
     -- Add source files
-    add_files("src/datapod/**.cpp")
+    add_files("src/optinum/**.cpp")
 
     -- Add header files
-    add_headerfiles("include/(datapod/**.hpp)")
+    add_headerfiles("include/(optinum/**.hpp)")
     add_includedirs("include", {public = true})
 
     -- Add SHORT_NAMESPACE define if enabled
@@ -148,7 +148,7 @@ target("datapod")
     end
 
     -- Set install files
-    add_installfiles("include/(datapod/**.hpp)")
+    add_installfiles("include/(optinum/**.hpp)")
     on_install(function (target)
         local installdir = target:installdir()
         os.cp(target:targetfile(), path.join(installdir, "lib", path.filename(target:targetfile())))
@@ -162,7 +162,7 @@ if has_config("examples") and os.projectdir() == os.curdir() then
         target(filename)
             set_kind("binary")
             add_files(filepath)
-            add_deps("datapod")
+            add_deps("optinum")
 
             -- Always enable SHORT_NAMESPACE for examples
             add_defines("SHORT_NAMESPACE")
@@ -187,7 +187,7 @@ if has_config("tests") and os.projectdir() == os.curdir() then
         target(filename)
             set_kind("binary")
             add_files(filepath)
-            add_deps("datapod")
+            add_deps("optinum")
             add_packages("doctest")
             add_includedirs("include")
             add_defines("DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
