@@ -1,6 +1,12 @@
 #pragma once
 
 #include <datapod/matrix/tensor.hpp>
+#include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/backend/norm.hpp>
+#include <optinum/simd/backend/reduce.hpp>
+
+#include <type_traits>
 
 namespace optinum::simd {
 
@@ -63,38 +69,62 @@ namespace optinum::simd {
 
         // Compound assignment
         constexpr Tensor &operator+=(const Tensor &rhs) noexcept {
-            for (size_type i = 0; i < N; ++i)
-                pod_[i] += rhs.pod_[i];
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i)
+                    pod_[i] += rhs.pod_[i];
+            } else {
+                backend::add<T, N>(data(), data(), rhs.data());
+            }
             return *this;
         }
 
         constexpr Tensor &operator-=(const Tensor &rhs) noexcept {
-            for (size_type i = 0; i < N; ++i)
-                pod_[i] -= rhs.pod_[i];
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i)
+                    pod_[i] -= rhs.pod_[i];
+            } else {
+                backend::sub<T, N>(data(), data(), rhs.data());
+            }
             return *this;
         }
 
         constexpr Tensor &operator*=(const Tensor &rhs) noexcept {
-            for (size_type i = 0; i < N; ++i)
-                pod_[i] *= rhs.pod_[i];
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i)
+                    pod_[i] *= rhs.pod_[i];
+            } else {
+                backend::mul<T, N>(data(), data(), rhs.data());
+            }
             return *this;
         }
 
         constexpr Tensor &operator/=(const Tensor &rhs) noexcept {
-            for (size_type i = 0; i < N; ++i)
-                pod_[i] /= rhs.pod_[i];
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i)
+                    pod_[i] /= rhs.pod_[i];
+            } else {
+                backend::div<T, N>(data(), data(), rhs.data());
+            }
             return *this;
         }
 
         constexpr Tensor &operator*=(T scalar) noexcept {
-            for (size_type i = 0; i < N; ++i)
-                pod_[i] *= scalar;
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i)
+                    pod_[i] *= scalar;
+            } else {
+                backend::mul_scalar<T, N>(data(), data(), scalar);
+            }
             return *this;
         }
 
         constexpr Tensor &operator/=(T scalar) noexcept {
-            for (size_type i = 0; i < N; ++i)
-                pod_[i] /= scalar;
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i)
+                    pod_[i] /= scalar;
+            } else {
+                backend::div_scalar<T, N>(data(), data(), scalar);
+            }
             return *this;
         }
 
@@ -116,40 +146,60 @@ namespace optinum::simd {
     template <typename T, std::size_t N>
     constexpr Tensor<T, N> operator+(const Tensor<T, N> &lhs, const Tensor<T, N> &rhs) noexcept {
         Tensor<T, N> result;
-        for (std::size_t i = 0; i < N; ++i)
-            result[i] = lhs[i] + rhs[i];
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i)
+                result[i] = lhs[i] + rhs[i];
+        } else {
+            backend::add<T, N>(result.data(), lhs.data(), rhs.data());
+        }
         return result;
     }
 
     template <typename T, std::size_t N>
     constexpr Tensor<T, N> operator-(const Tensor<T, N> &lhs, const Tensor<T, N> &rhs) noexcept {
         Tensor<T, N> result;
-        for (std::size_t i = 0; i < N; ++i)
-            result[i] = lhs[i] - rhs[i];
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i)
+                result[i] = lhs[i] - rhs[i];
+        } else {
+            backend::sub<T, N>(result.data(), lhs.data(), rhs.data());
+        }
         return result;
     }
 
     template <typename T, std::size_t N>
     constexpr Tensor<T, N> operator*(const Tensor<T, N> &lhs, const Tensor<T, N> &rhs) noexcept {
         Tensor<T, N> result;
-        for (std::size_t i = 0; i < N; ++i)
-            result[i] = lhs[i] * rhs[i];
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i)
+                result[i] = lhs[i] * rhs[i];
+        } else {
+            backend::mul<T, N>(result.data(), lhs.data(), rhs.data());
+        }
         return result;
     }
 
     template <typename T, std::size_t N>
     constexpr Tensor<T, N> operator/(const Tensor<T, N> &lhs, const Tensor<T, N> &rhs) noexcept {
         Tensor<T, N> result;
-        for (std::size_t i = 0; i < N; ++i)
-            result[i] = lhs[i] / rhs[i];
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i)
+                result[i] = lhs[i] / rhs[i];
+        } else {
+            backend::div<T, N>(result.data(), lhs.data(), rhs.data());
+        }
         return result;
     }
 
     // Scalar ops
     template <typename T, std::size_t N> constexpr Tensor<T, N> operator*(const Tensor<T, N> &lhs, T scalar) noexcept {
         Tensor<T, N> result;
-        for (std::size_t i = 0; i < N; ++i)
-            result[i] = lhs[i] * scalar;
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i)
+                result[i] = lhs[i] * scalar;
+        } else {
+            backend::mul_scalar<T, N>(result.data(), lhs.data(), scalar);
+        }
         return result;
     }
 
@@ -159,8 +209,12 @@ namespace optinum::simd {
 
     template <typename T, std::size_t N> constexpr Tensor<T, N> operator/(const Tensor<T, N> &lhs, T scalar) noexcept {
         Tensor<T, N> result;
-        for (std::size_t i = 0; i < N; ++i)
-            result[i] = lhs[i] / scalar;
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i)
+                result[i] = lhs[i] / scalar;
+        } else {
+            backend::div_scalar<T, N>(result.data(), lhs.data(), scalar);
+        }
         return result;
     }
 
@@ -181,24 +235,33 @@ namespace optinum::simd {
 
     // Common operations
     template <typename T, std::size_t N> constexpr T dot(const Tensor<T, N> &lhs, const Tensor<T, N> &rhs) noexcept {
-        T result{};
-        for (std::size_t i = 0; i < N; ++i)
-            result += lhs[i] * rhs[i];
-        return result;
+        if (std::is_constant_evaluated()) {
+            T result{};
+            for (std::size_t i = 0; i < N; ++i)
+                result += lhs[i] * rhs[i];
+            return result;
+        }
+        return backend::dot<T, N>(lhs.data(), rhs.data());
     }
 
     template <typename T, std::size_t N> constexpr T sum(const Tensor<T, N> &t) noexcept {
-        T result{};
-        for (std::size_t i = 0; i < N; ++i)
-            result += t[i];
-        return result;
+        if (std::is_constant_evaluated()) {
+            T result{};
+            for (std::size_t i = 0; i < N; ++i)
+                result += t[i];
+            return result;
+        }
+        return backend::reduce_sum<T, N>(t.data());
     }
 
-    template <typename T, std::size_t N> T norm(const Tensor<T, N> &t) noexcept { return std::sqrt(dot(t, t)); }
+    template <typename T, std::size_t N> T norm(const Tensor<T, N> &t) noexcept {
+        return backend::norm_l2<T, N>(t.data());
+    }
 
     template <typename T, std::size_t N> Tensor<T, N> normalized(const Tensor<T, N> &t) noexcept {
-        T n = norm(t);
-        return (n > T{}) ? t / n : t;
+        Tensor<T, N> result;
+        backend::normalize<T, N>(result.data(), t.data());
+        return result;
     }
 
     // Type aliases

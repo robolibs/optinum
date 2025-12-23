@@ -2,6 +2,10 @@
 
 #include <cmath>
 #include <datapod/matrix/matrix.hpp>
+#include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/backend/matmul.hpp>
+#include <optinum/simd/backend/transpose.hpp>
 #include <optinum/simd/tensor.hpp>
 
 namespace optinum::simd {
@@ -78,26 +82,42 @@ namespace optinum::simd {
 
         // Compound assignment (element-wise)
         constexpr Matrix &operator+=(const Matrix &rhs) noexcept {
-            for (size_type i = 0; i < R * C; ++i)
-                pod_[i] += rhs.pod_[i];
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < R * C; ++i)
+                    pod_[i] += rhs.pod_[i];
+            } else {
+                backend::add<T, R * C>(data(), data(), rhs.data());
+            }
             return *this;
         }
 
         constexpr Matrix &operator-=(const Matrix &rhs) noexcept {
-            for (size_type i = 0; i < R * C; ++i)
-                pod_[i] -= rhs.pod_[i];
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < R * C; ++i)
+                    pod_[i] -= rhs.pod_[i];
+            } else {
+                backend::sub<T, R * C>(data(), data(), rhs.data());
+            }
             return *this;
         }
 
         constexpr Matrix &operator*=(T scalar) noexcept {
-            for (size_type i = 0; i < R * C; ++i)
-                pod_[i] *= scalar;
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < R * C; ++i)
+                    pod_[i] *= scalar;
+            } else {
+                backend::mul_scalar<T, R * C>(data(), data(), scalar);
+            }
             return *this;
         }
 
         constexpr Matrix &operator/=(T scalar) noexcept {
-            for (size_type i = 0; i < R * C; ++i)
-                pod_[i] /= scalar;
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < R * C; ++i)
+                    pod_[i] /= scalar;
+            } else {
+                backend::div_scalar<T, R * C>(data(), data(), scalar);
+            }
             return *this;
         }
 
@@ -119,16 +139,24 @@ namespace optinum::simd {
     template <typename T, std::size_t R, std::size_t C>
     constexpr Matrix<T, R, C> operator+(const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
         Matrix<T, R, C> result;
-        for (std::size_t i = 0; i < R * C; ++i)
-            result[i] = lhs[i] + rhs[i];
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < R * C; ++i)
+                result[i] = lhs[i] + rhs[i];
+        } else {
+            backend::add<T, R * C>(result.data(), lhs.data(), rhs.data());
+        }
         return result;
     }
 
     template <typename T, std::size_t R, std::size_t C>
     constexpr Matrix<T, R, C> operator-(const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
         Matrix<T, R, C> result;
-        for (std::size_t i = 0; i < R * C; ++i)
-            result[i] = lhs[i] - rhs[i];
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < R * C; ++i)
+                result[i] = lhs[i] - rhs[i];
+        } else {
+            backend::sub<T, R * C>(result.data(), lhs.data(), rhs.data());
+        }
         return result;
     }
 
@@ -136,8 +164,12 @@ namespace optinum::simd {
     template <typename T, std::size_t R, std::size_t C>
     constexpr Matrix<T, R, C> operator*(const Matrix<T, R, C> &lhs, T scalar) noexcept {
         Matrix<T, R, C> result;
-        for (std::size_t i = 0; i < R * C; ++i)
-            result[i] = lhs[i] * scalar;
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < R * C; ++i)
+                result[i] = lhs[i] * scalar;
+        } else {
+            backend::mul_scalar<T, R * C>(result.data(), lhs.data(), scalar);
+        }
         return result;
     }
 
@@ -149,8 +181,12 @@ namespace optinum::simd {
     template <typename T, std::size_t R, std::size_t C>
     constexpr Matrix<T, R, C> operator/(const Matrix<T, R, C> &lhs, T scalar) noexcept {
         Matrix<T, R, C> result;
-        for (std::size_t i = 0; i < R * C; ++i)
-            result[i] = lhs[i] / scalar;
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < R * C; ++i)
+                result[i] = lhs[i] / scalar;
+        } else {
+            backend::div_scalar<T, R * C>(result.data(), lhs.data(), scalar);
+        }
         return result;
     }
 
@@ -158,13 +194,17 @@ namespace optinum::simd {
     template <typename T, std::size_t R, std::size_t K, std::size_t C>
     constexpr Matrix<T, R, C> operator*(const Matrix<T, R, K> &lhs, const Matrix<T, K, C> &rhs) noexcept {
         Matrix<T, R, C> result;
-        result.fill(T{});
-        for (std::size_t i = 0; i < R; ++i) {
-            for (std::size_t j = 0; j < C; ++j) {
-                for (std::size_t k = 0; k < K; ++k) {
-                    result(i, j) += lhs(i, k) * rhs(k, j);
+        if (std::is_constant_evaluated()) {
+            result.fill(T{});
+            for (std::size_t i = 0; i < R; ++i) {
+                for (std::size_t j = 0; j < C; ++j) {
+                    for (std::size_t k = 0; k < K; ++k) {
+                        result(i, j) += lhs(i, k) * rhs(k, j);
+                    }
                 }
             }
+        } else {
+            backend::matmul<T, R, K, C>(result.data(), lhs.data(), rhs.data());
         }
         return result;
     }
@@ -173,11 +213,15 @@ namespace optinum::simd {
     template <typename T, std::size_t R, std::size_t C>
     constexpr Tensor<T, R> operator*(const Matrix<T, R, C> &mat, const Tensor<T, C> &vec) noexcept {
         Tensor<T, R> result;
-        result.fill(T{});
-        for (std::size_t i = 0; i < R; ++i) {
-            for (std::size_t j = 0; j < C; ++j) {
-                result[i] += mat(i, j) * vec[j];
+        if (std::is_constant_evaluated()) {
+            result.fill(T{});
+            for (std::size_t i = 0; i < R; ++i) {
+                for (std::size_t j = 0; j < C; ++j) {
+                    result[i] += mat(i, j) * vec[j];
+                }
             }
+        } else {
+            backend::matvec<T, R, C>(result.data(), mat.data(), vec.data());
         }
         return result;
     }
@@ -201,10 +245,14 @@ namespace optinum::simd {
     template <typename T, std::size_t R, std::size_t C>
     constexpr Matrix<T, C, R> transpose(const Matrix<T, R, C> &mat) noexcept {
         Matrix<T, C, R> result;
-        for (std::size_t i = 0; i < R; ++i) {
-            for (std::size_t j = 0; j < C; ++j) {
-                result(j, i) = mat(i, j);
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < R; ++i) {
+                for (std::size_t j = 0; j < C; ++j) {
+                    result(j, i) = mat(i, j);
+                }
             }
+        } else {
+            backend::transpose<T, R, C>(result.data(), mat.data());
         }
         return result;
     }
@@ -219,10 +267,7 @@ namespace optinum::simd {
 
     // Frobenius norm
     template <typename T, std::size_t R, std::size_t C> T frobenius_norm(const Matrix<T, R, C> &mat) noexcept {
-        T sum{};
-        for (std::size_t i = 0; i < R * C; ++i)
-            sum += mat[i] * mat[i];
-        return std::sqrt(sum);
+        return std::sqrt(backend::dot<T, R * C>(mat.data(), mat.data()));
     }
 
     // Identity matrix factory

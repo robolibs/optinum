@@ -505,31 +505,31 @@ include/optinum/
   - [x] `OPTINUM_VECTORIZE` / `OPTINUM_UNROLL`
 
 #### 1.2 SIMD Register Abstraction [TODO]
-- [ ] `simd/intrinsic/simd_vec.hpp` - Main SIMDVec template
-- [ ] `simd/intrinsic/sse.hpp` - SSE specializations
-  - [ ] `SIMDVec<float, 4>` wrapping `__m128`
-  - [ ] `SIMDVec<double, 2>` wrapping `__m128d`
-  - [ ] Operations: load, loadu, store, storeu, set1, setzero
-  - [ ] Operations: add, sub, mul, div, fma
-  - [ ] Operations: sqrt, rsqrt, min, max
-  - [ ] Operations: hsum (horizontal sum)
-- [ ] `simd/intrinsic/avx.hpp` - AVX specializations
-- [ ] `simd/intrinsic/avx512.hpp` - AVX-512 specializations
-- [ ] `simd/intrinsic/neon.hpp` - ARM NEON specializations
+- [x] `simd/intrinsic/simd_vec.hpp` - Main `SIMDVec<T, Width>` template (scalar fallback)
+- [x] `simd/intrinsic/sse.hpp` - SSE specializations
+  - [x] `SIMDVec<float, 4>` wrapping `__m128`
+  - [x] `SIMDVec<double, 2>` wrapping `__m128d`
+  - [x] Operations: load, loadu, store, storeu, broadcast
+  - [x] Operations: add, sub, mul, div, fma/fms
+  - [x] Operations: sqrt, rsqrt, min, max
+  - [x] Operations: hsum/hmin/hmax (horizontal reductions)
+- [x] `simd/intrinsic/avx.hpp` - AVX specializations
+- [x] `simd/intrinsic/avx512.hpp` - AVX-512 specializations
+- [x] `simd/intrinsic/neon.hpp` - ARM NEON specializations
 
 #### 1.3 Backend Operations [TODO]
-- [ ] `simd/backend/backend.hpp` - Common utilities
-- [ ] `simd/backend/elementwise.hpp` - add, sub, mul, div
-- [ ] `simd/backend/reduce.hpp` - sum, min, max
-- [ ] `simd/backend/dot.hpp` - Dot product
-- [ ] `simd/backend/norm.hpp` - L2 norm, normalize
-- [ ] `simd/backend/matmul.hpp` - Matrix multiplication
-- [ ] `simd/backend/transpose.hpp` - Matrix transpose
+- [x] `simd/backend/backend.hpp` - Common utilities
+- [x] `simd/backend/elementwise.hpp` - add, sub, mul, div (+ scalar variants)
+- [x] `simd/backend/reduce.hpp` - sum, min, max
+- [x] `simd/backend/dot.hpp` - Dot product
+- [x] `simd/backend/norm.hpp` - L2 norm, normalize
+- [x] `simd/backend/matmul.hpp` - Matrix multiplication + matvec (column-major)
+- [x] `simd/backend/transpose.hpp` - Matrix transpose (column-major)
 
 #### 1.4 Update Tensor/Matrix to Use Backend [TODO]
-- [ ] Update `simd/tensor.hpp` to use backend
-- [ ] Update `simd/matrix.hpp` to use backend
-- [ ] Maintain `constexpr` for compile-time evaluation
+- [x] Update `simd/tensor.hpp` to use backend
+- [x] Update `simd/matrix.hpp` to use backend
+- [x] Maintain `constexpr` for compile-time evaluation (`std::is_constant_evaluated()` scalar fallback)
 
 ### Phase 2: Linear Algebra [FUTURE]
 - [ ] `lina/basic/` - matmul, transpose, inverse, determinant
@@ -652,8 +652,17 @@ include/optinum/simd/arch/arch.hpp       ->  test/simd/arch/arch_test.cpp       
 include/optinum/simd/scalar.hpp          ->  test/simd/scalar_test.cpp          ✓
 include/optinum/simd/tensor.hpp          ->  test/simd/tensor_test.cpp          ✓
 include/optinum/simd/matrix.hpp          ->  test/simd/matrix_test.cpp          ✓
-include/optinum/simd/intrinsic/sse.hpp   ->  test/simd/intrinsic/sse_test.cpp
-include/optinum/simd/backend/dot.hpp     ->  test/simd/backend/dot_test.cpp
+include/optinum/simd/intrinsic/simd_vec.hpp ->  test/simd/intrinsic/simd_vec_test.cpp ✓
+include/optinum/simd/intrinsic/sse.hpp   ->  test/simd/intrinsic/sse_test.cpp   ✓
+include/optinum/simd/intrinsic/avx.hpp   ->  test/simd/intrinsic/avx_test.cpp   ✓
+include/optinum/simd/intrinsic/avx512.hpp -> test/simd/intrinsic/avx512_test.cpp ✓
+include/optinum/simd/intrinsic/neon.hpp  ->  test/simd/intrinsic/neon_test.cpp  ✓
+include/optinum/simd/backend/elementwise.hpp -> test/simd/backend/elementwise_test.cpp ✓
+include/optinum/simd/backend/reduce.hpp  ->  test/simd/backend/reduce_test.cpp  ✓
+include/optinum/simd/backend/dot.hpp     ->  test/simd/backend/dot_test.cpp     ✓
+include/optinum/simd/backend/norm.hpp    ->  test/simd/backend/norm_test.cpp    ✓
+include/optinum/simd/backend/matmul.hpp  ->  test/simd/backend/matmul_test.cpp  ✓
+include/optinum/simd/backend/transpose.hpp -> test/simd/backend/transpose_test.cpp ✓
 include/optinum/lina/basic/matmul.hpp    ->  test/lina/basic/matmul_test.cpp
 include/optinum/opti/problem/sphere.hpp  ->  test/opti/problem/sphere_test.cpp  ✓
 ```
