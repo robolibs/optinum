@@ -11,6 +11,9 @@
 #include <optinum/simd/intrinsic/simd_vec.hpp>
 #include <optinum/simd/intrinsic/sse.hpp>
 
+// SIMD math
+#include <optinum/simd/math/simd_math.hpp>
+
 // User-facing types
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/scalar.hpp>

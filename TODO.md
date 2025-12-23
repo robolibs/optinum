@@ -483,7 +483,7 @@ include/optinum/
 
 ## Implementation Roadmap
 
-### Phase 1: SIMD Foundation [IN PROGRESS]
+### Phase 1: SIMD Foundation [DONE]
 
 #### 1.1 Architecture Detection [DONE]
 - [x] `simd/arch/arch.hpp` - Platform & SIMD capability detection
@@ -504,7 +504,7 @@ include/optinum/
   - [x] `OPTINUM_UNREACHABLE` / `OPTINUM_ASSUME`
   - [x] `OPTINUM_VECTORIZE` / `OPTINUM_UNROLL`
 
-#### 1.2 SIMD Register Abstraction [TODO]
+#### 1.2 SIMD Register Abstraction [DONE]
 - [x] `simd/intrinsic/simd_vec.hpp` - Main `SIMDVec<T, Width>` template (scalar fallback)
 - [x] `simd/intrinsic/sse.hpp` - SSE specializations
   - [x] `SIMDVec<float, 4>` wrapping `__m128`
@@ -517,7 +517,7 @@ include/optinum/
 - [x] `simd/intrinsic/avx512.hpp` - AVX-512 specializations
 - [x] `simd/intrinsic/neon.hpp` - ARM NEON specializations
 
-#### 1.3 Backend Operations [TODO]
+#### 1.3 Backend Operations [DONE]
 - [x] `simd/backend/backend.hpp` - Common utilities
 - [x] `simd/backend/elementwise.hpp` - add, sub, mul, div (+ scalar variants)
 - [x] `simd/backend/reduce.hpp` - sum, min, max
@@ -526,10 +526,30 @@ include/optinum/
 - [x] `simd/backend/matmul.hpp` - Matrix multiplication + matvec (column-major)
 - [x] `simd/backend/transpose.hpp` - Matrix transpose (column-major)
 
-#### 1.4 Update Tensor/Matrix to Use Backend [TODO]
+#### 1.4 Update Tensor/Matrix to Use Backend [DONE]
 - [x] Update `simd/tensor.hpp` to use backend
 - [x] Update `simd/matrix.hpp` to use backend
 - [x] Maintain `constexpr` for compile-time evaluation (`std::is_constant_evaluated()` scalar fallback)
+
+#### 1.5 SIMD Math (Fastor-like) [DONE]
+- [x] `simd/math/simd_math.hpp` - Module header (public SIMD math API)
+- [x] `simd/math/elementary.hpp` - min/max/clamp, abs, sign, ceil/floor/round/trunc
+- [x] `simd/math/exponential.hpp` - exp/exp2/expm1, log/log2/log10/log1p
+- [x] `simd/math/trig.hpp` - sin/cos/tan, asin/acos/atan/atan2
+- [x] `simd/math/hyperbolic.hpp` - sinh/cosh/tanh, asinh/acosh/atanh
+- [x] `simd/math/pow.hpp` - pow, cbrt
+- [x] `simd/math/special.hpp` - erf/erfc, hypot, tgamma/lgamma
+- [ ] Optional: `simd/math/sleef.hpp` - SLEEF bindings behind `OPTINUM_USE_SLEEF` (preferred for exp/log/trig accuracy)
+- [ ] Optional: `simd/math/svml.hpp` - Intel SVML hooks behind `OPTINUM_USE_SVML`
+- [x] Policy: always provide scalar fallback (`std::`), SIMD paths use intrinsics and/or poly approximations
+
+#### 1.6 SIMD Coverage Breadth (beyond float/double) [TODO]
+- [ ] Integer SIMD: `SIMDVec<int32_t, 4/8/16>`, `SIMDVec<int64_t, 2/4/8>` (x86) and NEON equivalents
+- [ ] Comparisons and masks: `cmp_eq/ne/lt/le/gt/ge` returning mask + `any/all`, `blend/select`
+- [ ] Masked load/store + remainder-safe kernels (optional gather/scatter later)
+- [ ] Horizontal reductions: add `hprod` and ensure reductions avoid scalar store-to-stack where possible
+- [ ] Bitwise ops for integer SIMD (and/or/xor, shifts)
+- [ ] Complex SIMD (TBD): depends on datapod complex type decision; keep API aligned with dp types
 
 ### Phase 2: Linear Algebra [DONE]
 - [x] `lina/basic/` - matmul, transpose, inverse, determinant
@@ -663,6 +683,15 @@ include/optinum/simd/backend/dot.hpp     ->  test/simd/backend/dot_test.cpp     
 include/optinum/simd/backend/norm.hpp    ->  test/simd/backend/norm_test.cpp    ✓
 include/optinum/simd/backend/matmul.hpp  ->  test/simd/backend/matmul_test.cpp  ✓
 include/optinum/simd/backend/transpose.hpp -> test/simd/backend/transpose_test.cpp ✓
+include/optinum/simd/math/simd_math.hpp        ->  test/simd/math/simd_math_test.cpp
+include/optinum/simd/math/elementary.hpp       ->  test/simd/math/elementary_test.cpp
+include/optinum/simd/math/exponential.hpp      ->  test/simd/math/exponential_test.cpp
+include/optinum/simd/math/trig.hpp             ->  test/simd/math/trig_test.cpp
+include/optinum/simd/math/hyperbolic.hpp       ->  test/simd/math/hyperbolic_test.cpp
+include/optinum/simd/math/pow.hpp              ->  test/simd/math/pow_test.cpp
+include/optinum/simd/math/special.hpp          ->  test/simd/math/special_test.cpp
+include/optinum/simd/math/sleef.hpp            ->  test/simd/math/sleef_test.cpp
+include/optinum/simd/math/svml.hpp             ->  test/simd/math/svml_test.cpp
 include/optinum/lina/lina.hpp                  ->  test/lina/lina_test.cpp ✓
 include/optinum/lina/basic/matmul.hpp          ->  test/lina/basic/lina_matmul_test.cpp ✓
 include/optinum/lina/basic/transpose.hpp       ->  test/lina/basic/lina_transpose_test.cpp ✓
