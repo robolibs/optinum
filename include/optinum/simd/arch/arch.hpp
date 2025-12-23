@@ -5,11 +5,9 @@
 // CPU Architecture and SIMD Capability Detection
 // =============================================================================
 
-namespace optinum::simd::arch {
-
-    // =============================================================================
-    // Compiler Detection
-    // =============================================================================
+// =============================================================================
+// Compiler Detection (must be outside namespace for macros)
+// =============================================================================
 
 #if defined(__clang__)
 #define OPTINUM_COMPILER_CLANG 1
@@ -28,9 +26,9 @@ namespace optinum::simd::arch {
 #define OPTINUM_COMPILER_VERSION 0
 #endif
 
-    // =============================================================================
-    // Platform Detection
-    // =============================================================================
+// =============================================================================
+// Platform Detection
+// =============================================================================
 
 #if defined(_WIN32) || defined(_WIN64)
 #define OPTINUM_PLATFORM_WINDOWS 1
@@ -44,9 +42,9 @@ namespace optinum::simd::arch {
 #define OPTINUM_PLATFORM_UNKNOWN 1
 #endif
 
-    // =============================================================================
-    // Architecture Detection
-    // =============================================================================
+// =============================================================================
+// Architecture Detection
+// =============================================================================
 
 #if defined(__x86_64__) || defined(_M_X64)
 #define OPTINUM_ARCH_X86_64 1
@@ -71,9 +69,9 @@ namespace optinum::simd::arch {
 #define OPTINUM_ARCH_UNKNOWN 1
 #endif
 
-    // =============================================================================
-    // x86/x86_64 SIMD Detection
-    // =============================================================================
+// =============================================================================
+// x86/x86_64 SIMD Detection
+// =============================================================================
 
 #if defined(OPTINUM_ARCH_X86_64) || defined(OPTINUM_ARCH_X86)
 
@@ -164,9 +162,9 @@ namespace optinum::simd::arch {
 
 #endif // x86/x86_64
 
-    // =============================================================================
-    // ARM SIMD Detection
-    // =============================================================================
+// =============================================================================
+// ARM SIMD Detection
+// =============================================================================
 
 #if defined(OPTINUM_ARCH_ARM64) || defined(OPTINUM_ARCH_ARM32)
 
@@ -192,9 +190,9 @@ namespace optinum::simd::arch {
 
 #endif // ARM
 
-    // =============================================================================
-    // RISC-V SIMD Detection
-    // =============================================================================
+// =============================================================================
+// RISC-V SIMD Detection
+// =============================================================================
 
 #if defined(OPTINUM_ARCH_RISCV)
 
@@ -205,35 +203,27 @@ namespace optinum::simd::arch {
 
 #endif // RISC-V
 
-    // =============================================================================
-    // Determine Best Available SIMD Width
-    // =============================================================================
+// =============================================================================
+// SIMD Level Macros
+// =============================================================================
 
 #if defined(OPTINUM_HAS_AVX512F)
-    inline constexpr int SIMD_WIDTH_BYTES = 64;
-    inline constexpr int SIMD_WIDTH_FLOAT = 16;
-    inline constexpr int SIMD_WIDTH_DOUBLE = 8;
 #define OPTINUM_SIMD_LEVEL 512
+#define OPTINUM_SIMD_WIDTH_BYTES 64
 #elif defined(OPTINUM_HAS_AVX)
-    inline constexpr int SIMD_WIDTH_BYTES = 32;
-    inline constexpr int SIMD_WIDTH_FLOAT = 8;
-    inline constexpr int SIMD_WIDTH_DOUBLE = 4;
 #define OPTINUM_SIMD_LEVEL 256
+#define OPTINUM_SIMD_WIDTH_BYTES 32
 #elif defined(OPTINUM_HAS_SSE) || defined(OPTINUM_HAS_NEON)
-    inline constexpr int SIMD_WIDTH_BYTES = 16;
-    inline constexpr int SIMD_WIDTH_FLOAT = 4;
-    inline constexpr int SIMD_WIDTH_DOUBLE = 2;
 #define OPTINUM_SIMD_LEVEL 128
+#define OPTINUM_SIMD_WIDTH_BYTES 16
 #else
-    inline constexpr int SIMD_WIDTH_BYTES = 0;
-    inline constexpr int SIMD_WIDTH_FLOAT = 1;
-    inline constexpr int SIMD_WIDTH_DOUBLE = 1;
 #define OPTINUM_SIMD_LEVEL 0
+#define OPTINUM_SIMD_WIDTH_BYTES 0
 #endif
 
-    // =============================================================================
-    // Include Appropriate SIMD Headers
-    // =============================================================================
+// =============================================================================
+// Include Appropriate SIMD Headers (MUST be outside namespace!)
+// =============================================================================
 
 #if defined(OPTINUM_HAS_AVX512F)
 #include <immintrin.h>
@@ -255,17 +245,36 @@ namespace optinum::simd::arch {
 #include <xmmintrin.h>
 #endif
 
-#if defined(OPTINUM_HAS_FMA)
-    // FMA is included via immintrin.h
-#endif
-
 #if defined(OPTINUM_HAS_NEON)
 #include <arm_neon.h>
 #endif
 
-    // =============================================================================
+// =============================================================================
+// Namespace with constexpr constants and query functions
+// =============================================================================
+
+namespace optinum::simd::arch {
+
+// SIMD width constants
+#if defined(OPTINUM_HAS_AVX512F)
+    inline constexpr int SIMD_WIDTH_BYTES = 64;
+    inline constexpr int SIMD_WIDTH_FLOAT = 16;
+    inline constexpr int SIMD_WIDTH_DOUBLE = 8;
+#elif defined(OPTINUM_HAS_AVX)
+    inline constexpr int SIMD_WIDTH_BYTES = 32;
+    inline constexpr int SIMD_WIDTH_FLOAT = 8;
+    inline constexpr int SIMD_WIDTH_DOUBLE = 4;
+#elif defined(OPTINUM_HAS_SSE) || defined(OPTINUM_HAS_NEON)
+    inline constexpr int SIMD_WIDTH_BYTES = 16;
+    inline constexpr int SIMD_WIDTH_FLOAT = 4;
+    inline constexpr int SIMD_WIDTH_DOUBLE = 2;
+#else
+    inline constexpr int SIMD_WIDTH_BYTES = 0;
+    inline constexpr int SIMD_WIDTH_FLOAT = 1;
+    inline constexpr int SIMD_WIDTH_DOUBLE = 1;
+#endif
+
     // Compile-time Feature Query Functions
-    // =============================================================================
 
     [[nodiscard]] consteval bool has_sse() noexcept {
 #if defined(OPTINUM_HAS_SSE)
@@ -367,6 +376,12 @@ namespace optinum::simd::arch {
 
     [[nodiscard]] consteval int simd_width_bytes() noexcept { return SIMD_WIDTH_BYTES; }
 
-    template <typename T> [[nodiscard]] consteval int simd_width() noexcept { return SIMD_WIDTH_BYTES / sizeof(T); }
+    template <typename T> [[nodiscard]] consteval int simd_width() noexcept {
+        if constexpr (SIMD_WIDTH_BYTES == 0) {
+            return 1;
+        } else {
+            return SIMD_WIDTH_BYTES / sizeof(T);
+        }
+    }
 
 } // namespace optinum::simd::arch
