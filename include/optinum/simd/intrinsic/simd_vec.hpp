@@ -187,6 +187,67 @@ namespace optinum::simd {
         }
 
         // ==========================================================================
+        // Bitwise (for integer types)
+        // ==========================================================================
+
+        template <typename U = T, typename = std::enable_if_t<std::is_integral_v<U>>>
+        OPTINUM_INLINE SIMDVec operator&(const SIMDVec &rhs) const noexcept {
+            SIMDVec result;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = data_[i] & rhs.data_[i];
+            return result;
+        }
+
+        template <typename U = T, typename = std::enable_if_t<std::is_integral_v<U>>>
+        OPTINUM_INLINE SIMDVec operator|(const SIMDVec &rhs) const noexcept {
+            SIMDVec result;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = data_[i] | rhs.data_[i];
+            return result;
+        }
+
+        template <typename U = T, typename = std::enable_if_t<std::is_integral_v<U>>>
+        OPTINUM_INLINE SIMDVec operator^(const SIMDVec &rhs) const noexcept {
+            SIMDVec result;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = data_[i] ^ rhs.data_[i];
+            return result;
+        }
+
+        template <typename U = T, typename = std::enable_if_t<std::is_integral_v<U>>>
+        OPTINUM_INLINE SIMDVec operator~() const noexcept {
+            SIMDVec result;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = ~data_[i];
+            return result;
+        }
+
+        template <typename U = T, typename = std::enable_if_t<std::is_integral_v<U>>>
+        OPTINUM_INLINE SIMDVec operator<<(int count) const noexcept {
+            SIMDVec result;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = data_[i] << count;
+            return result;
+        }
+
+        template <typename U = T, typename = std::enable_if_t<std::is_integral_v<U>>>
+        OPTINUM_INLINE SIMDVec operator>>(int count) const noexcept {
+            SIMDVec result;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = data_[i] >> count;
+            return result;
+        }
+
+        template <typename U = T, typename = std::enable_if_t<std::is_integral_v<U>>>
+        OPTINUM_INLINE SIMDVec shr_logical(int count) const noexcept {
+            SIMDVec result;
+            using unsigned_type = std::make_unsigned_t<T>;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = static_cast<T>(static_cast<unsigned_type>(data_[i]) >> count);
+            return result;
+        }
+
+        // ==========================================================================
         // Reductions
         // ==========================================================================
 
@@ -208,6 +269,13 @@ namespace optinum::simd {
             T result = data_[0];
             for (std::size_t i = 1; i < width; ++i)
                 result = (data_[i] > result) ? data_[i] : result;
+            return result;
+        }
+
+        OPTINUM_INLINE T hprod() const noexcept {
+            T result = data_[0];
+            for (std::size_t i = 1; i < width; ++i)
+                result *= data_[i];
             return result;
         }
 

@@ -300,6 +300,262 @@ namespace optinum::simd {
         }
     };
 
+    // =============================================================================
+    // SIMDVec<int32_t, 16> - AVX-512 integer (16 x 32-bit signed integers)
+    // =============================================================================
+
+    template <> struct SIMDVec<int32_t, 16> {
+        using value_type = int32_t;
+        using native_type = __m512i;
+        static constexpr std::size_t width = 16;
+
+        native_type value;
+
+        OPTINUM_INLINE SIMDVec() noexcept : value(_mm512_setzero_si512()) {}
+        OPTINUM_INLINE explicit SIMDVec(int32_t val) noexcept : value(_mm512_set1_epi32(val)) {}
+        OPTINUM_INLINE explicit SIMDVec(native_type v) noexcept : value(v) {}
+
+        OPTINUM_INLINE SIMDVec &operator=(int32_t val) noexcept {
+            value = _mm512_set1_epi32(val);
+            return *this;
+        }
+        OPTINUM_INLINE SIMDVec &operator=(native_type v) noexcept {
+            value = v;
+            return *this;
+        }
+
+        OPTINUM_INLINE static SIMDVec load(const int32_t *ptr) noexcept {
+            return SIMDVec(_mm512_load_si512(reinterpret_cast<const __m512i *>(ptr)));
+        }
+        OPTINUM_INLINE static SIMDVec loadu(const int32_t *ptr) noexcept {
+            return SIMDVec(_mm512_loadu_si512(reinterpret_cast<const __m512i *>(ptr)));
+        }
+        OPTINUM_INLINE void store(int32_t *ptr) const noexcept {
+            _mm512_store_si512(reinterpret_cast<__m512i *>(ptr), value);
+        }
+        OPTINUM_INLINE void storeu(int32_t *ptr) const noexcept {
+            _mm512_storeu_si512(reinterpret_cast<__m512i *>(ptr), value);
+        }
+
+        OPTINUM_INLINE int32_t operator[](std::size_t i) const noexcept {
+            alignas(64) int32_t tmp[16];
+            _mm512_store_si512(reinterpret_cast<__m512i *>(tmp), value);
+            return tmp[i];
+        }
+
+        // Arithmetic
+        OPTINUM_INLINE SIMDVec operator+(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_add_epi32(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator-(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_sub_epi32(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator*(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_mullo_epi32(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator-() const noexcept {
+            return SIMDVec(_mm512_sub_epi32(_mm512_setzero_si512(), value));
+        }
+
+        // Scalar operations
+        OPTINUM_INLINE SIMDVec operator+(int32_t rhs) const noexcept {
+            return SIMDVec(_mm512_add_epi32(value, _mm512_set1_epi32(rhs)));
+        }
+        OPTINUM_INLINE SIMDVec operator-(int32_t rhs) const noexcept {
+            return SIMDVec(_mm512_sub_epi32(value, _mm512_set1_epi32(rhs)));
+        }
+        OPTINUM_INLINE SIMDVec operator*(int32_t rhs) const noexcept {
+            return SIMDVec(_mm512_mullo_epi32(value, _mm512_set1_epi32(rhs)));
+        }
+
+        // Compound assignment
+        OPTINUM_INLINE SIMDVec &operator+=(const SIMDVec &rhs) noexcept {
+            value = _mm512_add_epi32(value, rhs.value);
+            return *this;
+        }
+        OPTINUM_INLINE SIMDVec &operator-=(const SIMDVec &rhs) noexcept {
+            value = _mm512_sub_epi32(value, rhs.value);
+            return *this;
+        }
+        OPTINUM_INLINE SIMDVec &operator*=(const SIMDVec &rhs) noexcept {
+            value = _mm512_mullo_epi32(value, rhs.value);
+            return *this;
+        }
+
+        // Bitwise
+        OPTINUM_INLINE SIMDVec operator&(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_and_si512(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator|(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_or_si512(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator^(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_xor_si512(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator~() const noexcept {
+            return SIMDVec(_mm512_xor_si512(value, _mm512_set1_epi32(-1)));
+        }
+
+        // Shifts
+        OPTINUM_INLINE SIMDVec operator<<(int count) const noexcept { return SIMDVec(_mm512_slli_epi32(value, count)); }
+        OPTINUM_INLINE SIMDVec operator>>(int count) const noexcept { return SIMDVec(_mm512_srai_epi32(value, count)); }
+        OPTINUM_INLINE SIMDVec shr_logical(int count) const noexcept {
+            return SIMDVec(_mm512_srli_epi32(value, count));
+        }
+
+        // Reductions
+        OPTINUM_INLINE int32_t hsum() const noexcept { return _mm512_reduce_add_epi32(value); }
+        OPTINUM_INLINE int32_t hmin() const noexcept { return _mm512_reduce_min_epi32(value); }
+        OPTINUM_INLINE int32_t hmax() const noexcept { return _mm512_reduce_max_epi32(value); }
+        OPTINUM_INLINE int32_t hprod() const noexcept { return _mm512_reduce_mul_epi32(value); }
+
+        // Abs
+        OPTINUM_INLINE SIMDVec abs() const noexcept { return SIMDVec(_mm512_abs_epi32(value)); }
+
+        // Min/Max
+        OPTINUM_INLINE static SIMDVec min(const SIMDVec &a, const SIMDVec &b) noexcept {
+            return SIMDVec(_mm512_min_epi32(a.value, b.value));
+        }
+        OPTINUM_INLINE static SIMDVec max(const SIMDVec &a, const SIMDVec &b) noexcept {
+            return SIMDVec(_mm512_max_epi32(a.value, b.value));
+        }
+
+        // Dot product
+        OPTINUM_INLINE int32_t dot(const SIMDVec &other) const noexcept { return (*this * other).hsum(); }
+    };
+
+    // =============================================================================
+    // SIMDVec<int64_t, 8> - AVX-512 integer (8 x 64-bit signed integers)
+    // =============================================================================
+
+    template <> struct SIMDVec<int64_t, 8> {
+        using value_type = int64_t;
+        using native_type = __m512i;
+        static constexpr std::size_t width = 8;
+
+        native_type value;
+
+        OPTINUM_INLINE SIMDVec() noexcept : value(_mm512_setzero_si512()) {}
+        OPTINUM_INLINE explicit SIMDVec(int64_t val) noexcept : value(_mm512_set1_epi64(val)) {}
+        OPTINUM_INLINE explicit SIMDVec(native_type v) noexcept : value(v) {}
+
+        OPTINUM_INLINE SIMDVec &operator=(int64_t val) noexcept {
+            value = _mm512_set1_epi64(val);
+            return *this;
+        }
+        OPTINUM_INLINE SIMDVec &operator=(native_type v) noexcept {
+            value = v;
+            return *this;
+        }
+
+        OPTINUM_INLINE static SIMDVec load(const int64_t *ptr) noexcept {
+            return SIMDVec(_mm512_load_si512(reinterpret_cast<const __m512i *>(ptr)));
+        }
+        OPTINUM_INLINE static SIMDVec loadu(const int64_t *ptr) noexcept {
+            return SIMDVec(_mm512_loadu_si512(reinterpret_cast<const __m512i *>(ptr)));
+        }
+        OPTINUM_INLINE void store(int64_t *ptr) const noexcept {
+            _mm512_store_si512(reinterpret_cast<__m512i *>(ptr), value);
+        }
+        OPTINUM_INLINE void storeu(int64_t *ptr) const noexcept {
+            _mm512_storeu_si512(reinterpret_cast<__m512i *>(ptr), value);
+        }
+
+        OPTINUM_INLINE int64_t operator[](std::size_t i) const noexcept {
+            alignas(64) int64_t tmp[8];
+            _mm512_store_si512(reinterpret_cast<__m512i *>(tmp), value);
+            return tmp[i];
+        }
+
+        // Arithmetic
+        OPTINUM_INLINE SIMDVec operator+(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_add_epi64(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator-(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_sub_epi64(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator*(const SIMDVec &rhs) const noexcept {
+#ifdef OPTINUM_HAS_AVX512DQ
+            return SIMDVec(_mm512_mullo_epi64(value, rhs.value));
+#else
+            // Fallback for AVX-512F without DQ
+            alignas(64) int64_t a[8], b[8], r[8];
+            _mm512_store_si512(reinterpret_cast<__m512i *>(a), value);
+            _mm512_store_si512(reinterpret_cast<__m512i *>(b), rhs.value);
+            for (int i = 0; i < 8; ++i)
+                r[i] = a[i] * b[i];
+            return SIMDVec(_mm512_load_si512(reinterpret_cast<const __m512i *>(r)));
+#endif
+        }
+        OPTINUM_INLINE SIMDVec operator-() const noexcept {
+            return SIMDVec(_mm512_sub_epi64(_mm512_setzero_si512(), value));
+        }
+
+        // Scalar operations
+        OPTINUM_INLINE SIMDVec operator+(int64_t rhs) const noexcept {
+            return SIMDVec(_mm512_add_epi64(value, _mm512_set1_epi64(rhs)));
+        }
+        OPTINUM_INLINE SIMDVec operator-(int64_t rhs) const noexcept {
+            return SIMDVec(_mm512_sub_epi64(value, _mm512_set1_epi64(rhs)));
+        }
+        OPTINUM_INLINE SIMDVec operator*(int64_t rhs) const noexcept { return *this * SIMDVec(rhs); }
+
+        // Compound assignment
+        OPTINUM_INLINE SIMDVec &operator+=(const SIMDVec &rhs) noexcept {
+            value = _mm512_add_epi64(value, rhs.value);
+            return *this;
+        }
+        OPTINUM_INLINE SIMDVec &operator-=(const SIMDVec &rhs) noexcept {
+            value = _mm512_sub_epi64(value, rhs.value);
+            return *this;
+        }
+        OPTINUM_INLINE SIMDVec &operator*=(const SIMDVec &rhs) noexcept {
+            *this = *this * rhs;
+            return *this;
+        }
+
+        // Bitwise
+        OPTINUM_INLINE SIMDVec operator&(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_and_si512(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator|(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_or_si512(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator^(const SIMDVec &rhs) const noexcept {
+            return SIMDVec(_mm512_xor_si512(value, rhs.value));
+        }
+        OPTINUM_INLINE SIMDVec operator~() const noexcept {
+            return SIMDVec(_mm512_xor_si512(value, _mm512_set1_epi64(-1LL)));
+        }
+
+        // Shifts
+        OPTINUM_INLINE SIMDVec operator<<(int count) const noexcept { return SIMDVec(_mm512_slli_epi64(value, count)); }
+        OPTINUM_INLINE SIMDVec operator>>(int count) const noexcept { return SIMDVec(_mm512_srai_epi64(value, count)); }
+        OPTINUM_INLINE SIMDVec shr_logical(int count) const noexcept {
+            return SIMDVec(_mm512_srli_epi64(value, count));
+        }
+
+        // Reductions
+        OPTINUM_INLINE int64_t hsum() const noexcept { return _mm512_reduce_add_epi64(value); }
+        OPTINUM_INLINE int64_t hmin() const noexcept { return _mm512_reduce_min_epi64(value); }
+        OPTINUM_INLINE int64_t hmax() const noexcept { return _mm512_reduce_max_epi64(value); }
+        OPTINUM_INLINE int64_t hprod() const noexcept { return _mm512_reduce_mul_epi64(value); }
+
+        // Abs
+        OPTINUM_INLINE SIMDVec abs() const noexcept { return SIMDVec(_mm512_abs_epi64(value)); }
+
+        // Min/Max
+        OPTINUM_INLINE static SIMDVec min(const SIMDVec &a, const SIMDVec &b) noexcept {
+            return SIMDVec(_mm512_min_epi64(a.value, b.value));
+        }
+        OPTINUM_INLINE static SIMDVec max(const SIMDVec &a, const SIMDVec &b) noexcept {
+            return SIMDVec(_mm512_max_epi64(a.value, b.value));
+        }
+
+        // Dot product
+        OPTINUM_INLINE int64_t dot(const SIMDVec &other) const noexcept { return (*this * other).hsum(); }
+    };
+
 } // namespace optinum::simd
 
 #endif // OPTINUM_HAS_AVX512F
