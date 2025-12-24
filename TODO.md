@@ -408,7 +408,70 @@ make clean     # Clean build artifacts
 4. **SIMD everywhere**: All math operations vectorized when possible
 5. **Constexpr friendly**: Scalar fallback for compile-time evaluation
 6. **POD-friendly**: Easy serialization via `datapod`
-7. **Modern C++**: Requires C++20 (concepts, constexpr, fold expressions)
+7. **Use datapod types**: Prefer `dp::` types over `std::` equivalents (see below)
+8. **Modern C++**: Requires C++20 (concepts, constexpr, fold expressions)
+
+---
+
+## Datapod Type Usage
+
+**In `lina::` and `opti::` modules, always prefer datapod types over std equivalents:**
+
+### Error Handling
+| Use | Instead of |
+|-----|------------|
+| `dp::Result<T, dp::Error>` | exceptions, error codes |
+| `dp::Res<T>` | (alias for `Result<T, Error>`) |
+| `dp::Optional<T>` | `std::optional<T>` |
+| `dp::Error` | custom error types |
+
+### Containers
+| Use | Instead of |
+|-----|------------|
+| `dp::Vector<T>` | `std::vector<T>` |
+| `dp::Array<T, N>` | `std::array<T, N>` |
+| `dp::String` | `std::string` |
+| `dp::Pair<K, V>` | `std::pair<K, V>` |
+| `dp::Tuple<Ts...>` | `std::tuple<Ts...>` |
+| `dp::Variant<Ts...>` | `std::variant<Ts...>` |
+
+### Matrix Types (for data ownership)
+| Use | Description |
+|-----|-------------|
+| `dp::mat::scalar<T>` | Rank-0 (single value) |
+| `dp::mat::vector<T, N>` | Rank-1 (1D array) |
+| `dp::mat::matrix<T, R, C>` | Rank-2 (2D, column-major) |
+| `dp::mat::tensor<T, Dims...>` | Rank-N (N-dimensional) |
+
+### Error Factory Methods
+```cpp
+dp::Error::ok()                    // Success (code 0)
+dp::Error::invalid_argument(msg)   // Invalid input
+dp::Error::out_of_range(msg)       // Index out of bounds
+dp::Error::not_found(msg)          // Item not found
+// ... and more
+```
+
+### Usage Pattern
+```cpp
+// Failable operations return dp::Result
+dp::Result<dp::mat::vector<T, N>, dp::Error> solve(const Matrix& A, const Vector& b) {
+    if (is_singular(A)) {
+        return dp::Result<...>::err(dp::Error::invalid_argument("matrix is singular"));
+    }
+    // ... compute solution ...
+    return dp::Result<...>::ok(solution);
+}
+
+// Caller handles result
+auto result = solve(A, b);
+if (result.is_ok()) {
+    auto x = result.unwrap();
+} else {
+    auto err = result.unwrap_err();
+    // handle error
+}
+```
 
 ---
 
