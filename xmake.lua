@@ -92,7 +92,7 @@ package("datapod")
         if not os.isdir(sourcedir) then
             print("Fetching datapod from git...")
             os.mkdir(path.directory(sourcedir))
-            os.execv("git", {"clone", "--quiet", "--depth", "1", "--branch", "0.0.7",
+            os.execv("git", {"clone", "--quiet", "--depth", "1", "--branch", "0.0.8",
                             "-c", "advice.detachedHead=false",
                             "https://github.com/robolibs/datapod.git", sourcedir})
         end

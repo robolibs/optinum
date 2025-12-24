@@ -25,11 +25,38 @@ Accuracy: ~3-5 ULP (good for ML/graphics, not scientific computing).
 
 ### Implementation Plan
 
+#### Phase 0: Architecture Refactor to pack<T,W> [IN PROGRESS]
+
+**Goal:** Port all fast_* functions from old SIMDVec API to new clean pack<T,W> API
+
+| Old File | New File | Status | Notes |
+|----------|----------|--------|-------|
+| `fast_exp.hpp` (SIMDVec) | `exp.hpp` (pack) | ✅ DONE | Renamed fast_exp_new → exp, 7.95x speedup |
+| `fast_log.hpp` (SIMDVec) | `log.hpp` (pack) | 🚧 TODO | Port to pack<T,W> |
+| `fast_trig.hpp` (SIMDVec sin/cos) | `sin.hpp`, `cos.hpp` (pack) | 🚧 TODO | Split into separate files |
+| `fast_hyp.hpp` (SIMDVec tanh) | `tanh.hpp` (pack) | 🚧 TODO | Port to pack<T,W> |
+| `fast_pow.hpp` (SIMDVec pow/sqrt) | `pow.hpp`, `sqrt.hpp` (pack) | 🚧 TODO | Split into separate files |
+
+**Naming convention:**
+- Old API: `fast_exp`, `fast_log`, etc. (will be deleted later)
+- New API: `exp`, `log`, `sin`, `cos` (clean names in pack<T,W>)
+
+**Steps:**
+1. ✅ Rename `fast_exp_new.hpp` → `exp.hpp` and update to use `simd::exp()`
+2. ⏳ Port `fast_log` → `log.hpp` using pack<float,4/8> and pack<double,2/4>
+3. ⏳ Port `fast_sin/cos` → `sin.hpp`/`cos.hpp`
+4. ⏳ Port `fast_tanh` → `tanh.hpp`
+5. ⏳ Port `fast_pow` → `pow.hpp`
+6. ⏳ Port `fast_sqrt` → `sqrt.hpp`
+7. ⏳ Add all functions to `algo/transform.hpp`
+8. ⏳ Comprehensive benchmarks vs old API
+9. ⏳ Delete old fast_* files
+
 #### Phase A: Core Functions (Priority Order)
 
 | Function | Difficulty | Algorithm | Notes |
 |----------|------------|-----------|-------|
-| **exp** | Easy | Range reduction + polynomial | Already done: `fast_exp.hpp` |
+| **exp** | Easy | Range reduction + polynomial | ✅ DONE: `exp.hpp` with pack<T,W> |
 | **log** | Easy | Range reduction + polynomial | Use `log(x) = log(2^n * m) = n*ln2 + log(m)` |
 | **sin/cos** | Medium | Payne-Hanek reduction + polynomial | Reduce to [-pi/4, pi/4], use Taylor/Chebyshev |
 | **tan** | Medium | `sin/cos` ratio | After sin/cos work |
@@ -1477,3 +1504,65 @@ make clean     # Clean build artifacts
 ## License
 
 [TBD]
+
+---
+
+## Fastor Parity Gaps (vs `xtra/Fastor`)
+
+The following items are present in Fastor but not (yet) in Optinum. This list is intentionally scoped to the largest missing surface area beyond “Fastor uses SLEEF, we use our own SIMD math”.
+
+### 1) Rank-N tensor algebra (beyond rank-1/2)
+
+- **What**: General contractions/einsum and tensor-algebra ops for rank > 2 (including network einsum, strided contraction, outer products on higher ranks, etc.)
+- **Where**:
+  - Extend einsum beyond rank-1/2: `include/optinum/lina/algebra/einsum.hpp`
+  - Add rank-N tensor algebra module(s): `include/optinum/lina/algebra/` (e.g. `einsum_rankn.hpp`, `contraction_rankn.hpp`)
+  - Add backend kernels as needed: `include/optinum/simd/backend/` (e.g. `contraction.hpp`, `einsum.hpp`)
+  - Add tests mirroring Fastor coverage: `test/lina/algebra/`
+
+### 2) Slicing / view DSL (seq/all/last-style) + richer view test coverage
+
+- **What**: Compile-time and runtime slicing helpers (e.g. `all`, `seq`, `last`) and higher-level view composition similar to Fastor’s “views”.
+- **Where**:
+  - Add slicing primitives + index/range types: `include/optinum/simd/view/` (new headers)
+  - Integrate with `Kernel`/`*_view`: `include/optinum/simd/kernel.hpp`, `include/optinum/simd/view/*.hpp`
+  - Add extensive tests: `test/simd/view/` (cover 1D/2D/ND, mixed/overlapping assignments)
+
+### 3) External memory wrapping (`TensorMap` equivalent)
+
+- **What**: Non-owning tensor/matrix/vector adapters that can wrap user memory with explicit extents/strides (Fastor’s `TensorMap` concept).
+- **Where**:
+  - Add `Map` types (or align naming with existing views): `include/optinum/simd/` and/or `include/optinum/simd/view/`
+  - Add construction/interop helpers: `include/optinum/simd/bridge.hpp`
+  - Add tests: `test/simd/` and `test/lina/`
+
+### 4) Complex-number support (SIMD + math + linalg)
+
+- **What**: `std::complex<float/double>` support across SIMD vectors/packs, expression templates, and selected linalg kernels/tests.
+- **Where**:
+  - Add complex pack/intrinsics wrappers: `include/optinum/simd/pack/` and/or `include/optinum/simd/intrinsic/`
+  - Add complex-aware ops (dot/norm/matmul/etc.): `include/optinum/simd/backend/` + `include/optinum/lina/`
+  - Add tests: `test/simd/*` and `test/lina/*`
+
+### 5) Expression-template op minimisation / compile-time graph optimisation
+
+- **What**: Compile-time rewrite/minimisation for expression graphs (e.g. greedy matrix-chain, flop-reduction strategies) similar to Fastor’s `opmin` meta layer.
+- **Where**:
+  - Add meta layer: `include/optinum/lina/expr/` (new “meta/opmin” headers)
+  - Integrate with existing ETs: `include/optinum/lina/expr/expr.hpp`
+  - Add tests/benchmarks: `test/lina/expr/`, `examples/`
+
+### 6) Boolean tensor algebra utilities
+
+- **What**: Boolean / predicate utilities and comparisons (e.g. “is orthogonal”, “is uniform”, tolerant equality, etc.) with good test coverage.
+- **Where**:
+  - Add utilities: `include/optinum/lina/basic/` or `include/optinum/lina/algebra/` (new headers)
+  - Add tests: `test/lina/basic/` (and/or `test/lina/algebra/`)
+
+### 7) Packaging parity (CMake config + pkg-config) for consumers
+
+- **What**: `find_package(optinum)` config + version files and optionally a `optinum.pc`, similar to Fastor’s installation UX.
+- **Where**:
+  - Add CMake config template(s): `cmake/optinumConfig.cmake.in` (new)
+  - Generate and install config/version + export targets: update `CMakeLists.txt`
+  - Add pkg-config template: `cmake/optinum.pc.in` (new) and update `CMakeLists.txt`
