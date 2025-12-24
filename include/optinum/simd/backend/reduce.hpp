@@ -14,9 +14,9 @@ namespace optinum::simd::backend {
         constexpr std::size_t W = preferred_simd_lanes<T, N>();
         constexpr std::size_t main = main_loop_count<N, W>();
 
-        SIMDVec<T, W> acc(T{});
+        pack<T, W> acc(T{});
         for (std::size_t i = 0; i < main; i += W) {
-            acc += SIMDVec<T, W>::loadu(src + i);
+            acc += pack<T, W>::loadu(src + i);
         }
 
         T result = acc.hsum();
@@ -34,9 +34,9 @@ namespace optinum::simd::backend {
 
         if constexpr (W > 1) {
             if constexpr (N >= W) {
-                SIMDVec<T, W> acc = SIMDVec<T, W>::loadu(src);
+                pack<T, W> acc = pack<T, W>::loadu(src);
                 for (std::size_t i = W; i < main; i += W) {
-                    acc = SIMDVec<T, W>::min(acc, SIMDVec<T, W>::loadu(src + i));
+                    acc = pack<T, W>::min(acc, pack<T, W>::loadu(src + i));
                 }
                 result = acc.hmin();
                 for (std::size_t i = main; i < N; ++i) {
@@ -60,9 +60,9 @@ namespace optinum::simd::backend {
 
         if constexpr (W > 1) {
             if constexpr (N >= W) {
-                SIMDVec<T, W> acc = SIMDVec<T, W>::loadu(src);
+                pack<T, W> acc = pack<T, W>::loadu(src);
                 for (std::size_t i = W; i < main; i += W) {
-                    acc = SIMDVec<T, W>::max(acc, SIMDVec<T, W>::loadu(src + i));
+                    acc = pack<T, W>::max(acc, pack<T, W>::loadu(src + i));
                 }
                 result = acc.hmax();
                 for (std::size_t i = main; i < N; ++i) {

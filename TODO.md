@@ -25,32 +25,43 @@ Accuracy: ~3-5 ULP (good for ML/graphics, not scientific computing).
 
 ### Implementation Plan
 
-#### Phase 0: Architecture Refactor to pack<T,W> [IN PROGRESS]
+#### Phase 0: Architecture Refactor to pack<T,W> [COMPLETE ✅]
 
 **Goal:** Port all fast_* functions from old SIMDVec API to new clean pack<T,W> API
 
 | Old File | New File | Status | Notes |
 |----------|----------|--------|-------|
-| `fast_exp.hpp` (SIMDVec) | `exp.hpp` (pack) | ✅ DONE | Renamed fast_exp_new → exp, 7.95x speedup |
-| `fast_log.hpp` (SIMDVec) | `log.hpp` (pack) | 🚧 TODO | Port to pack<T,W> |
-| `fast_trig.hpp` (SIMDVec sin/cos) | `sin.hpp`, `cos.hpp` (pack) | 🚧 TODO | Split into separate files |
-| `fast_hyp.hpp` (SIMDVec tanh) | `tanh.hpp` (pack) | 🚧 TODO | Port to pack<T,W> |
-| `fast_pow.hpp` (SIMDVec pow/sqrt) | `pow.hpp`, `sqrt.hpp` (pack) | 🚧 TODO | Split into separate files |
+| `fast_exp.hpp` (SIMDVec) | `exp.hpp` (pack) | ✅ DONE | 7.94x speedup |
+| `fast_log.hpp` (SIMDVec) | `log.hpp` (pack) | ✅ DONE | 4.80x speedup |
+| `fast_trig.hpp` (SIMDVec sin/cos) | `sin.hpp`, `cos.hpp` (pack) | ✅ DONE | Rewrote algorithm (22x speedup) |
+| `fast_hyp.hpp` (SIMDVec tanh) | `tanh.hpp` (pack) | ✅ DONE | 27.55x speedup |
+| `fast_pow.hpp` (SIMDVec pow/sqrt) | `sqrt.hpp` (pack) | ✅ DONE | 4.03x speedup |
+
+**Benchmark Results (1M elements, 100 iterations):**
+```
+| Function | SIMD (ms) | Scalar (ms) | Speedup |
+|----------|-----------|-------------|---------|
+| exp      | 20.16     | 159.97      | 7.94x   |
+| log      | 36.13     | 173.57      | 4.80x   |
+| sin      | 24.63     | 564.93      | 22.94x  |
+| cos      | 24.54     | 540.34      | 22.02x  |
+| tanh     | 40.80     | 1123.93     | 27.55x  |
+| sqrt     | 14.96     | 60.30       | 4.03x   |
+```
 
 **Naming convention:**
-- Old API: `fast_exp`, `fast_log`, etc. (will be deleted later)
-- New API: `exp`, `log`, `sin`, `cos` (clean names in pack<T,W>)
+- Old API: `fast_exp`, `fast_log`, etc. (DELETED)
+- New API: `exp`, `log`, `sin`, `cos`, `tanh`, `sqrt` (clean names in pack<T,W>)
 
-**Steps:**
-1. ✅ Rename `fast_exp_new.hpp` → `exp.hpp` and update to use `simd::exp()`
-2. ⏳ Port `fast_log` → `log.hpp` using pack<float,4/8> and pack<double,2/4>
-3. ⏳ Port `fast_sin/cos` → `sin.hpp`/`cos.hpp`
-4. ⏳ Port `fast_tanh` → `tanh.hpp`
-5. ⏳ Port `fast_pow` → `pow.hpp`
-6. ⏳ Port `fast_sqrt` → `sqrt.hpp`
-7. ⏳ Add all functions to `algo/transform.hpp`
-8. ⏳ Comprehensive benchmarks vs old API
-9. ⏳ Delete old fast_* files
+**Completed Steps:**
+1. ✅ Port `fast_exp` → `exp.hpp` using pack<float,4/8> and pack<double,2/4>
+2. ✅ Port `fast_log` → `log.hpp`
+3. ✅ Port `fast_sin/cos` → `sin.hpp`/`cos.hpp` (rewrote with correct quadrant-based algorithm)
+4. ✅ Port `fast_tanh` → `tanh.hpp`
+5. ✅ Port `fast_sqrt` → `sqrt.hpp`
+6. ✅ Add all functions to `algo/transform.hpp`
+7. ✅ Comprehensive benchmarks in `examples/math_benchmark_all.cpp`
+8. ✅ All 16 tests pass
 
 #### Phase A: Core Functions (Priority Order)
 

@@ -23,11 +23,11 @@ namespace optinum::simd::backend {
             T *outcol = out + j * R;   // C column j
 
             for (std::size_t i = 0; i < main_r; i += W) {
-                SIMDVec<T, W> acc(T{});
+                pack<T, W> acc(T{});
                 for (std::size_t k = 0; k < K; ++k) {
-                    const auto av = SIMDVec<T, W>::loadu(a + k * R + i);
-                    const SIMDVec<T, W> bv(bcol[k]);
-                    acc = SIMDVec<T, W>::fma(av, bv, acc);
+                    const auto av = pack<T, W>::loadu(a + k * R + i);
+                    const pack<T, W> bv(bcol[k]);
+                    acc = pack<T, W>::fma(av, bv, acc);
                 }
                 acc.storeu(outcol + i);
             }
@@ -51,11 +51,11 @@ namespace optinum::simd::backend {
         constexpr std::size_t main_r = main_loop_count<R, W>();
 
         for (std::size_t i = 0; i < main_r; i += W) {
-            SIMDVec<T, W> acc(T{});
+            pack<T, W> acc(T{});
             for (std::size_t j = 0; j < C; ++j) {
-                const auto av = SIMDVec<T, W>::loadu(a + j * R + i); // column j
-                const SIMDVec<T, W> xv(x[j]);
-                acc = SIMDVec<T, W>::fma(av, xv, acc);
+                const auto av = pack<T, W>::loadu(a + j * R + i); // column j
+                const pack<T, W> xv(x[j]);
+                acc = pack<T, W>::fma(av, xv, acc);
             }
             acc.storeu(out + i);
         }

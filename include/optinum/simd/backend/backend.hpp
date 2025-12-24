@@ -6,12 +6,12 @@
 // =============================================================================
 
 #include <optinum/simd/arch/arch.hpp>
-// Pull in SIMDVec primary template + available specialisations
-#include <optinum/simd/intrinsic/avx.hpp>
-#include <optinum/simd/intrinsic/avx512.hpp>
-#include <optinum/simd/intrinsic/neon.hpp>
-#include <optinum/simd/intrinsic/simd_vec.hpp>
-#include <optinum/simd/intrinsic/sse.hpp>
+// Pull in pack primary template + available specialisations
+#include <optinum/simd/pack/avx.hpp>
+#include <optinum/simd/pack/avx512.hpp>
+#include <optinum/simd/pack/neon.hpp>
+#include <optinum/simd/pack/pack.hpp>
+#include <optinum/simd/pack/sse.hpp>
 
 #include <cstddef>
 #include <type_traits>

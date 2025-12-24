@@ -14,11 +14,11 @@ namespace optinum::simd::backend {
         constexpr std::size_t W = preferred_simd_lanes<T, N>();
         constexpr std::size_t main = main_loop_count<N, W>();
 
-        SIMDVec<T, W> acc(T{});
+        pack<T, W> acc(T{});
         for (std::size_t i = 0; i < main; i += W) {
-            const auto va = SIMDVec<T, W>::loadu(a + i);
-            const auto vb = SIMDVec<T, W>::loadu(b + i);
-            acc = SIMDVec<T, W>::fma(va, vb, acc);
+            const auto va = pack<T, W>::loadu(a + i);
+            const auto vb = pack<T, W>::loadu(b + i);
+            acc = pack<T, W>::fma(va, vb, acc);
         }
 
         T result = acc.hsum();

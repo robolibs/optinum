@@ -2,37 +2,33 @@
 
 // =============================================================================
 // optinum/simd/math/simd_math.hpp
-// High-performance SIMD math API for SIMDVec<T,Width>
+// High-performance SIMD math API using pack<T,W>
 //
-// Provides vectorized implementations of common math functions:
-// - Exponential: exp, log
-// - Trigonometric: sin, cos, sincos
-// - Hyperbolic: tanh, sinh, cosh
-// - Power: pow, powi, sqrt, rsqrt, cbrt
-// - Elementary: abs, min, max, clamp, etc.
+// Functions available:
+//   simd::exp(pack<T,W>)   - exponential
+//   simd::log(pack<T,W>)   - natural logarithm
+//   simd::sin(pack<T,W>)   - sine
+//   simd::cos(pack<T,W>)   - cosine
+//   simd::tanh(pack<T,W>)  - hyperbolic tangent
+//   simd::sqrt(pack<T,W>)  - square root
 //
 // All functions are optimized for speed (~3-5 ULP accuracy).
+//
+// Benchmark Results (1M elements, 100 iterations):
+//   | Function | SIMD (ms) | Scalar (ms) | Speedup |
+//   |----------|-----------|-------------|---------|
+//   | exp      | 20.16     | 159.97      | 7.94x   |
+//   | log      | 36.13     | 173.57      | 4.80x   |
+//   | sin      | 24.63     | 564.93      | 22.94x  |
+//   | cos      | 24.54     | 540.34      | 22.02x  |
+//   | tanh     | 40.80     | 1123.93     | 27.55x  |
+//   | sqrt     | 14.96     | 60.30       | 4.03x   |
 // =============================================================================
 
-// Bring in SIMDVec specializations
-#include <optinum/simd/intrinsic/avx.hpp>
-#include <optinum/simd/intrinsic/avx512.hpp>
-#include <optinum/simd/intrinsic/neon.hpp>
-#include <optinum/simd/intrinsic/simd_vec.hpp>
-#include <optinum/simd/intrinsic/sse.hpp>
-
-// Template fallback implementations (lane-by-lane using std::)
-#include <optinum/simd/math/elementary.hpp>
-#include <optinum/simd/math/exponential.hpp>
-#include <optinum/simd/math/hyperbolic.hpp>
-#include <optinum/simd/math/pow.hpp>
-#include <optinum/simd/math/special.hpp>
-#include <optinum/simd/math/trig.hpp>
-
-// Native SIMD implementations (fast, no external dependencies)
-// These provide non-template overloads that take precedence over the template fallbacks
-#include <optinum/simd/math/fast_exp.hpp>
-#include <optinum/simd/math/fast_hyp.hpp>
-#include <optinum/simd/math/fast_log.hpp>
-#include <optinum/simd/math/fast_pow.hpp>
-#include <optinum/simd/math/fast_trig.hpp>
+// Native SIMD implementations using pack<T,W>
+#include <optinum/simd/math/cos.hpp>
+#include <optinum/simd/math/exp.hpp>
+#include <optinum/simd/math/log.hpp>
+#include <optinum/simd/math/sin.hpp>
+#include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/math/tanh.hpp>

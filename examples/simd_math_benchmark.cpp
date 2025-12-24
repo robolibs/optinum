@@ -1,5 +1,6 @@
 // Native SIMD Math Benchmark
-// Benchmarks our fast_* SIMD math implementations against scalar std:: functions
+// Benchmarks our SIMD math implementations against scalar std:: functions
+// Uses the new pack<T,W> API
 
 #include <chrono>
 #include <cmath>
@@ -10,6 +11,7 @@
 
 // Include SIMD math
 #include <optinum/simd/math/simd_math.hpp>
+#include <optinum/simd/pack/pack.hpp>
 
 // Use architecture constants for SIMD width
 constexpr std::size_t SIMD_WIDTH_F = optinum::simd::arch::SIMD_WIDTH_FLOAT;
@@ -46,10 +48,10 @@ class Timer {
 };
 
 // ============================================================================
-// SIMD benchmarks using our native fast_* implementations
+// SIMD benchmarks using pack<T,W> API
 // ============================================================================
 
-template <std::size_t W> double benchmark_fast_exp(const std::vector<float> &input, std::vector<float> &output) {
+template <std::size_t W> double benchmark_simd_exp(const std::vector<float> &input, std::vector<float> &output) {
     const std::size_t n = input.size();
     const std::size_t vec_count = n / W;
 
@@ -58,8 +60,8 @@ template <std::size_t W> double benchmark_fast_exp(const std::vector<float> &inp
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         for (std::size_t i = 0; i < vec_count; ++i) {
-            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
-            auto r = optinum::simd::fast_exp(v);
+            auto v = optinum::simd::pack<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::exp(v);
             r.storeu(&output[i * W]);
         }
     }
@@ -67,7 +69,7 @@ template <std::size_t W> double benchmark_fast_exp(const std::vector<float> &inp
     return timer.elapsed_ms();
 }
 
-template <std::size_t W> double benchmark_fast_log(const std::vector<float> &input, std::vector<float> &output) {
+template <std::size_t W> double benchmark_simd_log(const std::vector<float> &input, std::vector<float> &output) {
     const std::size_t n = input.size();
     const std::size_t vec_count = n / W;
 
@@ -76,8 +78,8 @@ template <std::size_t W> double benchmark_fast_log(const std::vector<float> &inp
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         for (std::size_t i = 0; i < vec_count; ++i) {
-            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
-            auto r = optinum::simd::fast_log(v);
+            auto v = optinum::simd::pack<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::log(v);
             r.storeu(&output[i * W]);
         }
     }
@@ -85,7 +87,7 @@ template <std::size_t W> double benchmark_fast_log(const std::vector<float> &inp
     return timer.elapsed_ms();
 }
 
-template <std::size_t W> double benchmark_fast_sin(const std::vector<float> &input, std::vector<float> &output) {
+template <std::size_t W> double benchmark_simd_sin(const std::vector<float> &input, std::vector<float> &output) {
     const std::size_t n = input.size();
     const std::size_t vec_count = n / W;
 
@@ -94,8 +96,8 @@ template <std::size_t W> double benchmark_fast_sin(const std::vector<float> &inp
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         for (std::size_t i = 0; i < vec_count; ++i) {
-            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
-            auto r = optinum::simd::fast_sin(v);
+            auto v = optinum::simd::pack<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::sin(v);
             r.storeu(&output[i * W]);
         }
     }
@@ -103,7 +105,7 @@ template <std::size_t W> double benchmark_fast_sin(const std::vector<float> &inp
     return timer.elapsed_ms();
 }
 
-template <std::size_t W> double benchmark_fast_cos(const std::vector<float> &input, std::vector<float> &output) {
+template <std::size_t W> double benchmark_simd_cos(const std::vector<float> &input, std::vector<float> &output) {
     const std::size_t n = input.size();
     const std::size_t vec_count = n / W;
 
@@ -112,8 +114,8 @@ template <std::size_t W> double benchmark_fast_cos(const std::vector<float> &inp
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         for (std::size_t i = 0; i < vec_count; ++i) {
-            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
-            auto r = optinum::simd::fast_cos(v);
+            auto v = optinum::simd::pack<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::cos(v);
             r.storeu(&output[i * W]);
         }
     }
@@ -121,7 +123,7 @@ template <std::size_t W> double benchmark_fast_cos(const std::vector<float> &inp
     return timer.elapsed_ms();
 }
 
-template <std::size_t W> double benchmark_fast_tanh(const std::vector<float> &input, std::vector<float> &output) {
+template <std::size_t W> double benchmark_simd_tanh(const std::vector<float> &input, std::vector<float> &output) {
     const std::size_t n = input.size();
     const std::size_t vec_count = n / W;
 
@@ -130,8 +132,8 @@ template <std::size_t W> double benchmark_fast_tanh(const std::vector<float> &in
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         for (std::size_t i = 0; i < vec_count; ++i) {
-            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
-            auto r = optinum::simd::fast_tanh(v);
+            auto v = optinum::simd::pack<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::tanh(v);
             r.storeu(&output[i * W]);
         }
     }
@@ -139,9 +141,7 @@ template <std::size_t W> double benchmark_fast_tanh(const std::vector<float> &in
     return timer.elapsed_ms();
 }
 
-template <std::size_t W>
-double benchmark_fast_pow(const std::vector<float> &input, const std::vector<float> &exp_vals,
-                          std::vector<float> &output) {
+template <std::size_t W> double benchmark_simd_sqrt(const std::vector<float> &input, std::vector<float> &output) {
     const std::size_t n = input.size();
     const std::size_t vec_count = n / W;
 
@@ -150,27 +150,8 @@ double benchmark_fast_pow(const std::vector<float> &input, const std::vector<flo
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         for (std::size_t i = 0; i < vec_count; ++i) {
-            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
-            auto e = optinum::simd::SIMDVec<float, W>::loadu(&exp_vals[i * W]);
-            auto r = optinum::simd::fast_pow(v, e);
-            r.storeu(&output[i * W]);
-        }
-    }
-
-    return timer.elapsed_ms();
-}
-
-template <std::size_t W> double benchmark_fast_sqrt(const std::vector<float> &input, std::vector<float> &output) {
-    const std::size_t n = input.size();
-    const std::size_t vec_count = n / W;
-
-    Timer timer;
-    timer.start();
-
-    for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
-        for (std::size_t i = 0; i < vec_count; ++i) {
-            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
-            auto r = optinum::simd::fast_sqrt(v);
+            auto v = optinum::simd::pack<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::sqrt(v);
             r.storeu(&output[i * W]);
         }
     }
@@ -242,22 +223,6 @@ template <typename T> double benchmark_scalar_cos(const std::vector<T> &input, s
     return timer.elapsed_ms();
 }
 
-template <typename T>
-double benchmark_scalar_pow(const std::vector<T> &input, const std::vector<T> &exp_vals, std::vector<T> &output) {
-    const std::size_t n = input.size();
-
-    Timer timer;
-    timer.start();
-
-    for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
-        for (std::size_t i = 0; i < n; ++i) {
-            output[i] = std::pow(input[i], exp_vals[i]);
-        }
-    }
-
-    return timer.elapsed_ms();
-}
-
 template <typename T> double benchmark_scalar_tanh(const std::vector<T> &input, std::vector<T> &output) {
     const std::size_t n = input.size();
 
@@ -308,7 +273,7 @@ int main() {
     std::cout << "================================================================\n";
     std::cout << "           Native SIMD Math Benchmark\n";
     std::cout << "================================================================\n";
-    std::cout << "  Backend: optinum fast_* (native SIMD, no external deps)\n";
+    std::cout << "  Backend: optinum pack<T,W> (native SIMD, no external deps)\n";
     std::cout << "  SIMD Level: " << optinum::simd::arch::simd_level() << "-bit\n";
     std::cout << "  Float width: " << SIMD_WIDTH_F << " elements\n";
     std::cout << "  Double width: " << SIMD_WIDTH_D << " elements\n";
@@ -329,8 +294,8 @@ int main() {
         std::vector<float> output_f(NUM_ELEMENTS);
 
         double scalar_f = benchmark_scalar_exp(input_f, output_f);
-        double fast_f = benchmark_fast_exp<SIMD_WIDTH_F>(input_f, output_f);
-        print_result("fast_exp", "float", SIMD_WIDTH_F, fast_f, scalar_f);
+        double simd_f = benchmark_simd_exp<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("exp", "float", SIMD_WIDTH_F, simd_f, scalar_f);
     }
 
     // ========================================================================
@@ -341,8 +306,8 @@ int main() {
         std::vector<float> output_f(NUM_ELEMENTS);
 
         double scalar_f = benchmark_scalar_log(input_f, output_f);
-        double fast_f = benchmark_fast_log<SIMD_WIDTH_F>(input_f, output_f);
-        print_result("fast_log", "float", SIMD_WIDTH_F, fast_f, scalar_f);
+        double simd_f = benchmark_simd_log<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("log", "float", SIMD_WIDTH_F, simd_f, scalar_f);
     }
 
     // ========================================================================
@@ -353,8 +318,8 @@ int main() {
         std::vector<float> output_f(NUM_ELEMENTS);
 
         double scalar_f = benchmark_scalar_sin(input_f, output_f);
-        double fast_f = benchmark_fast_sin<SIMD_WIDTH_F>(input_f, output_f);
-        print_result("fast_sin", "float", SIMD_WIDTH_F, fast_f, scalar_f);
+        double simd_f = benchmark_simd_sin<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("sin", "float", SIMD_WIDTH_F, simd_f, scalar_f);
     }
 
     // ========================================================================
@@ -365,8 +330,8 @@ int main() {
         std::vector<float> output_f(NUM_ELEMENTS);
 
         double scalar_f = benchmark_scalar_cos(input_f, output_f);
-        double fast_f = benchmark_fast_cos<SIMD_WIDTH_F>(input_f, output_f);
-        print_result("fast_cos", "float", SIMD_WIDTH_F, fast_f, scalar_f);
+        double simd_f = benchmark_simd_cos<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("cos", "float", SIMD_WIDTH_F, simd_f, scalar_f);
     }
 
     // ========================================================================
@@ -377,21 +342,8 @@ int main() {
         std::vector<float> output_f(NUM_ELEMENTS);
 
         double scalar_f = benchmark_scalar_tanh(input_f, output_f);
-        double fast_f = benchmark_fast_tanh<SIMD_WIDTH_F>(input_f, output_f);
-        print_result("fast_tanh", "float", SIMD_WIDTH_F, fast_f, scalar_f);
-    }
-
-    // ========================================================================
-    // pow() benchmark
-    // ========================================================================
-    {
-        auto input_f = generate_random_data<float>(NUM_ELEMENTS, 0.1f, 10.0f);
-        auto exp_f = generate_random_data<float>(NUM_ELEMENTS, 0.5f, 3.0f);
-        std::vector<float> output_f(NUM_ELEMENTS);
-
-        double scalar_f = benchmark_scalar_pow(input_f, exp_f, output_f);
-        double fast_f = benchmark_fast_pow<SIMD_WIDTH_F>(input_f, exp_f, output_f);
-        print_result("fast_pow", "float", SIMD_WIDTH_F, fast_f, scalar_f);
+        double simd_f = benchmark_simd_tanh<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("tanh", "float", SIMD_WIDTH_F, simd_f, scalar_f);
     }
 
     // ========================================================================
@@ -402,8 +354,8 @@ int main() {
         std::vector<float> output_f(NUM_ELEMENTS);
 
         double scalar_f = benchmark_scalar_sqrt(input_f, output_f);
-        double fast_f = benchmark_fast_sqrt<SIMD_WIDTH_F>(input_f, output_f);
-        print_result("fast_sqrt", "float", SIMD_WIDTH_F, fast_f, scalar_f);
+        double simd_f = benchmark_simd_sqrt<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("sqrt", "float", SIMD_WIDTH_F, simd_f, scalar_f);
     }
 
     print_separator();
@@ -411,11 +363,11 @@ int main() {
     std::cout << "\n";
     std::cout << "Legend:\n";
     std::cout << "  W        = SIMD width (elements processed in parallel)\n";
-    std::cout << "  SIMD     = Time using native SIMD fast_* functions\n";
+    std::cout << "  SIMD     = Time using native SIMD functions with pack<T,W>\n";
     std::cout << "  Scalar   = Time using std:: scalar operations\n";
     std::cout << "  Speedup  = Scalar time / SIMD time (higher is better)\n";
     std::cout << "\n";
-    std::cout << "All fast_* functions use native AVX/SSE intrinsics with ~3-5 ULP accuracy.\n";
+    std::cout << "All math functions use native AVX/SSE intrinsics with ~3-5 ULP accuracy.\n";
     std::cout << "No external dependencies (SLEEF, SVML, etc.) required.\n";
     std::cout << "\n";
 
