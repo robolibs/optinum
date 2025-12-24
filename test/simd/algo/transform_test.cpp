@@ -330,3 +330,241 @@ TEST_CASE("algo::sqrt - in-place") {
     CHECK(x[2] == doctest::Approx(3.0f).epsilon(0.01));
     CHECK(x[3] == doctest::Approx(4.0f).epsilon(0.01));
 }
+
+// =============================================================================
+// Matrix tests - verify transforms work with matrix_view
+// =============================================================================
+
+TEST_CASE("algo::exp - matrix_view") {
+    using mat_t = datapod::mat::matrix<float, 4, 3>;
+
+    alignas(32) mat_t x;
+    alignas(32) mat_t y;
+
+    // Fill with values from -2 to 2
+    for (std::size_t i = 0; i < 12; ++i) {
+        x[i] = -2.0f + static_cast<float>(i) * (4.0f / 11.0f);
+    }
+
+    auto mx = on::simd::view<4>(x);
+    auto my = on::simd::view<4>(y);
+
+    on::simd::exp(mx, my);
+
+    // Verify all elements
+    for (std::size_t i = 0; i < 12; ++i) {
+        CHECK(y[i] == doctest::Approx(std::exp(x[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::exp - matrix_view in-place") {
+    using mat_t = datapod::mat::matrix<float, 4, 2>;
+
+    alignas(32) mat_t x;
+    std::array<float, 8> original;
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        x[i] = static_cast<float>(i) * 0.5f;
+        original[i] = x[i];
+    }
+
+    auto mx = on::simd::view<4>(x);
+    on::simd::exp(mx);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(x[i] == doctest::Approx(std::exp(original[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::log - matrix_view") {
+    using mat_t = datapod::mat::matrix<float, 3, 3>;
+
+    alignas(32) mat_t x;
+    alignas(32) mat_t y;
+
+    for (std::size_t i = 0; i < 9; ++i) {
+        x[i] = 0.5f + static_cast<float>(i); // 0.5, 1.5, 2.5, ...
+    }
+
+    auto mx = on::simd::view<4>(x);
+    auto my = on::simd::view<4>(y);
+
+    on::simd::log(mx, my);
+
+    for (std::size_t i = 0; i < 9; ++i) {
+        CHECK(y[i] == doctest::Approx(std::log(x[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::tanh - matrix_view") {
+    using mat_t = datapod::mat::matrix<float, 2, 4>;
+
+    alignas(32) mat_t x;
+    alignas(32) mat_t y;
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        x[i] = -2.0f + static_cast<float>(i) * 0.5f;
+    }
+
+    auto mx = on::simd::view<4>(x);
+    auto my = on::simd::view<4>(y);
+
+    on::simd::tanh(mx, my);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::tanh(x[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::sqrt - matrix_view") {
+    using mat_t = datapod::mat::matrix<float, 4, 4>;
+
+    alignas(32) mat_t x;
+    alignas(32) mat_t y;
+
+    for (std::size_t i = 0; i < 16; ++i) {
+        x[i] = static_cast<float>(i + 1);
+    }
+
+    auto mx = on::simd::view<4>(x);
+    auto my = on::simd::view<4>(y);
+
+    on::simd::sqrt(mx, my);
+
+    for (std::size_t i = 0; i < 16; ++i) {
+        CHECK(y[i] == doctest::Approx(std::sqrt(x[i])).epsilon(0.01));
+    }
+}
+
+// =============================================================================
+// Tensor tests - verify transforms work with tensor_view
+// =============================================================================
+
+TEST_CASE("algo::exp - tensor_view") {
+    using tensor_t = datapod::mat::tensor<float, 2, 3, 4>;
+
+    alignas(32) tensor_t x;
+    alignas(32) tensor_t y;
+
+    // Fill with values
+    for (std::size_t i = 0; i < 24; ++i) {
+        x[i] = -3.0f + static_cast<float>(i) * (6.0f / 23.0f);
+    }
+
+    auto tx = on::simd::view<4>(x);
+    auto ty = on::simd::view<4>(y);
+
+    on::simd::exp(tx, ty);
+
+    for (std::size_t i = 0; i < 24; ++i) {
+        CHECK(y[i] == doctest::Approx(std::exp(x[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::exp - tensor_view in-place") {
+    using tensor_t = datapod::mat::tensor<float, 2, 2, 4>;
+
+    alignas(32) tensor_t x;
+    std::array<float, 16> original;
+
+    for (std::size_t i = 0; i < 16; ++i) {
+        x[i] = static_cast<float>(i) * 0.25f - 2.0f;
+        original[i] = x[i];
+    }
+
+    auto tx = on::simd::view<4>(x);
+    on::simd::exp(tx);
+
+    for (std::size_t i = 0; i < 16; ++i) {
+        CHECK(x[i] == doctest::Approx(std::exp(original[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::log - tensor_view") {
+    using tensor_t = datapod::mat::tensor<float, 3, 2, 2>;
+
+    alignas(32) tensor_t x;
+    alignas(32) tensor_t y;
+
+    for (std::size_t i = 0; i < 12; ++i) {
+        x[i] = 1.0f + static_cast<float>(i) * 0.5f;
+    }
+
+    auto tx = on::simd::view<4>(x);
+    auto ty = on::simd::view<4>(y);
+
+    on::simd::log(tx, ty);
+
+    for (std::size_t i = 0; i < 12; ++i) {
+        CHECK(y[i] == doctest::Approx(std::log(x[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::tanh - tensor_view") {
+    using tensor_t = datapod::mat::tensor<float, 2, 2, 3>;
+
+    alignas(32) tensor_t x;
+    alignas(32) tensor_t y;
+
+    for (std::size_t i = 0; i < 12; ++i) {
+        x[i] = -3.0f + static_cast<float>(i) * 0.5f;
+    }
+
+    auto tx = on::simd::view<4>(x);
+    auto ty = on::simd::view<4>(y);
+
+    on::simd::tanh(tx, ty);
+
+    for (std::size_t i = 0; i < 12; ++i) {
+        CHECK(y[i] == doctest::Approx(std::tanh(x[i])).epsilon(0.01));
+    }
+}
+
+TEST_CASE("algo::sqrt - tensor_view") {
+    using tensor_t = datapod::mat::tensor<float, 2, 3, 2>;
+
+    alignas(32) tensor_t x;
+    alignas(32) tensor_t y;
+
+    for (std::size_t i = 0; i < 12; ++i) {
+        x[i] = static_cast<float>(i + 1);
+    }
+
+    auto tx = on::simd::view<4>(x);
+    auto ty = on::simd::view<4>(y);
+
+    on::simd::sqrt(tx, ty);
+
+    for (std::size_t i = 0; i < 12; ++i) {
+        CHECK(y[i] == doctest::Approx(std::sqrt(x[i])).epsilon(0.01));
+    }
+}
+
+// =============================================================================
+// Cross-view tests - ensure different view types can work together
+// =============================================================================
+
+TEST_CASE("algo - matrix and vector same underlying data") {
+    // A 4x2 matrix has same storage as an 8-element vector
+    using mat_t = datapod::mat::matrix<float, 4, 2>;
+    using vec_t = datapod::mat::vector<float, 8>;
+
+    alignas(32) mat_t m;
+    alignas(32) vec_t v;
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        m[i] = static_cast<float>(i) * 0.5f;
+        v[i] = static_cast<float>(i) * 0.5f;
+    }
+
+    auto mm = on::simd::view<4>(m);
+    auto vv = on::simd::view<4>(v);
+
+    on::simd::exp(mm);
+    on::simd::exp(vv);
+
+    // Both should produce identical results
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(m[i] == doctest::Approx(v[i]).epsilon(0.0001));
+    }
+}
