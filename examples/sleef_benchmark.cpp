@@ -10,6 +10,9 @@
 
 // Include SIMD math after chrono to avoid operator conflicts
 #include <optinum/simd/math/fast_exp.hpp>
+#include <optinum/simd/math/fast_hyp.hpp>
+#include <optinum/simd/math/fast_log.hpp>
+#include <optinum/simd/math/fast_trig.hpp>
 #include <optinum/simd/math/simd_math.hpp>
 
 // Use architecture constants for SIMD width
@@ -80,6 +83,82 @@ template <std::size_t W> double benchmark_fast_exp(const std::vector<float> &inp
         for (std::size_t i = 0; i < vec_count; ++i) {
             auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
             auto r = optinum::simd::fast_exp(v);
+            r.storeu(&output[i * W]);
+        }
+    }
+
+    return timer.elapsed_ms();
+}
+
+// Benchmark our own fast_log implementation
+template <std::size_t W> double benchmark_fast_log(const std::vector<float> &input, std::vector<float> &output) {
+    const std::size_t n = input.size();
+    const std::size_t vec_count = n / W;
+
+    Timer timer;
+    timer.start();
+
+    for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
+        for (std::size_t i = 0; i < vec_count; ++i) {
+            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::fast_log(v);
+            r.storeu(&output[i * W]);
+        }
+    }
+
+    return timer.elapsed_ms();
+}
+
+// Benchmark our own fast_sin implementation
+template <std::size_t W> double benchmark_fast_sin(const std::vector<float> &input, std::vector<float> &output) {
+    const std::size_t n = input.size();
+    const std::size_t vec_count = n / W;
+
+    Timer timer;
+    timer.start();
+
+    for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
+        for (std::size_t i = 0; i < vec_count; ++i) {
+            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::fast_sin(v);
+            r.storeu(&output[i * W]);
+        }
+    }
+
+    return timer.elapsed_ms();
+}
+
+// Benchmark our own fast_cos implementation
+template <std::size_t W> double benchmark_fast_cos(const std::vector<float> &input, std::vector<float> &output) {
+    const std::size_t n = input.size();
+    const std::size_t vec_count = n / W;
+
+    Timer timer;
+    timer.start();
+
+    for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
+        for (std::size_t i = 0; i < vec_count; ++i) {
+            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::fast_cos(v);
+            r.storeu(&output[i * W]);
+        }
+    }
+
+    return timer.elapsed_ms();
+}
+
+// Benchmark our own fast_tanh implementation
+template <std::size_t W> double benchmark_fast_tanh(const std::vector<float> &input, std::vector<float> &output) {
+    const std::size_t n = input.size();
+    const std::size_t vec_count = n / W;
+
+    Timer timer;
+    timer.start();
+
+    for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
+        for (std::size_t i = 0; i < vec_count; ++i) {
+            auto v = optinum::simd::SIMDVec<float, W>::loadu(&input[i * W]);
+            auto r = optinum::simd::fast_tanh(v);
             r.storeu(&output[i * W]);
         }
     }
@@ -349,6 +428,10 @@ int main() {
         double simd_d = benchmark_simd_log<double, SIMD_WIDTH_D>(input_d, output_d);
         print_result("log", "float", SIMD_WIDTH_F, simd_f, scalar_f);
         print_result("log", "double", SIMD_WIDTH_D, simd_d, scalar_d);
+
+        // Also benchmark our own fast_log
+        double fast_f = benchmark_fast_log<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("fast_log", "float", SIMD_WIDTH_F, fast_f, scalar_f);
     }
 
     // ========================================================================
@@ -367,6 +450,10 @@ int main() {
         double simd_d = benchmark_simd_sin<double, SIMD_WIDTH_D>(input_d, output_d);
         print_result("sin", "float", SIMD_WIDTH_F, simd_f, scalar_f);
         print_result("sin", "double", SIMD_WIDTH_D, simd_d, scalar_d);
+
+        // Also benchmark our own fast_sin
+        double fast_f = benchmark_fast_sin<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("fast_sin", "float", SIMD_WIDTH_F, fast_f, scalar_f);
     }
 
     // ========================================================================
@@ -385,6 +472,10 @@ int main() {
         double simd_d = benchmark_simd_cos<double, SIMD_WIDTH_D>(input_d, output_d);
         print_result("cos", "float", SIMD_WIDTH_F, simd_f, scalar_f);
         print_result("cos", "double", SIMD_WIDTH_D, simd_d, scalar_d);
+
+        // Also benchmark our own fast_cos
+        double fast_f = benchmark_fast_cos<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("fast_cos", "float", SIMD_WIDTH_F, fast_f, scalar_f);
     }
 
     // ========================================================================
@@ -403,6 +494,10 @@ int main() {
         double simd_d = benchmark_simd_tanh<double, SIMD_WIDTH_D>(input_d, output_d);
         print_result("tanh", "float", SIMD_WIDTH_F, simd_f, scalar_f);
         print_result("tanh", "double", SIMD_WIDTH_D, simd_d, scalar_d);
+
+        // Also benchmark our own fast_tanh
+        double fast_f = benchmark_fast_tanh<SIMD_WIDTH_F>(input_f, output_f);
+        print_result("fast_tanh", "float", SIMD_WIDTH_F, fast_f, scalar_f);
     }
 
     // ========================================================================
