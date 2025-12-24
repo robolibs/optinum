@@ -21,6 +21,7 @@ string(TOUPPER ${project_name} project_name_upper)
 option(${project_name_upper}_BUILD_EXAMPLES "Build examples" OFF)
 option(${project_name_upper}_ENABLE_TESTS "Enable tests" OFF)
 option(SHORT_NAMESPACE "Enable short namespace alias (dp)" OFF)
+option(${project_name_upper}_USE_SLEEF "Enable SLEEF-backed SIMD math" OFF)
 include(FetchContent)
 
 # --------------------------------------------------------------------------------------------------
@@ -29,6 +30,30 @@ set(ext_deps)
 FetchContent_Declare(datapod GIT_REPOSITORY https://github.com/robolibs/datapod.git GIT_TAG 0.0.5)
 FetchContent_MakeAvailable(datapod)
 list(APPEND ext_deps datapod::datapod)
+
+if(${project_name_upper}_USE_SLEEF)
+  set(SLEEF_BUILD_LIBM ON CACHE BOOL "" FORCE)
+  set(SLEEF_BUILD_DFT OFF CACHE BOOL "" FORCE)
+  set(SLEEF_BUILD_QUAD OFF CACHE BOOL "" FORCE)
+  set(SLEEF_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  set(SLEEF_ENABLE_TESTER OFF CACHE BOOL "" FORCE)
+  set(SLEEF_ENABLE_TESTER4 OFF CACHE BOOL "" FORCE)
+  set(SLEEF_ENABLE_SSL OFF CACHE BOOL "" FORCE)
+  set(SLEEF_ENABLE_OPENMP OFF CACHE BOOL "" FORCE)
+  set(SLEEF_ENABLE_TLFLOAT ON CACHE BOOL "" FORCE)
+  set(SLEEF_SHOW_CONFIG OFF CACHE BOOL "" FORCE)
+
+  FetchContent_Declare(
+    sleef
+    GIT_REPOSITORY https://github.com/shibatch/sleef.git
+    GIT_TAG 4.0.0
+    GIT_SHALLOW TRUE
+    GIT_SUBMODULES submodules/tlfloat
+    GIT_SUBMODULES_RECURSE TRUE
+  )
+  FetchContent_MakeAvailable(sleef)
+  list(APPEND ext_deps sleef)
+endif()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -42,12 +67,23 @@ if(LIB_SOURCES)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
     )
+    target_link_libraries(${project_name} PUBLIC ${ext_deps})
     target_compile_options(${project_name} PRIVATE ${params})
     # Add SHORT_NAMESPACE define if enabled
     target_compile_definitions(${project_name}
         PUBLIC
             $<$<BOOL:${SHORT_NAMESPACE}>:SHORT_NAMESPACE>
     )
+    if(${project_name_upper}_USE_SLEEF)
+        target_compile_definitions(${project_name} PUBLIC OPTINUM_USE_SLEEF)
+        target_include_directories(${project_name} PUBLIC
+            $<BUILD_INTERFACE:${sleef_BINARY_DIR}/include>
+            $<BUILD_INTERFACE:${sleef_SOURCE_DIR}/include>
+        )
+        if(TARGET headers)
+            add_dependencies(${project_name} headers)
+        endif()
+    endif()
 else()
     add_library(${project_name} INTERFACE)
     target_include_directories(${project_name} INTERFACE
@@ -58,6 +94,13 @@ else()
     # Add SHORT_NAMESPACE define if enabled (for header-only mode)
     if(SHORT_NAMESPACE)
         target_compile_definitions(${project_name} INTERFACE SHORT_NAMESPACE)
+    endif()
+    if(${project_name_upper}_USE_SLEEF)
+        target_compile_definitions(${project_name} INTERFACE OPTINUM_USE_SLEEF)
+        target_include_directories(${project_name} INTERFACE
+            $<BUILD_INTERFACE:${sleef_BINARY_DIR}/include>
+            $<BUILD_INTERFACE:${sleef_SOURCE_DIR}/include>
+        )
     endif()
 endif()
 

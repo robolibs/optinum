@@ -39,7 +39,7 @@ build:
 	@echo "Running clang-format on source files..."
 	@find ./src ./include -name "*.cpp" -o -name "*.hpp" -o -name "*.h" | xargs clang-format -i
 ifeq ($(BUILD_SYSTEM),xmake)
-	@xmake 2>&1 | tee >(grep "error:" > "$(TOP_DIR)/.quickfix")
+	@xmake -y 2>&1 | tee >(grep "error:" > "$(TOP_DIR)/.quickfix")
 else
 	@if [ ! -d "$(BUILD_DIR)" ]; then \
 		echo "Build directory doesn't exist, running config first..."; \
@@ -52,7 +52,7 @@ b: build
 
 config:
 ifeq ($(BUILD_SYSTEM),xmake)
-	@xmake f --examples=y --tests=y -y
+	@xmake f --examples=y --tests=y --sleef=y -c -y
 	@xmake project -k compile_commands
 else
 	@mkdir -p $(BUILD_DIR)
@@ -64,7 +64,7 @@ endif
 reconfig:
 ifeq ($(BUILD_SYSTEM),xmake)
 	@rm -rf .xmake $(BUILD_DIR)
-	@xmake f --examples=y --tests=y -c -y
+	@xmake f --examples=y --tests=y --sleef=y -c -y
 	@xmake project -k compile_commands
 else
 	@rm -rf $(BUILD_DIR)

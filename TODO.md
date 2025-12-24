@@ -4,6 +4,148 @@
 
 ---
 
+## PRIORITY: Native SIMD Math Implementation (No SLEEF Dependency)
+
+### Goal
+Replace SLEEF dependency with our own vectorized math functions. Target ~3-5 ULP accuracy
+(good enough for ML/graphics, not scientific computing). Can always add high-precision
+variants later.
+
+### Benchmark Results (Current)
+```
+| Implementation   | Time (ms) | Speedup |
+|------------------|-----------|---------|
+| std::exp scalar  | 152 ms    | 1.0x    |
+| SLEEF exp        | 35 ms     | 4.3x    |
+| Our fast_exp     | 20 ms     | 7.4x    | <-- Already implemented & faster!
+```
+
+### Implementation Plan
+
+#### Phase A: Core Functions (Priority Order)
+
+| Function | Difficulty | Algorithm | Notes |
+|----------|------------|-----------|-------|
+| **exp** | Easy | Range reduction + polynomial | Already done: `fast_exp.hpp` |
+| **log** | Easy | Range reduction + polynomial | Use `log(x) = log(2^n * m) = n*ln2 + log(m)` |
+| **sin/cos** | Medium | Payne-Hanek reduction + polynomial | Reduce to [-pi/4, pi/4], use Taylor/Chebyshev |
+| **tan** | Medium | `sin/cos` ratio | After sin/cos work |
+| **tanh** | Easy | `(exp(2x)-1)/(exp(2x)+1)` or polynomial | Can use fast_exp |
+| **pow** | Medium | `exp(y * log(x))` | Compose exp + log |
+| **sqrt** | Easy | Newton-Raphson + `_mm256_rsqrt_ps` | Hardware has rsqrt seed |
+| **cbrt** | Medium | Newton-Raphson | Similar to sqrt |
+
+#### Phase B: Inverse Trig (Lower Priority)
+| Function | Difficulty | Notes |
+|----------|------------|-------|
+| asin | Medium | Polynomial on reduced range |
+| acos | Easy | `pi/2 - asin(x)` |
+| atan | Medium | Polynomial + range reduction |
+| atan2 | Medium | Quadrant handling + atan |
+
+#### Phase C: Hyperbolic (Use exp-based)
+| Function | Algorithm |
+|----------|-----------|
+| sinh | `(exp(x) - exp(-x)) / 2` |
+| cosh | `(exp(x) + exp(-x)) / 2` |
+| asinh | `log(x + sqrt(x^2 + 1))` |
+| acosh | `log(x + sqrt(x^2 - 1))` |
+| atanh | `0.5 * log((1+x)/(1-x))` |
+
+### File Structure
+```
+include/optinum/simd/math/
+├── simd_math.hpp          # Public API (unchanged)
+├── detail/
+│   ├── map.hpp            # Scalar fallback (existing)
+│   ├── constants.hpp      # NEW: Math constants (LN2, PI, coefficients)
+│   ├── poly.hpp           # NEW: Polynomial evaluation helpers (Horner, Estrin)
+│   └── range_reduce.hpp   # NEW: Range reduction utilities
+├── fast_exp.hpp           # DONE: exp for float
+├── fast_log.hpp           # TODO: log for float
+├── fast_trig.hpp          # TODO: sin, cos, tan for float
+├── fast_hyp.hpp           # TODO: sinh, cosh, tanh for float  
+├── fast_pow.hpp           # TODO: pow, sqrt, cbrt for float
+├── fast_inv_trig.hpp      # TODO: asin, acos, atan, atan2
+├── exponential.hpp        # Existing scalar fallback
+├── trig.hpp               # Existing scalar fallback
+├── hyperbolic.hpp         # Existing scalar fallback
+├── pow.hpp                # Existing scalar fallback
+└── sleef.hpp              # Optional SLEEF bindings (keep for reference)
+```
+
+### Algorithm Details
+
+#### exp(x) - DONE
+```
+1. Clamp x to [-88, 88] (avoid overflow/underflow)
+2. n = round(x / ln2)           -- integer part
+3. r = x - n * ln2              -- fractional part in [-ln2/2, ln2/2]  
+4. exp(r) ≈ 1 + r + r²/2 + r³/6 + r⁴/24 + r⁵/120  (polynomial)
+5. result = exp(r) * 2^n        -- scale by power of 2 (bit manipulation)
+```
+
+#### log(x) - TODO
+```
+1. Extract exponent: x = 2^n * m, where m in [1, 2)
+2. Normalize: m' = (m - 1) / (m + 1), maps to [-1/3, 1/3]
+3. log(m) ≈ 2 * (m' + m'^3/3 + m'^5/5 + ...)  (polynomial in m'^2)
+4. result = n * ln2 + log(m)
+```
+
+#### sin(x) / cos(x) - TODO  
+```
+1. Range reduction: x' = x mod 2π, then to [-π, π]
+2. Further reduce to [-π/4, π/4] using symmetry:
+   - sin(x) = cos(π/2 - x)
+   - sin(x + π) = -sin(x)
+   - cos(x + π/2) = -sin(x)
+3. Polynomial approximation (minimax coefficients):
+   sin(x) ≈ x - x³/6 + x⁵/120 - x⁷/5040 + ...
+   cos(x) ≈ 1 - x²/2 + x⁴/24 - x⁶/720 + ...
+```
+
+#### tanh(x) - TODO (Easy using exp)
+```
+For |x| < 0.625:
+  tanh(x) ≈ x * (1 - x²/3 + 2x⁴/15 - ...)  (polynomial)
+For |x| >= 0.625:
+  tanh(x) = (exp(2x) - 1) / (exp(2x) + 1)
+  Or: tanh(x) = 1 - 2/(exp(2x) + 1)  (more stable for large x)
+```
+
+### Implementation Checklist
+
+- [x] `fast_exp.hpp` - exp for float (AVX + SSE4.1)
+- [ ] Add double precision to fast_exp
+- [ ] `detail/constants.hpp` - Centralize all magic numbers
+- [ ] `detail/poly.hpp` - Horner's method, Estrin's method helpers
+- [ ] `fast_log.hpp` - log for float
+- [ ] `fast_trig.hpp` - sin, cos for float  
+- [ ] `fast_hyp.hpp` - tanh (using fast_exp), sinh, cosh
+- [ ] `fast_pow.hpp` - pow (using fast_exp + fast_log)
+- [ ] Update `simd_math.hpp` to prefer fast_* over scalar fallback
+- [ ] Add accuracy tests (compare against std:: with tolerance)
+- [ ] Add AVX-512 variants
+- [ ] Add NEON (ARM) variants
+
+### Testing Strategy
+```cpp
+// For each function, test:
+// 1. Accuracy: |fast_f(x) - std::f(x)| < tolerance (e.g., 1e-5 for float)
+// 2. Edge cases: 0, ±inf, NaN, denormals
+// 3. Range boundaries: overflow/underflow thresholds
+// 4. Performance: benchmark vs scalar and SLEEF
+```
+
+### References
+- SLEEF source: https://github.com/shibatch/sleef
+- Cephes library: https://www.netlib.org/cephes/
+- "Elementary Functions" by Muller (textbook)
+- Intel Intrinsics Guide: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/
+
+---
+
 ## Overview
 
 **optinum** is a high-performance C++ header-only library combining:
@@ -539,7 +681,7 @@ include/optinum/
 - [x] `simd/math/hyperbolic.hpp` - sinh/cosh/tanh, asinh/acosh/atanh
 - [x] `simd/math/pow.hpp` - pow, cbrt
 - [x] `simd/math/special.hpp` - erf/erfc, hypot, tgamma/lgamma
-- [ ] Optional: `simd/math/sleef.hpp` - SLEEF bindings behind `OPTINUM_USE_SLEEF` (preferred for exp/log/trig accuracy)
+- [x] Optional: `simd/math/sleef.hpp` - SLEEF bindings behind `OPTINUM_USE_SLEEF` (preferred for exp/log/trig accuracy)
 - [ ] Optional: `simd/math/svml.hpp` - Intel SVML hooks behind `OPTINUM_USE_SVML`
 - [x] Policy: always provide scalar fallback (`std::`), SIMD paths use intrinsics and/or poly approximations
 
