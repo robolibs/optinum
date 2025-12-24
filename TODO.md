@@ -165,10 +165,17 @@ namespace on = optinum;  // alias
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         User Code                                   │
 │                                                                     │
+│   #include <datapod/matrix.hpp>                                     │
 │   #include <optinum/optinum.hpp>                                    │
-│   on::simd::Matrix<float, 4, 4> A, B;                               │
-│   auto C = on::lina::matmul(A, B);                                  │
-│   on::opti::Adam optimizer;                                         │
+│                                                                     │
+│   dp::mat::matrix<float, 4, 4> A, B, C;                             │
+│   on::lina::matmul(A, B, C);              // C = A * B              │
+│   // OR with explicit SIMD views:                                   │
+│   auto vA = on::simd::view<8>(A);                                   │
+│   auto vB = on::simd::view<8>(B);                                   │
+│   auto vC = on::simd::view<8>(C);                                   │
+│   on::lina::matmul(vA, vB, vC);                                     │
+│                                                                     │
 └─────────────────────────────────┬───────────────────────────────────┘
                                   │
                                   ▼
@@ -176,16 +183,20 @@ namespace on = optinum;  // alias
 │                          optinum                                    │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐   │
 │  │   on::opti   │─▶│   on::lina   │─▶│        on::simd          │   │
-│  │ (optimizers) │  │ (linear alg) │  │ (types + SIMD primitives)│   │
+│  │ (optimizers) │  │ (linear alg) │  │  (views + algorithms)    │   │
 │  └──────────────┘  └──────────────┘  └────────────┬─────────────┘   │
 │                                                   │                 │
+│                                          ┌────────┴────────┐        │
+│                                          │  simd::view<W>  │        │
+│                                          │  (non-owning)   │        │
+│                                          └────────┬────────┘        │
 └───────────────────────────────────────────────────┼─────────────────┘
-                                                    │
+                                                    │ points to
                                                     ▼
                               ┌─────────────────────────────────────┐
                               │            datapod                  │
-                              │   dp::scalar, dp::tensor, dp::matrix│
-                              │   dp::Vector, dp::Optional, etc.    │
+                              │  dp::mat::vector, matrix, tensor    │
+                              │  (owns memory, POD, serializable)   │
                               └─────────────────────────────────────┘
 ```
 
@@ -194,15 +205,27 @@ namespace on = optinum;  // alias
 ## Namespace Structure
 
 ```
-optinum (on)
-├── simd        # SIMD types + primitives
-│   ├── Scalar<T>                    # wraps dp::scalar<T>
-│   ├── Tensor<T, N>                 # wraps dp::tensor<T, N>
-│   ├── Matrix<T, R, C>              # wraps dp::matrix<T, R, C>
-│   ├── SIMDVec<T, Width>            # CPU register abstraction
-│   └── arch, backend                # low-level SIMD infrastructure
+datapod (dp)                         # DATA OWNERSHIP (external library)
+├── mat::scalar<T>                   # rank-0 (single value)
+├── mat::vector<T, N>                # rank-1 (1D array, aligned)
+├── mat::matrix<T, R, C>             # rank-2 (2D array, column-major, aligned)
+└── mat::tensor<T, Dims...>          # rank-N (N-D array)
+
+optinum (on)                         # SIMD OPERATIONS (this library)
+├── simd        # Non-owning SIMD views + algorithms
+│   ├── pack<T, W>                   # SIMD register abstraction (W lanes)
+│   ├── mask<T, W>                   # comparison results, blend/select
+│   ├── Kernel<T, W, Rank>           # ptr + extents + strides + load/store
+│   ├── scalar_view<T, W>            # view over dp::mat::scalar
+│   ├── vector_view<T, W>            # view over dp::mat::vector
+│   ├── matrix_view<T, W>            # view over dp::mat::matrix
+│   ├── tensor_view<T, W, Rank>      # view over dp::mat::tensor
+│   ├── view<W>(dp_obj)              # factory: dp type -> simd view
+│   ├── algo::axpy, dot, norm, ...   # algorithms on views
+│   ├── math::exp, sin, cos, ...     # vectorized math
+│   └── arch/                        # platform detection
 │
-├── lina        # Linear algebra operations
+├── lina        # Linear algebra operations (operate on dp types via views)
 │   ├── matmul, transpose, inverse   # matrix operations
 │   ├── lu, qr, svd, cholesky        # decompositions
 │   ├── solve, lstsq                 # linear solvers
@@ -261,7 +284,7 @@ optinum (on)
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐    │
 │  │                         User-facing Types                            │    │
-│  │    Scalar<T>           Tensor<T, N>           Matrix<T, R, C>        │    │
+│  │    Scalar<T>           Vector<T, N>           Matrix<T, R, C>        │    │
 │  │      (rank-0)            (rank-1)                (rank-2)            │    │
 │  └──────────────────────────────────┬───────────────────────────────────┘    │
 │                                     │                                        │
@@ -290,8 +313,8 @@ optinum (on)
 │                            (POD Data Storage)                                │
 │                                                                              │
 │  ┌──────────────────────────────────────────────────────────────────────┐    │
-│  │                           matrix.hpp                                 │    │
-│  │    dp::scalar<T>          dp::tensor<T,N>         dp::matrix<T,R,C>  │    │
+│  │                         dp::mat:: types                              │    │
+│  │  dp::mat::scalar<T>    dp::mat::vector<T,N>    dp::mat::matrix<T,R,C>│    │
 │  │       (rank-0)               (rank-1)                 (rank-2)       │    │
 │  └──────────────────────────────────────────────────────────────────────┘    │
 │                                                                              │
@@ -449,10 +472,11 @@ include/optinum/
 │   │   ├── matmul.hpp               #   Matrix multiplication
 │   │   └── transpose.hpp            #   Matrix transpose
 │   │
-│   ├── scalar.hpp                   # ✓ Scalar<T> wraps dp::scalar<T>
-│   ├── tensor.hpp                   # ✓ Tensor<T,N> wraps dp::tensor<T,N>
-│   ├── matrix.hpp                   # ✓ Matrix<T,R,C> wraps dp::matrix<T,R,C>
-│   └── traits.hpp                   #   Type traits for tensors
+│   ├── scalar.hpp                   # ✓ Scalar<T> wraps dp::mat::scalar<T>
+│   ├── vector.hpp                   # ✓ Vector<T,N> wraps dp::mat::vector<T,N> (1D)
+│   ├── matrix.hpp                   # ✓ Matrix<T,R,C> wraps dp::mat::matrix<T,R,C>
+│   ├── tensor.hpp                   # ✓ Tensor<T,Dims...> wraps dp::mat::tensor (N-D, rank >= 3)
+│   └── traits.hpp                   #   Type traits for vectors/matrices
 │
 ├── lina/                            # on::lina namespace (Linear Algebra Operations)
 │   ├── lina.hpp                     # lina module header
@@ -624,6 +648,550 @@ include/optinum/
 
 ## Implementation Roadmap
 
+### Phase 0: SIMD Architecture Refactor - Non-Owning Views [TODO]
+
+**Goal:** Refactor SIMD layer from owning wrappers to non-owning views over `dp::mat::*` types.
+
+#### 0.0 Design Philosophy
+
+**Current (problematic):**
+```cpp
+dp::mat::vector<float, 3> point;           // dp owns data
+simd::Vector<float, 3> simd_point(point);  // COPIES data into simd wrapper
+// ... do SIMD operations ...
+point = simd_point.pod();                  // COPY back to dp
+```
+
+**New (zero-copy views):**
+```cpp
+dp::mat::vector<float, 1024> a, b, c;      // dp owns ALL data
+simd::vector<float, 8> va = simd::view<8>(a);  // non-owning view (just ptr + metadata)
+simd::vector<float, 8> vb = simd::view<8>(b);
+simd::axpy(2.0f, va, vb, simd::view<8>(c)); // operates directly on dp memory
+// No copy ever happens - c is already updated
+```
+
+**Type symmetry:**
+```
+dp::mat::scalar<T>       →  simd::scalar<T, W>       (non-owning view)
+dp::mat::vector<T, N>    →  simd::vector<T, W>       (non-owning view)
+dp::mat::matrix<T, R, C> →  simd::matrix<T, W>       (non-owning view)
+dp::mat::tensor<T, ...>  →  simd::tensor<T, W, Rank> (non-owning view)
+```
+
+**Key principles:**
+- `dp::mat::*` types own memory (POD, serializable, cache-aligned)
+- `simd::*` types (scalar/vector/matrix/tensor) are non-owning views with SIMD operations
+- Algorithms accept views, operate directly on dp memory
+- Views are cheap, trivially copyable, stack-allocated
+
+#### 0.1 New File Structure
+
+```
+simd/
+├── arch/                    # [KEEP] Platform detection (unchanged)
+│   ├── arch.hpp
+│   └── macros.hpp
+│
+├── pack/                    # [NEW] SIMD register abstraction
+│   ├── pack.hpp             #   pack<T,W> - primary template + scalar fallback
+│   ├── pack_sse.hpp         #   SSE specializations (float4, double2, int32x4, int64x2)
+│   ├── pack_avx.hpp         #   AVX/AVX2 specializations
+│   ├── pack_avx512.hpp      #   AVX-512 specializations
+│   └── pack_neon.hpp        #   ARM NEON specializations
+│
+├── mask.hpp                 # [NEW] mask<T,W> - comparison results, any/all, blend/select
+│
+├── kernel.hpp               # [NEW] Kernel<T,W,Rank> - ptr + extents + strides + load/store
+│
+├── scalar.hpp               # [REPLACE] simd::scalar<T,W> - non-owning view (rank-0)
+├── vector.hpp               # [REPLACE] simd::vector<T,W> - non-owning view (rank-1)
+├── matrix.hpp               # [REPLACE] simd::matrix<T,W> - non-owning view (rank-2)
+├── tensor.hpp               # [REPLACE] simd::tensor<T,W,Rank> - non-owning view (rank-N)
+│
+├── bridge.hpp               # [NEW] simd::view<W>(dp_obj) factory functions
+│
+├── algo/                    # [NEW] Algorithms on views
+│   ├── algo.hpp             #   Module header
+│   ├── elementwise.hpp      #   add, sub, mul, div, axpy, scale
+│   ├── reduce.hpp           #   sum, min, max, prod, dot, norm
+│   ├── transform.hpp        #   apply(f, view), map
+│   └── linalg.hpp           #   matmul, transpose, solve (delegating to lina/)
+│
+├── math/                    # [KEEP] SIMD math functions (updated to use pack<T,W>)
+│   ├── simd_math.hpp
+│   ├── fast_exp.hpp
+│   ├── fast_log.hpp
+│   ├── fast_trig.hpp
+│   ├── fast_hyp.hpp
+│   ├── fast_pow.hpp
+│   └── detail/
+│       ├── constants.hpp
+│       └── map.hpp
+│
+└── simd.hpp                 # [UPDATE] Module header - exports views + bridge + algo
+```
+
+**Files to DELETE:**
+- `simd/intrinsic/simd_vec.hpp` (replaced by pack/)
+- `simd/intrinsic/sse.hpp` (replaced by pack_sse.hpp)
+- `simd/intrinsic/avx.hpp` (replaced by pack_avx.hpp)
+- `simd/intrinsic/avx512.hpp` (replaced by pack_avx512.hpp)
+- `simd/intrinsic/neon.hpp` (replaced by pack_neon.hpp)
+- `simd/backend/` (merged into algo/)
+
+**Files to REPLACE (same name, new content):**
+- `simd/scalar.hpp` - was owning Scalar<T>, becomes non-owning simd::scalar<T,W>
+- `simd/vector.hpp` - was owning Vector<T,N>, becomes non-owning simd::vector<T,W>
+- `simd/matrix.hpp` - was owning Matrix<T,R,C>, becomes non-owning simd::matrix<T,W>
+- `simd/tensor.hpp` - was owning Tensor<T,Dims...>, becomes non-owning simd::tensor<T,W,Rank>
+
+#### 0.2 Core Types
+
+##### pack<T, W> - SIMD Register Abstraction
+```cpp
+namespace simd {
+
+// Primary template (scalar fallback)
+template <typename T, std::size_t W>
+struct pack {
+    static_assert(W > 0 && std::is_arithmetic_v<T>);
+    using value_type = T;
+    static constexpr std::size_t width = W;
+    
+    alignas(W * sizeof(T)) T data[W];
+    
+    // Construction
+    pack() = default;
+    explicit pack(T val);                    // broadcast
+    
+    // Load/Store
+    static pack load(const T* p);            // aligned
+    static pack loadu(const T* p);           // unaligned
+    void store(T* p) const;
+    void storeu(T* p) const;
+    
+    // Arithmetic
+    pack operator+(pack rhs) const;
+    pack operator-(pack rhs) const;
+    pack operator*(pack rhs) const;
+    pack operator/(pack rhs) const;
+    pack operator-() const;
+    
+    // FMA
+    static pack fma(pack a, pack b, pack c);  // a*b + c
+    static pack fms(pack a, pack b, pack c);  // a*b - c
+    
+    // Math
+    pack sqrt() const;
+    pack rsqrt() const;
+    pack abs() const;
+    static pack min(pack a, pack b);
+    static pack max(pack a, pack b);
+    
+    // Reductions
+    T hsum() const;
+    T hmin() const;
+    T hmax() const;
+    T hprod() const;
+    
+    // Bitwise (integer only)
+    pack operator&(pack rhs) const;
+    pack operator|(pack rhs) const;
+    pack operator^(pack rhs) const;
+    pack operator~() const;
+    pack operator<<(int n) const;
+    pack operator>>(int n) const;
+    
+    // Element access
+    T operator[](std::size_t i) const;
+};
+
+// Specializations in pack_sse.hpp, pack_avx.hpp, etc.
+// pack<float, 4>   -> __m128
+// pack<float, 8>   -> __m256
+// pack<float, 16>  -> __m512
+// pack<double, 2>  -> __m128d
+// pack<double, 4>  -> __m256d
+// pack<double, 8>  -> __m512d
+// pack<int32_t, 4/8/16> -> __m128i/__m256i/__m512i
+// pack<int64_t, 2/4/8>  -> __m128i/__m256i/__m512i
+
+} // namespace simd
+```
+
+##### mask<T, W> - Comparison Results
+```cpp
+namespace simd {
+
+template <typename T, std::size_t W>
+struct mask {
+    // Internal representation varies by ISA:
+    // - SSE/AVX: __m128/__m256 (all bits set per lane)
+    // - AVX-512: __mmask8/__mmask16
+    // - Scalar: std::array<bool, W>
+    
+    // Factory
+    static mask all_true();
+    static mask all_false();
+    static mask first_n(std::size_t n);      // first n lanes true
+    
+    // Combine
+    mask operator&(mask rhs) const;
+    mask operator|(mask rhs) const;
+    mask operator^(mask rhs) const;
+    mask operator!() const;
+    
+    // Query
+    bool all() const;                         // all lanes true
+    bool any() const;                         // any lane true
+    bool none() const;                        // no lane true
+    int popcount() const;                     // count true lanes
+    
+    // Element access
+    bool operator[](std::size_t i) const;
+};
+
+// Comparisons return mask
+template <typename T, std::size_t W>
+mask<T,W> cmp_eq(pack<T,W> a, pack<T,W> b);
+mask<T,W> cmp_ne(pack<T,W> a, pack<T,W> b);
+mask<T,W> cmp_lt(pack<T,W> a, pack<T,W> b);
+mask<T,W> cmp_le(pack<T,W> a, pack<T,W> b);
+mask<T,W> cmp_gt(pack<T,W> a, pack<T,W> b);
+mask<T,W> cmp_ge(pack<T,W> a, pack<T,W> b);
+
+// Masked operations
+template <typename T, std::size_t W>
+pack<T,W> blend(pack<T,W> a, pack<T,W> b, mask<T,W> m);  // m ? b : a
+pack<T,W> maskload(const T* p, mask<T,W> m);
+void maskstore(T* p, pack<T,W> v, mask<T,W> m);
+
+} // namespace simd
+```
+
+##### Kernel<T, W, Rank> - Memory Layout Descriptor
+```cpp
+namespace simd {
+
+template <typename T, std::size_t W, std::size_t Rank>
+struct Kernel {
+    T* ptr = nullptr;
+    std::array<std::size_t, Rank> extents{};
+    std::array<std::size_t, Rank> strides{};
+    
+    // Metadata
+    constexpr std::size_t extent(std::size_t d) const { return extents[d]; }
+    constexpr std::size_t stride(std::size_t d) const { return strides[d]; }
+    constexpr std::size_t linear_size() const;
+    constexpr std::size_t num_packs() const { return (linear_size() + W - 1) / W; }
+    constexpr std::size_t tail_size() const { return linear_size() % W; }
+    
+    // Linear (contiguous) access
+    pack<T,W> load_pack(std::size_t pack_idx) const;
+    void store_pack(std::size_t pack_idx, pack<T,W> v) const;
+    
+    // Tail handling (last partial pack)
+    pack<T,W> load_pack_tail(std::size_t pack_idx, std::size_t valid) const;
+    void store_pack_tail(std::size_t pack_idx, pack<T,W> v, std::size_t valid) const;
+    
+    // Scalar access
+    T& at_linear(std::size_t i) const { return ptr[i]; }
+};
+
+} // namespace simd
+```
+
+##### Views - Typed Wrappers Around Kernel
+```cpp
+namespace simd {
+
+template <typename T, std::size_t W>
+struct scalar_view {
+    Kernel<T, W, 0> k;  // Rank-0: single element
+    T& get() const { return *k.ptr; }
+    operator T&() const { return get(); }
+};
+
+template <typename T, std::size_t W>
+struct vector_view {
+    Kernel<T, W, 1> k;  // Rank-1: 1D array
+    
+    std::size_t size() const { return k.extent(0); }
+    T& operator[](std::size_t i) const { return k.at_linear(i); }
+    
+    // Pack access
+    pack<T,W> load_pack(std::size_t i) const { return k.load_pack(i); }
+    void store_pack(std::size_t i, pack<T,W> v) const { k.store_pack(i, v); }
+    std::size_t num_packs() const { return k.num_packs(); }
+    std::size_t tail_size() const { return k.tail_size(); }
+};
+
+template <typename T, std::size_t W>
+struct matrix_view {
+    Kernel<T, W, 2> k;  // Rank-2: 2D array (column-major)
+    
+    std::size_t rows() const { return k.extent(0); }
+    std::size_t cols() const { return k.extent(1); }
+    T& operator()(std::size_t r, std::size_t c) const;
+    
+    // Row/column views
+    vector_view<T, W> row(std::size_t r) const;
+    vector_view<T, W> col(std::size_t c) const;
+};
+
+template <typename T, std::size_t W, std::size_t Rank>
+struct tensor_view {
+    Kernel<T, W, Rank> k;
+    
+    template <typename... Idx>
+    T& operator()(Idx... idx) const;
+    
+    std::size_t extent(std::size_t d) const { return k.extent(d); }
+};
+
+} // namespace simd
+```
+
+##### Bridge - Factory Functions for dp Types
+```cpp
+// bridge.hpp
+namespace simd {
+
+// Detect SIMD width for type
+template <typename T>
+constexpr std::size_t default_width() {
+    if constexpr (std::is_same_v<T, float>) {
+#if defined(OPTINUM_HAS_AVX)
+        return 8;
+#elif defined(OPTINUM_HAS_SSE)
+        return 4;
+#else
+        return 4;  // scalar fallback, 4-wide
+#endif
+    } else if constexpr (std::is_same_v<T, double>) {
+#if defined(OPTINUM_HAS_AVX)
+        return 4;
+#elif defined(OPTINUM_HAS_SSE)
+        return 2;
+#else
+        return 2;
+#endif
+    }
+    // ... int32_t, int64_t
+}
+
+// View factory: explicit width
+template <std::size_t W, typename T, std::size_t N>
+vector_view<T, W> view(dp::mat::vector<T, N>& v) {
+    return vector_view<T, W>{
+        Kernel<T, W, 1>{v.data(), {N}, {1}}
+    };
+}
+
+template <std::size_t W, typename T, std::size_t N>
+vector_view<const T, W> view(const dp::mat::vector<T, N>& v) {
+    return vector_view<const T, W>{
+        Kernel<const T, W, 1>{v.data(), {N}, {1}}
+    };
+}
+
+template <std::size_t W, typename T, std::size_t R, std::size_t C>
+matrix_view<T, W> view(dp::mat::matrix<T, R, C>& m) {
+    // Column-major: stride(0)=1, stride(1)=R
+    return matrix_view<T, W>{
+        Kernel<T, W, 2>{m.data(), {R, C}, {1, R}}
+    };
+}
+
+// View factory: auto width
+template <typename T, std::size_t N>
+auto view(dp::mat::vector<T, N>& v) {
+    return view<default_width<T>()>(v);
+}
+
+} // namespace simd
+```
+
+#### 0.3 Algorithm Examples
+
+```cpp
+// algo/elementwise.hpp
+namespace simd {
+
+// axpy: y = a*x + y
+template <typename T, std::size_t W>
+void axpy(T alpha, vector_view<const T, W> x, vector_view<T, W> y) {
+    const std::size_t n = x.size();
+    const std::size_t npacks = n / W;
+    const std::size_t tail = n % W;
+    
+    pack<T, W> a(alpha);
+    
+    for (std::size_t i = 0; i < npacks; ++i) {
+        pack<T, W> xi = x.load_pack(i);
+        pack<T, W> yi = y.load_pack(i);
+        y.store_pack(i, pack<T,W>::fma(a, xi, yi));
+    }
+    
+    if (tail > 0) {
+        pack<T, W> xi = x.k.load_pack_tail(npacks, tail);
+        pack<T, W> yi = y.k.load_pack_tail(npacks, tail);
+        y.k.store_pack_tail(npacks, pack<T,W>::fma(a, xi, yi), tail);
+    }
+}
+
+// dot: sum(x[i] * y[i])
+template <typename T, std::size_t W>
+T dot(vector_view<const T, W> x, vector_view<const T, W> y) {
+    const std::size_t n = x.size();
+    const std::size_t npacks = n / W;
+    const std::size_t tail = n % W;
+    
+    pack<T, W> acc(T{0});
+    
+    for (std::size_t i = 0; i < npacks; ++i) {
+        pack<T, W> xi = x.load_pack(i);
+        pack<T, W> yi = y.load_pack(i);
+        acc = pack<T,W>::fma(xi, yi, acc);
+    }
+    
+    T result = acc.hsum();
+    
+    // Scalar tail
+    for (std::size_t i = npacks * W; i < n; ++i) {
+        result += x[i] * y[i];
+    }
+    
+    return result;
+}
+
+} // namespace simd
+```
+
+#### 0.4 Usage Example (End-to-End)
+
+```cpp
+#include <datapod/matrix.hpp>
+#include <optinum/simd/simd.hpp>
+
+namespace dp = datapod;
+namespace on = optinum;
+
+int main() {
+    // dp owns all data
+    dp::mat::vector<float, 1024> x, y, z;
+    dp::mat::matrix<float, 64, 64> A;
+    
+    // Initialize...
+    for (int i = 0; i < 1024; ++i) {
+        x[i] = static_cast<float>(i);
+        y[i] = 1.0f;
+    }
+    
+    // Get SIMD views (auto-detect width: 8 for float on AVX)
+    auto vx = on::simd::view(x);  // vector_view<float, 8>
+    auto vy = on::simd::view(y);
+    auto vz = on::simd::view(z);
+    
+    // SIMD operations - directly on dp memory
+    on::simd::axpy(2.0f, vx, vy);           // y = 2*x + y
+    float d = on::simd::dot(vx, vy);        // dot product
+    on::simd::copy(vx, vz);                 // z = x
+    on::simd::scale(0.5f, vz);              // z *= 0.5
+    
+    // Results are already in dp containers - no copy needed
+    std::cout << "y[0] = " << y[0] << "\n";  // 1.0 (original) + 2*0 = 1.0
+    std::cout << "y[1] = " << y[1] << "\n";  // 1.0 + 2*1 = 3.0
+    std::cout << "dot  = " << d << "\n";
+    
+    return 0;
+}
+```
+
+#### 0.5 Implementation Checklist
+
+##### Step 1: pack<T,W> Infrastructure
+- [ ] `simd/pack/pack.hpp` - Primary template (scalar fallback)
+- [ ] `simd/pack/pack_sse.hpp` - SSE specializations
+  - [ ] `pack<float, 4>`, `pack<double, 2>`
+  - [ ] `pack<int32_t, 4>`, `pack<int64_t, 2>`
+- [ ] `simd/pack/pack_avx.hpp` - AVX/AVX2 specializations
+  - [ ] `pack<float, 8>`, `pack<double, 4>`
+  - [ ] `pack<int32_t, 8>`, `pack<int64_t, 4>`
+- [ ] `simd/pack/pack_avx512.hpp` - AVX-512 specializations
+- [ ] `simd/pack/pack_neon.hpp` - ARM NEON specializations
+- [ ] Tests for pack<T,W>
+
+##### Step 2: mask<T,W> and Comparisons
+- [ ] `simd/mask.hpp` - mask type + comparison functions
+- [ ] Masked load/store
+- [ ] blend/select
+- [ ] Tests for mask operations
+
+##### Step 3: Kernel and Views
+- [ ] `simd/kernel.hpp` - Kernel<T,W,Rank>
+- [ ] `simd/view/scalar_view.hpp`
+- [ ] `simd/view/vector_view.hpp`
+- [ ] `simd/view/matrix_view.hpp`
+- [ ] `simd/view/tensor_view.hpp`
+- [ ] `simd/view/view.hpp` - module header
+- [ ] Tests for views
+
+##### Step 4: Bridge to datapod
+- [ ] `simd/bridge.hpp` - view<W>() factory functions
+- [ ] Auto-width detection
+- [ ] Tests for bridge
+
+##### Step 5: Algorithms
+- [ ] `simd/algo/elementwise.hpp` - add, sub, mul, div, axpy, scale, copy
+- [ ] `simd/algo/reduce.hpp` - sum, min, max, prod, dot, norm
+- [ ] `simd/algo/transform.hpp` - apply, map
+- [ ] `simd/algo/algo.hpp` - module header
+- [ ] Tests for algorithms
+
+##### Step 6: Update math/ to use pack<T,W>
+- [ ] Update `fast_exp.hpp` to use pack<T,W> instead of raw intrinsics
+- [ ] Update `fast_log.hpp`
+- [ ] Update `fast_trig.hpp`
+- [ ] Update `fast_hyp.hpp`
+- [ ] Update `fast_pow.hpp`
+- [ ] Update `simd_math.hpp`
+
+##### Step 7: Update lina/ to use views
+- [ ] Update `lina/basic/matmul.hpp`
+- [ ] Update `lina/basic/transpose.hpp`
+- [ ] Update `lina/basic/norm.hpp`
+- [ ] Update `lina/solve/solve.hpp`
+- [ ] Update `lina/solve/lstsq.hpp`
+- [ ] Update decomposition algorithms
+- [ ] Update tests
+
+##### Step 8: Cleanup
+- [ ] Delete old owning types (scalar.hpp, vector.hpp, matrix.hpp, tensor.hpp)
+- [ ] Delete old intrinsic/ folder
+- [ ] Delete old backend/ folder
+- [ ] Update simd.hpp module header
+- [ ] Update examples
+- [ ] Update documentation
+
+#### 0.6 Migration Notes
+
+**Breaking changes:**
+- `simd::Scalar<T>`, `simd::Vector<T,N>`, `simd::Matrix<T,R,C>` are removed
+- Use `dp::mat::*` for data ownership
+- Use `simd::view<W>(dp_obj)` to get SIMD views
+- `SIMDVec<T,W>` renamed to `pack<T,W>`
+
+**lina/ changes:**
+- Functions like `lina::matmul(A, B)` will accept either:
+  - `dp::mat::matrix` directly (creates views internally), OR
+  - `simd::matrix_view` explicitly
+- Return types change from `simd::Matrix` to `void` (result passed as out param)
+  or return `dp::mat::matrix` directly
+
+---
+
 ### Phase 1: SIMD Foundation [DONE]
 
 #### 1.1 Architecture Detection [DONE]
@@ -683,12 +1251,13 @@ include/optinum/
 
 - [x] Policy: always provide scalar fallback (`std::`), SIMD paths use intrinsics and/or poly approximations
 
-#### 1.6 SIMD Coverage Breadth (beyond float/double) [TODO]
-- [ ] Integer SIMD: `SIMDVec<int32_t, 4/8/16>`, `SIMDVec<int64_t, 2/4/8>` (x86) and NEON equivalents
+#### 1.6 SIMD Coverage Breadth (beyond float/double) [IN PROGRESS]
+- [x] Integer SIMD: `SIMDVec<int32_t, 4/8/16>`, `SIMDVec<int64_t, 2/4/8>` (x86)
+- [ ] Integer SIMD: NEON equivalents
 - [ ] Comparisons and masks: `cmp_eq/ne/lt/le/gt/ge` returning mask + `any/all`, `blend/select`
 - [ ] Masked load/store + remainder-safe kernels (optional gather/scatter later)
-- [ ] Horizontal reductions: add `hprod` and ensure reductions avoid scalar store-to-stack where possible
-- [ ] Bitwise ops for integer SIMD (and/or/xor, shifts)
+- [x] Horizontal reductions: added `hprod` for all types
+- [x] Bitwise ops for integer SIMD (and/or/xor, shifts, shr_logical)
 - [ ] Complex SIMD (TBD): depends on datapod complex type decision; keep API aligned with dp types
 
 ### Phase 2: Linear Algebra [DONE]
@@ -810,7 +1379,7 @@ OPTINUM_INLINE void add(T* OPTINUM_RESTRICT dst,
 ```
 include/optinum/simd/arch/arch.hpp       ->  test/simd/arch/arch_test.cpp       ✓
 include/optinum/simd/scalar.hpp          ->  test/simd/scalar_test.cpp          ✓
-include/optinum/simd/tensor.hpp          ->  test/simd/tensor_test.cpp          ✓
+include/optinum/simd/vector.hpp          ->  test/simd/vector_test.cpp          ✓
 include/optinum/simd/matrix.hpp          ->  test/simd/matrix_test.cpp          ✓
 include/optinum/simd/intrinsic/simd_vec.hpp ->  test/simd/intrinsic/simd_vec_test.cpp ✓
 include/optinum/simd/intrinsic/sse.hpp   ->  test/simd/intrinsic/sse_test.cpp   ✓
