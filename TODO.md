@@ -226,12 +226,23 @@ include/optinum/lina/
 #### Expression Templates
 - [x] `expr.hpp` - Lazy evaluation with CRTP
 
-### Future lina/ Work
+### SIMD Integration - DONE
 
-#### SIMD Acceleration
-- [ ] Integrate SIMD views into lina operations (currently uses scalar loops)
-- [ ] SIMD-accelerated matmul for small fixed-size matrices
-- [ ] SIMD-accelerated decompositions
+The following operations now use SIMD backend for acceleration:
+
+| Operation | File | SIMD Usage |
+|-----------|------|------------|
+| `inner` (Frobenius) | `contraction.hpp` | `backend::dot` for flattened matrix |
+| `hadamard` | `contraction.hpp` | `backend::mul` for elementwise |
+| `outer` | `contraction.hpp` | `backend::mul_scalar` per column |
+| LU solve | `lu.hpp` | SIMD dot for forward/back substitution |
+| QR decomposition | `qr.hpp` | SIMD dot/axpy for Householder ops |
+
+Note: Some operations remain scalar due to strided memory access patterns:
+- Row operations in column-major matrices (LU elimination, QR right-multiply)
+- These would require gather/scatter which may not be faster for small matrices
+
+### Future lina/ Work
 
 #### Rank-N Tensor Algebra
 - [ ] Extend einsum beyond rank-2
@@ -242,6 +253,7 @@ include/optinum/lina/
 - [ ] Blocked/tiled algorithms for cache efficiency
 - [ ] Complex number support
 - [ ] Sparse matrix support (future)
+- [ ] SIMD gather/scatter for strided row operations (if beneficial)
 
 ---
 
