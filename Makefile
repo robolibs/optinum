@@ -52,7 +52,7 @@ b: build
 
 config:
 ifeq ($(BUILD_SYSTEM),xmake)
-	@xmake f --examples=y --tests=y --sleef=y -c -y
+	@xmake f --examples=y --tests=y -c -y
 	@xmake project -k compile_commands
 else
 	@mkdir -p $(BUILD_DIR)
@@ -64,7 +64,7 @@ endif
 reconfig:
 ifeq ($(BUILD_SYSTEM),xmake)
 	@rm -rf .xmake $(BUILD_DIR)
-	@xmake f --examples=y --tests=y --sleef=y -c -y
+	@xmake f --examples=y --tests=y -c -y
 	@xmake project -k compile_commands
 else
 	@rm -rf $(BUILD_DIR)

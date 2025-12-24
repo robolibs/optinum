@@ -4,20 +4,23 @@
 
 ---
 
-## PRIORITY: Native SIMD Math Implementation (No SLEEF Dependency)
+## Native SIMD Math Implementation (Complete)
 
-### Goal
-Replace SLEEF dependency with our own vectorized math functions. Target ~3-5 ULP accuracy
-(good enough for ML/graphics, not scientific computing). Can always add high-precision
-variants later.
+### Overview
+High-performance vectorized math functions with no external dependencies.
+Accuracy: ~3-5 ULP (good for ML/graphics, not scientific computing).
 
 ### Benchmark Results (Current)
 ```
-| Implementation   | Time (ms) | Speedup |
-|------------------|-----------|---------|
-| std::exp scalar  | 152 ms    | 1.0x    |
-| SLEEF exp        | 35 ms     | 4.3x    |
-| Our fast_exp     | 20 ms     | 7.4x    | <-- Already implemented & faster!
+| Function  | SLEEF Speedup | Our fast_* Speedup | Our Advantage |
+|-----------|---------------|---------------------|---------------|
+| exp       | 3.65x         | 6.33x               | 1.7x faster   |
+| log       | 1.85x         | 4.32x               | 2.3x faster   |
+| sin       | 8.89x         | 16.93x              | 1.9x faster   |
+| cos       | 7.48x         | 15.81x              | 2.1x faster   |
+| tanh      | 7.28x         | 27.16x              | 3.7x faster   |
+| pow       | 1.07x         | 2.90x               | 2.7x faster   |
+| sqrt      | N/A           | 3.48x               | Native SIMD   |
 ```
 
 ### Implementation Plan
@@ -55,23 +58,20 @@ variants later.
 ### File Structure
 ```
 include/optinum/simd/math/
-├── simd_math.hpp          # Public API (unchanged)
+├── simd_math.hpp          # Public API (includes all headers)
 ├── detail/
 │   ├── map.hpp            # Scalar fallback (existing)
-│   ├── constants.hpp      # NEW: Math constants (LN2, PI, coefficients)
-│   ├── poly.hpp           # NEW: Polynomial evaluation helpers (Horner, Estrin)
-│   └── range_reduce.hpp   # NEW: Range reduction utilities
-├── fast_exp.hpp           # DONE: exp for float
-├── fast_log.hpp           # TODO: log for float
-├── fast_trig.hpp          # TODO: sin, cos, tan for float
-├── fast_hyp.hpp           # TODO: sinh, cosh, tanh for float  
-├── fast_pow.hpp           # TODO: pow, sqrt, cbrt for float
+│   └── constants.hpp      # DONE: Math constants (LN2, PI, coefficients)
+├── fast_exp.hpp           # DONE: exp for float (AVX + SSE4.1)
+├── fast_log.hpp           # DONE: log for float (AVX + SSE4.1)
+├── fast_trig.hpp          # DONE: sin, cos for float (AVX + SSE4.1)
+├── fast_hyp.hpp           # DONE: tanh, sinh, cosh (AVX + SSE4.1)
+├── fast_pow.hpp           # DONE: pow, sqrt, rsqrt, cbrt, powi (AVX + SSE4.1)
 ├── fast_inv_trig.hpp      # TODO: asin, acos, atan, atan2
-├── exponential.hpp        # Existing scalar fallback
-├── trig.hpp               # Existing scalar fallback
-├── hyperbolic.hpp         # Existing scalar fallback
-├── pow.hpp                # Existing scalar fallback
-└── sleef.hpp              # Optional SLEEF bindings (keep for reference)
+├── exponential.hpp        # Scalar fallback (template)
+├── trig.hpp               # Scalar fallback (template)
+├── hyperbolic.hpp         # Scalar fallback (template)
+└── pow.hpp                # Scalar fallback (template)
 ```
 
 ### Algorithm Details
@@ -117,17 +117,17 @@ For |x| >= 0.625:
 ### Implementation Checklist
 
 - [x] `fast_exp.hpp` - exp for float (AVX + SSE4.1)
-- [ ] Add double precision to fast_exp
-- [ ] `detail/constants.hpp` - Centralize all magic numbers
+- [x] `detail/constants.hpp` - Centralize all magic numbers
+- [x] `fast_log.hpp` - log for float (AVX + SSE4.1)
+- [x] `fast_trig.hpp` - sin, cos for float (AVX + SSE4.1)
+- [x] `fast_hyp.hpp` - tanh, sinh, cosh (using fast_exp)
+- [x] `fast_pow.hpp` - pow, sqrt, rsqrt, cbrt, powi
+- [ ] Add double precision to fast_* functions
 - [ ] `detail/poly.hpp` - Horner's method, Estrin's method helpers
-- [ ] `fast_log.hpp` - log for float
-- [ ] `fast_trig.hpp` - sin, cos for float  
-- [ ] `fast_hyp.hpp` - tanh (using fast_exp), sinh, cosh
-- [ ] `fast_pow.hpp` - pow (using fast_exp + fast_log)
-- [ ] Update `simd_math.hpp` to prefer fast_* over scalar fallback
 - [ ] Add accuracy tests (compare against std:: with tolerance)
 - [ ] Add AVX-512 variants
 - [ ] Add NEON (ARM) variants
+- [ ] Implement `fast_inv_trig.hpp` (asin, acos, atan, atan2)
 
 ### Testing Strategy
 ```cpp
@@ -135,11 +135,10 @@ For |x| >= 0.625:
 // 1. Accuracy: |fast_f(x) - std::f(x)| < tolerance (e.g., 1e-5 for float)
 // 2. Edge cases: 0, ±inf, NaN, denormals
 // 3. Range boundaries: overflow/underflow thresholds
-// 4. Performance: benchmark vs scalar and SLEEF
+// 4. Performance: benchmark vs scalar
 ```
 
 ### References
-- SLEEF source: https://github.com/shibatch/sleef
 - Cephes library: https://www.netlib.org/cephes/
 - "Elementary Functions" by Muller (textbook)
 - Intel Intrinsics Guide: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/
@@ -681,8 +680,7 @@ include/optinum/
 - [x] `simd/math/hyperbolic.hpp` - sinh/cosh/tanh, asinh/acosh/atanh
 - [x] `simd/math/pow.hpp` - pow, cbrt
 - [x] `simd/math/special.hpp` - erf/erfc, hypot, tgamma/lgamma
-- [x] Optional: `simd/math/sleef.hpp` - SLEEF bindings behind `OPTINUM_USE_SLEEF` (preferred for exp/log/trig accuracy)
-- [ ] Optional: `simd/math/svml.hpp` - Intel SVML hooks behind `OPTINUM_USE_SVML`
+
 - [x] Policy: always provide scalar fallback (`std::`), SIMD paths use intrinsics and/or poly approximations
 
 #### 1.6 SIMD Coverage Breadth (beyond float/double) [TODO]
@@ -832,8 +830,7 @@ include/optinum/simd/math/trig.hpp             ->  test/simd/math/trig_test.cpp
 include/optinum/simd/math/hyperbolic.hpp       ->  test/simd/math/hyperbolic_test.cpp
 include/optinum/simd/math/pow.hpp              ->  test/simd/math/pow_test.cpp
 include/optinum/simd/math/special.hpp          ->  test/simd/math/special_test.cpp
-include/optinum/simd/math/sleef.hpp            ->  test/simd/math/sleef_test.cpp
-include/optinum/simd/math/svml.hpp             ->  test/simd/math/svml_test.cpp
+
 include/optinum/lina/lina.hpp                  ->  test/lina/lina_test.cpp ✓
 include/optinum/lina/basic/matmul.hpp          ->  test/lina/basic/lina_matmul_test.cpp ✓
 include/optinum/lina/basic/transpose.hpp       ->  test/lina/basic/lina_transpose_test.cpp ✓

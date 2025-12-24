@@ -83,12 +83,6 @@ option("short_namespace")
     set_description("Enable short namespace alias (dp)")
 option_end()
 
-option("sleef")
-    set_default(false)
-    set_showmenu(true)
-    set_description("Enable SLEEF-backed SIMD math")
-option_end()
-
 -- Define datapod package (from git)
 package("datapod")
     set_sourcedir(path.join(os.projectdir(), "build/_deps/datapod-src"))
@@ -107,41 +101,6 @@ package("datapod")
     on_install(function (package)
         local configs = {}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
-        import("package.tools.cmake").install(package, configs, {cmake_generator = "Unix Makefiles"})
-    end)
-package_end()
-
--- Define sleef package (from git)
-package("sleef")
-    set_sourcedir(path.join(os.projectdir(), "build/_deps/sleef-src"))
-
-    on_fetch(function (package)
-        local sourcedir = package:sourcedir()
-        if not os.isdir(sourcedir) then
-            print("Fetching sleef from git...")
-            os.mkdir(path.directory(sourcedir))
-            os.execv("git", {"clone", "--quiet", "--depth", "1", "--branch", "3.9.0",
-                            "--recurse-submodules", "--shallow-submodules",
-                            "-c", "advice.detachedHead=false",
-                            "https://github.com/shibatch/sleef.git", sourcedir})
-        end
-    end)
-
-    on_install(function (package)
-        local configs = {}
-        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
-        table.insert(configs, "-DBUILD_SHARED_LIBS=OFF")
-        table.insert(configs, "-DSLEEF_BUILD_LIBM=ON")
-        table.insert(configs, "-DSLEEF_BUILD_DFT=OFF")
-        table.insert(configs, "-DSLEEF_BUILD_QUAD=OFF")
-        table.insert(configs, "-DSLEEF_BUILD_TESTS=OFF")
-        table.insert(configs, "-DSLEEF_BUILD_BENCH=OFF")
-        table.insert(configs, "-DSLEEF_ENABLE_TESTER=OFF")
-        table.insert(configs, "-DSLEEF_ENABLE_TESTER4=OFF")
-        table.insert(configs, "-DSLEEF_DISABLE_SSL=ON")
-        table.insert(configs, "-DSLEEF_DISABLE_OPENMP=ON")
-        table.insert(configs, "-DSLEEF_ENABLE_TLFLOAT=OFF")
-        table.insert(configs, "-DSLEEF_SHOW_CONFIG=OFF")
         import("package.tools.cmake").install(package, configs, {cmake_generator = "Unix Makefiles"})
     end)
 package_end()
@@ -190,10 +149,6 @@ if has_config("tests") then
     add_requires("doctest")
 end
 
-if has_config("sleef") then
-    add_requires("sleef")
-end
-
 -- Main library target
 target("optinum")
     set_kind("static")
@@ -207,11 +162,6 @@ target("optinum")
 
     -- Link dependencies
     add_packages("datapod")
-
-    if has_config("sleef") then
-        add_packages("sleef")
-        add_defines("OPTINUM_USE_SLEEF", {public = true})
-    end
 
     -- Add SHORT_NAMESPACE define if enabled
     if has_config("short_namespace") then
@@ -257,11 +207,6 @@ if has_config("examples") and os.projectdir() == os.curdir() then
             end)
             add_packages("rerun_sdk")
 
-            if has_config("sleef") then
-                add_packages("sleef")
-                add_defines("OPTINUM_USE_SLEEF")
-            end
-
             add_includedirs("include")
         target_end()
     end
@@ -282,11 +227,6 @@ if has_config("tests") and os.projectdir() == os.curdir() then
             -- Always enable SHORT_NAMESPACE for tests
             add_defines("SHORT_NAMESPACE")
 
-            if has_config("sleef") then
-                add_packages("sleef")
-                add_defines("OPTINUM_USE_SLEEF")
-            end
-            
             add_syslinks("pthread")
 
             -- Add as test

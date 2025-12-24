@@ -1,7 +1,8 @@
 #pragma once
 
 // Fast vectorized exp() implementation
-// This is a simplified version - not as accurate as SLEEF but much faster than scalar
+// Uses range reduction + polynomial approximation
+// Accuracy: ~3-5 ULP (good for ML/graphics, not scientific computing)
 
 #include <optinum/simd/arch/arch.hpp>
 #include <optinum/simd/intrinsic/simd_vec.hpp>
