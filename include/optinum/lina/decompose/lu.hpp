@@ -7,7 +7,7 @@
 
 #include <datapod/sequential/array.hpp>
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 #include <cmath>
 #include <cstddef>
@@ -112,9 +112,9 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr simd::Tensor<T, N> lu_solve(const LU<T, N> &f, const simd::Tensor<T, N> &b) noexcept {
-        simd::Tensor<T, N> x;
-        simd::Tensor<T, N> y;
+    [[nodiscard]] constexpr simd::Vector<T, N> lu_solve(const LU<T, N> &f, const simd::Vector<T, N> &b) noexcept {
+        simd::Vector<T, N> x;
+        simd::Vector<T, N> y;
 
         // Apply permutation: Pb
         for (std::size_t i = 0; i < N; ++i) {

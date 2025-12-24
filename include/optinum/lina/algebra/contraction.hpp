@@ -6,12 +6,12 @@
 // =============================================================================
 
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 namespace optinum::lina {
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr T inner(const simd::Tensor<T, N> &a, const simd::Tensor<T, N> &b) noexcept {
+    [[nodiscard]] constexpr T inner(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) noexcept {
         return simd::dot(a, b);
     }
 
@@ -44,8 +44,8 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t M, std::size_t N>
-    [[nodiscard]] constexpr simd::Matrix<T, M, N> outer(const simd::Tensor<T, M> &a,
-                                                        const simd::Tensor<T, N> &b) noexcept {
+    [[nodiscard]] constexpr simd::Matrix<T, M, N> outer(const simd::Vector<T, M> &a,
+                                                        const simd::Vector<T, N> &b) noexcept {
         simd::Matrix<T, M, N> out;
         for (std::size_t j = 0; j < N; ++j) {
             for (std::size_t i = 0; i < M; ++i) {

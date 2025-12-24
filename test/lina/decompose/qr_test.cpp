@@ -3,7 +3,7 @@
 
 using optinum::lina::qr;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::qr reconstructs A ~= Q*R") {
     Matrix<double, 3, 2> a;

@@ -2,11 +2,11 @@
 #include <optinum/opti/problem/sphere.hpp>
 
 using optinum::opti::Sphere;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("Sphere evaluate") {
     Sphere<double, 3> sphere;
-    Tensor<double, 3> x;
+    Vector<double, 3> x;
 
     SUBCASE("at origin") {
         x[0] = 0.0;
@@ -41,8 +41,8 @@ TEST_CASE("Sphere evaluate") {
 
 TEST_CASE("Sphere gradient") {
     Sphere<double, 3> sphere;
-    Tensor<double, 3> x;
-    Tensor<double, 3> g;
+    Vector<double, 3> x;
+    Vector<double, 3> g;
 
     SUBCASE("at origin") {
         x[0] = 0.0;
@@ -78,8 +78,8 @@ TEST_CASE("Sphere gradient") {
 
 TEST_CASE("Sphere evaluate_with_gradient") {
     Sphere<double, 3> sphere;
-    Tensor<double, 3> x;
-    Tensor<double, 3> g;
+    Vector<double, 3> x;
+    Vector<double, 3> g;
 
     x[0] = 1.0;
     x[1] = 2.0;
@@ -96,14 +96,14 @@ TEST_CASE("Sphere evaluate_with_gradient") {
 TEST_CASE("Sphere different dimensions") {
     SUBCASE("1D") {
         Sphere<float, 1> sphere;
-        Tensor<float, 1> x;
+        Vector<float, 1> x;
         x[0] = 5.0f;
         CHECK(sphere.evaluate(x) == 25.0f);
     }
 
     SUBCASE("5D") {
         Sphere<float, 5> sphere;
-        Tensor<float, 5> x;
+        Vector<float, 5> x;
         x[0] = 1.0f;
         x[1] = 1.0f;
         x[2] = 1.0f;
@@ -115,14 +115,14 @@ TEST_CASE("Sphere different dimensions") {
 
 TEST_CASE("Sphere global minimum") {
     Sphere<double, 4> sphere;
-    Tensor<double, 4> origin;
+    Vector<double, 4> origin;
     origin.fill(0.0);
 
     // Global minimum is at origin with value 0
     CHECK(sphere.evaluate(origin) == 0.0);
 
     // Any other point has higher value
-    Tensor<double, 4> other;
+    Vector<double, 4> other;
     other[0] = 0.001;
     other[1] = 0.0;
     other[2] = 0.0;

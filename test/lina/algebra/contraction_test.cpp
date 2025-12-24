@@ -4,14 +4,14 @@
 using optinum::lina::inner;
 using optinum::lina::outer;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::inner (vector)") {
-    Tensor<float, 3> a;
+    Vector<float, 3> a;
     a[0] = 1.f;
     a[1] = 2.f;
     a[2] = 3.f;
-    Tensor<float, 3> b;
+    Vector<float, 3> b;
     b[0] = 4.f;
     b[1] = 5.f;
     b[2] = 6.f;
@@ -19,10 +19,10 @@ TEST_CASE("lina::inner (vector)") {
 }
 
 TEST_CASE("lina::outer") {
-    Tensor<int, 2> a;
+    Vector<int, 2> a;
     a[0] = 2;
     a[1] = 3;
-    Tensor<int, 3> b;
+    Vector<int, 3> b;
     b[0] = 4;
     b[1] = 5;
     b[2] = 6;

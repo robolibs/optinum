@@ -8,7 +8,7 @@
 #include <datapod/adapters/result.hpp>
 #include <optinum/lina/decompose/lu.hpp>
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 namespace optinum::lina {
 
@@ -24,7 +24,7 @@ namespace optinum::lina {
 
         simd::Matrix<T, N, N> inv;
         for (std::size_t col = 0; col < N; ++col) {
-            simd::Tensor<T, N> e;
+            simd::Vector<T, N> e;
             e.fill(T{});
             e[col] = T{1};
             const auto x = lu_solve(f, e);

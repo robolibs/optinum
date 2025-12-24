@@ -16,11 +16,11 @@ int main() {
     std::cout << "a * b = " << d.get() << "\n";
 
     // Access underlying datapod type
-    datapod::scalar<float> &pod = a.pod();
+    datapod::mat::scalar<float> &pod = a.pod();
     std::cout << "pod.value = " << pod.value << "\n";
 
     // Create from datapod
-    datapod::scalar<double> raw{42.0};
+    datapod::mat::scalar<double> raw{42.0};
     optinum::simd::Scalar<double> wrapped(raw);
     std::cout << "wrapped = " << wrapped.get() << "\n";
 

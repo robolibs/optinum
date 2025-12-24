@@ -4,10 +4,10 @@
 using optinum::lina::cross;
 using optinum::lina::norm_fro;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::dot and lina::norm (vector)") {
-    Tensor<float, 3> a;
+    Vector<float, 3> a;
     a[0] = 3.f;
     a[1] = 0.f;
     a[2] = 4.f;
@@ -17,11 +17,11 @@ TEST_CASE("lina::dot and lina::norm (vector)") {
 }
 
 TEST_CASE("lina::cross") {
-    Tensor<int, 3> a;
+    Vector<int, 3> a;
     a[0] = 1;
     a[1] = 0;
     a[2] = 0;
-    Tensor<int, 3> b;
+    Vector<int, 3> b;
     b[0] = 0;
     b[1] = 1;
     b[2] = 0;

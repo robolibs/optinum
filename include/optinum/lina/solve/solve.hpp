@@ -9,30 +9,30 @@
 #include <datapod/adapters/result.hpp>
 #include <optinum/lina/decompose/lu.hpp>
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 namespace optinum::lina {
 
     namespace dp = ::datapod;
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr dp::Result<simd::Tensor<T, N>, dp::Error> try_solve(const simd::Matrix<T, N, N> &a,
-                                                                                const simd::Tensor<T, N> &b) noexcept {
+    [[nodiscard]] constexpr dp::Result<simd::Vector<T, N>, dp::Error> try_solve(const simd::Matrix<T, N, N> &a,
+                                                                                const simd::Vector<T, N> &b) noexcept {
         const auto f = lu<T, N>(a);
         if (f.singular) {
-            return dp::Result<simd::Tensor<T, N>, dp::Error>::err(dp::Error::invalid_argument("matrix is singular"));
+            return dp::Result<simd::Vector<T, N>, dp::Error>::err(dp::Error::invalid_argument("matrix is singular"));
         }
-        return dp::Result<simd::Tensor<T, N>, dp::Error>::ok(lu_solve(f, b));
+        return dp::Result<simd::Vector<T, N>, dp::Error>::ok(lu_solve(f, b));
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr simd::Tensor<T, N> solve(const simd::Matrix<T, N, N> &a,
-                                                     const simd::Tensor<T, N> &b) noexcept {
+    [[nodiscard]] constexpr simd::Vector<T, N> solve(const simd::Matrix<T, N, N> &a,
+                                                     const simd::Vector<T, N> &b) noexcept {
         auto r = try_solve<T, N>(a, b);
         if (r.is_ok()) {
             return r.value();
         }
-        simd::Tensor<T, N> zero;
+        simd::Vector<T, N> zero;
         zero.fill(T{});
         return zero;
     }
@@ -47,7 +47,7 @@ namespace optinum::lina {
 
         simd::Matrix<T, N, M> x;
         for (std::size_t col = 0; col < M; ++col) {
-            simd::Tensor<T, N> rhs;
+            simd::Vector<T, N> rhs;
             for (std::size_t i = 0; i < N; ++i) {
                 rhs[i] = b(i, col);
             }

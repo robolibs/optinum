@@ -1,6 +1,6 @@
 #pragma once
 
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -13,7 +13,7 @@ namespace optinum::opti {
      * Global minimum: f(0, 0, ..., 0) = 0
      */
     template <typename T, std::size_t N> struct Sphere {
-        using tensor_type = simd::Tensor<T, N>;
+        using tensor_type = simd::Vector<T, N>;
 
         /// Evaluate f(x) = sum(x_i^2)
         T evaluate(const tensor_type &x) const noexcept {

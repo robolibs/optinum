@@ -6,7 +6,7 @@
 // =============================================================================
 
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 #include <cstddef>
 #include <type_traits>
@@ -26,8 +26,8 @@ namespace optinum::lina::expr {
     };
 
     template <typename T, std::size_t N> struct VecRef : VecExpr<VecRef<T, N>, T, N> {
-        const simd::Tensor<T, N> *ptr;
-        constexpr explicit VecRef(const simd::Tensor<T, N> &v) noexcept : ptr(&v) {}
+        const simd::Vector<T, N> *ptr;
+        constexpr explicit VecRef(const simd::Vector<T, N> &v) noexcept : ptr(&v) {}
         [[nodiscard]] constexpr T eval(std::size_t i) const noexcept { return (*ptr)[i]; }
     };
 
@@ -48,7 +48,7 @@ namespace optinum::lina::expr {
     };
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr VecRef<T, N> ref(const simd::Tensor<T, N> &v) noexcept {
+    [[nodiscard]] constexpr VecRef<T, N> ref(const simd::Vector<T, N> &v) noexcept {
         return VecRef<T, N>(v);
     }
 
@@ -70,8 +70,8 @@ namespace optinum::lina::expr {
 
     template <typename E>
     requires requires { E::size; }
-    [[nodiscard]] constexpr simd::Tensor<typename E::value_type, E::size> eval(const E &e) noexcept {
-        simd::Tensor<typename E::value_type, E::size> out;
+    [[nodiscard]] constexpr simd::Vector<typename E::value_type, E::size> eval(const E &e) noexcept {
+        simd::Vector<typename E::value_type, E::size> out;
         for (std::size_t i = 0; i < E::size; ++i) {
             out[i] = e.eval(i);
         }

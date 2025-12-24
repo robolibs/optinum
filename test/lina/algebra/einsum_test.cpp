@@ -3,7 +3,7 @@
 
 using optinum::lina::einsum;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::einsum ij,jk->ik") {
     Matrix<float, 2, 2> a;
@@ -32,7 +32,7 @@ TEST_CASE("lina::einsum ij,j->i") {
     a(0, 2) = 3.f;
     a(1, 2) = 6.f;
 
-    Tensor<float, 3> x;
+    Vector<float, 3> x;
     x[0] = 1.f;
     x[1] = 2.f;
     x[2] = 3.f;
@@ -43,11 +43,11 @@ TEST_CASE("lina::einsum ij,j->i") {
 }
 
 TEST_CASE("lina::einsum i,i->") {
-    Tensor<float, 3> a;
+    Vector<float, 3> a;
     a[0] = 1.f;
     a[1] = 2.f;
     a[2] = 3.f;
-    Tensor<float, 3> b;
+    Vector<float, 3> b;
     b[0] = 4.f;
     b[1] = 5.f;
     b[2] = 6.f;

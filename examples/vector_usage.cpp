@@ -3,12 +3,12 @@
 
 int main() {
     // Create tensors
-    optinum::simd::Tensor<float, 3> a;
+    optinum::simd::Vector<float, 3> a;
     a[0] = 1.0f;
     a[1] = 2.0f;
     a[2] = 3.0f;
 
-    optinum::simd::Tensor<float, 3> b;
+    optinum::simd::Vector<float, 3> b;
     b.fill(2.0f);
 
     // Element-wise operations
@@ -35,12 +35,12 @@ int main() {
     std::cout << "norm(normalized(a)) = " << optinum::simd::norm(n) << "\n";
 
     // Access underlying datapod type
-    datapod::tensor<float, 3> &pod = a.pod();
+    datapod::mat::vector<float, 3> &pod = a.pod();
     std::cout << "pod[0] = " << pod[0] << "\n";
 
     // Create from datapod
-    datapod::tensor<double, 4> raw{1.0, 2.0, 3.0, 4.0};
-    optinum::simd::Tensor<double, 4> wrapped(raw);
+    datapod::mat::vector<double, 4> raw{1.0, 2.0, 3.0, 4.0};
+    optinum::simd::Vector<double, 4> wrapped(raw);
     std::cout << "wrapped = [" << wrapped[0] << ", " << wrapped[1] << ", " << wrapped[2] << ", " << wrapped[3] << "]\n";
 
     // Iteration
@@ -52,11 +52,11 @@ int main() {
 
 #if defined(SHORT_NAMESPACE)
     // Short namespace
-    on::simd::Tensor3f v;
+    on::simd::Vector3f v;
     v[0] = 1.0f;
     v[1] = 0.0f;
     v[2] = 0.0f;
-    std::cout << "on::simd::Tensor3f norm = " << on::simd::norm(v) << "\n";
+    std::cout << "on::simd::Vector3f norm = " << on::simd::norm(v) << "\n";
 #endif
 
     return 0;

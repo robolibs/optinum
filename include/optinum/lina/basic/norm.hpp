@@ -5,18 +5,18 @@
 // =============================================================================
 
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 #include <cmath>
 
 namespace optinum::lina {
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr T dot(const simd::Tensor<T, N> &a, const simd::Tensor<T, N> &b) noexcept {
+    [[nodiscard]] constexpr T dot(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) noexcept {
         return simd::dot(a, b);
     }
 
-    template <typename T, std::size_t N> [[nodiscard]] T norm(const simd::Tensor<T, N> &x) noexcept {
+    template <typename T, std::size_t N> [[nodiscard]] T norm(const simd::Vector<T, N> &x) noexcept {
         return simd::norm(x);
     }
 
@@ -26,9 +26,9 @@ namespace optinum::lina {
     }
 
     template <typename T>
-    [[nodiscard]] constexpr simd::Tensor<T, 3> cross(const simd::Tensor<T, 3> &a,
-                                                     const simd::Tensor<T, 3> &b) noexcept {
-        simd::Tensor<T, 3> r;
+    [[nodiscard]] constexpr simd::Vector<T, 3> cross(const simd::Vector<T, 3> &a,
+                                                     const simd::Vector<T, 3> &b) noexcept {
+        simd::Vector<T, 3> r;
         r[0] = a[1] * b[2] - a[2] * b[1];
         r[1] = a[2] * b[0] - a[0] * b[2];
         r[2] = a[0] * b[1] - a[1] * b[0];
@@ -41,7 +41,7 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr simd::Tensor<T, N> scale(const simd::Tensor<T, N> &x, T s) noexcept {
+    [[nodiscard]] constexpr simd::Vector<T, N> scale(const simd::Vector<T, N> &x, T s) noexcept {
         return x * s;
     }
 
@@ -53,8 +53,8 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr simd::Tensor<T, N> axpy(T alpha, const simd::Tensor<T, N> &x,
-                                                    const simd::Tensor<T, N> &y) noexcept {
+    [[nodiscard]] constexpr simd::Vector<T, N> axpy(T alpha, const simd::Vector<T, N> &x,
+                                                    const simd::Vector<T, N> &y) noexcept {
         return (x * alpha) + y;
     }
 

@@ -11,7 +11,7 @@ namespace optinum::simd {
 
       public:
         using value_type = T;
-        using pod_type = dp::scalar<T>;
+        using pod_type = dp::mat::scalar<T>;
 
         constexpr Scalar() noexcept = default;
         constexpr explicit Scalar(const pod_type &pod) noexcept : pod_(pod) {}

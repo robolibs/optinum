@@ -6,7 +6,7 @@
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/matmul.hpp>
 #include <optinum/simd/backend/transpose.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 namespace optinum::simd {
 
@@ -19,7 +19,7 @@ namespace optinum::simd {
 
       public:
         using value_type = T;
-        using pod_type = dp::matrix<T, R, C>;
+        using pod_type = dp::mat::matrix<T, R, C>;
         using size_type = std::size_t;
         using reference = T &;
         using const_reference = const T &;
@@ -209,10 +209,10 @@ namespace optinum::simd {
         return result;
     }
 
-    // Matrix-vector multiplication: (R x C) * Tensor<C> -> Tensor<R>
+    // Matrix-vector multiplication: (R x C) * Vector<C> -> Vector<R>
     template <typename T, std::size_t R, std::size_t C>
-    constexpr Tensor<T, R> operator*(const Matrix<T, R, C> &mat, const Tensor<T, C> &vec) noexcept {
-        Tensor<T, R> result;
+    constexpr Vector<T, R> operator*(const Matrix<T, R, C> &mat, const Vector<T, C> &vec) noexcept {
+        Vector<T, R> result;
         if (std::is_constant_evaluated()) {
             result.fill(T{});
             for (std::size_t i = 0; i < R; ++i) {

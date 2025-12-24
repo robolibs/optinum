@@ -2,7 +2,7 @@
 #include <optinum/simd/matrix.hpp>
 
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("Matrix construction") {
     SUBCASE("default construction") {
@@ -13,7 +13,7 @@ TEST_CASE("Matrix construction") {
     }
 
     SUBCASE("from datapod") {
-        datapod::matrix<float, 2, 2> pod{};
+        datapod::mat::matrix<float, 2, 2> pod{};
         pod(0, 0) = 1.0f;
         pod(0, 1) = 2.0f;
         pod(1, 0) = 3.0f;
@@ -149,7 +149,7 @@ TEST_CASE("Matrix-vector multiplication") {
     m(1, 1) = 5.0f;
     m(1, 2) = 6.0f;
 
-    Tensor<float, 3> v;
+    Vector<float, 3> v;
     v[0] = 1.0f;
     v[1] = 2.0f;
     v[2] = 3.0f;
@@ -251,7 +251,7 @@ TEST_CASE("Matrix pod access") {
     m(1, 0) = 3.0f;
     m(1, 1) = 4.0f;
 
-    datapod::matrix<float, 2, 2> &pod = m.pod();
+    datapod::mat::matrix<float, 2, 2> &pod = m.pod();
     CHECK(pod(0, 0) == 1.0f);
 
     pod(0, 0) = 99.0f;

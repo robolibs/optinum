@@ -6,7 +6,7 @@
 // =============================================================================
 
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 #include <cmath>
 #include <cstddef>
@@ -15,7 +15,7 @@
 namespace optinum::lina {
 
     template <typename T, std::size_t N> struct EigenSym {
-        simd::Tensor<T, N> values{};
+        simd::Vector<T, N> values{};
         simd::Matrix<T, N, N> vectors{}; // columns are eigenvectors
         std::size_t iterations = 0;
     };

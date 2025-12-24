@@ -15,7 +15,7 @@ TEST_CASE("Scalar construction") {
     }
 
     SUBCASE("from datapod") {
-        datapod::scalar<int> pod{42};
+        datapod::mat::scalar<int> pod{42};
         Scalar<int> s(pod);
         CHECK(s.get() == 42);
     }

@@ -62,7 +62,7 @@ int main() {
     std::cout << "frobenius_norm(A) = " << optinum::simd::frobenius_norm(A) << "\n";
 
     // Matrix-vector multiplication
-    optinum::simd::Tensor<float, 3> v;
+    optinum::simd::Vector<float, 3> v;
     v[0] = 1;
     v[1] = 2;
     v[2] = 3;
@@ -92,7 +92,7 @@ int main() {
     std::cout << "  [" << MN(1, 0) << ", " << MN(1, 1) << "]\n";
 
     // Access underlying datapod
-    datapod::matrix<float, 3, 3> &pod = A.pod();
+    datapod::mat::matrix<float, 3, 3> &pod = A.pod();
     std::cout << "pod(0,0) = " << pod(0, 0) << "\n";
 
     // Identity factory

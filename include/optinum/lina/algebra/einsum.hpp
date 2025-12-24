@@ -8,7 +8,7 @@
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/lina/basic/transpose.hpp>
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 #include <cstddef>
 #include <string_view>
@@ -27,7 +27,7 @@ namespace optinum::lina {
 
     namespace einsum_detail {
         template <typename> struct is_tensor : std::false_type {};
-        template <typename T, std::size_t N> struct is_tensor<simd::Tensor<T, N>> : std::true_type {};
+        template <typename T, std::size_t N> struct is_tensor<simd::Vector<T, N>> : std::true_type {};
         template <typename> struct is_matrix : std::false_type {};
         template <typename T, std::size_t R, std::size_t C> struct is_matrix<simd::Matrix<T, R, C>> : std::true_type {};
 
@@ -61,7 +61,7 @@ namespace optinum::lina {
             }
         } else {
             static_assert(einsum_detail::is_matrix_v<A> || einsum_detail::is_tensor_v<A>,
-                          "einsum expects simd::Matrix or simd::Tensor");
+                          "einsum expects simd::Matrix or simd::Vector");
         }
     }
 

@@ -5,7 +5,7 @@ using optinum::lina::lu;
 using optinum::lina::lu_solve;
 using optinum::lina::permutation_matrix;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::lu reconstructs P*A = L*U") {
     Matrix<double, 3, 3> a;
@@ -40,7 +40,7 @@ TEST_CASE("lina::lu_solve solves Ax=b") {
     a(0, 1) = 1.0;
     a(1, 1) = 3.0;
 
-    Tensor<double, 2> b;
+    Vector<double, 2> b;
     b[0] = 1.0;
     b[1] = 2.0;
 

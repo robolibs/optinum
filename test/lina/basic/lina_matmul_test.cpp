@@ -3,7 +3,7 @@
 
 using optinum::lina::matmul;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::matmul matrix-matrix") {
     Matrix<float, 2, 2> a;
@@ -34,7 +34,7 @@ TEST_CASE("lina::matmul matrix-vector") {
     m(0, 2) = 3.f;
     m(1, 2) = 6.f;
 
-    Tensor<float, 3> x;
+    Vector<float, 3> x;
     x[0] = 1.f;
     x[1] = 2.f;
     x[2] = 3.f;

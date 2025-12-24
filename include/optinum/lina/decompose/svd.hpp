@@ -8,7 +8,7 @@
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/matmul.hpp>
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 #include <cmath>
 #include <cstddef>
@@ -26,7 +26,7 @@ namespace optinum::lina {
 
     template <typename T, std::size_t M, std::size_t N> struct SVD {
         simd::Matrix<T, M, M> u{};
-        simd::Tensor<T, svd_detail::min_v<M, N>> s{};
+        simd::Vector<T, svd_detail::min_v<M, N>> s{};
         simd::Matrix<T, N, N> vt{};
         std::size_t sweeps = 0;
     };

@@ -4,7 +4,7 @@
 using optinum::lina::solve;
 using optinum::lina::try_solve;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::solve solves Ax=b") {
     Matrix<double, 3, 3> a;
@@ -18,7 +18,7 @@ TEST_CASE("lina::solve solves Ax=b") {
     a(1, 2) = 0.5;
     a(2, 2) = -1.0;
 
-    Tensor<double, 3> b;
+    Vector<double, 3> b;
     b[0] = 1.0;
     b[1] = -2.0;
     b[2] = 0.0;
@@ -37,7 +37,7 @@ TEST_CASE("lina::try_solve detects singular") {
     a(0, 1) = 2.0;
     a(1, 1) = 4.0;
 
-    Tensor<double, 2> b;
+    Vector<double, 2> b;
     b[0] = 1.0;
     b[1] = 2.0;
 

@@ -1,17 +1,17 @@
 #include <doctest/doctest.h>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("Tensor construction") {
     SUBCASE("default construction") {
-        Tensor<float, 3> t;
+        Vector<float, 3> t;
         CHECK(t.size() == 3);
     }
 
     SUBCASE("from datapod") {
-        datapod::tensor<float, 3> pod{1.0f, 2.0f, 3.0f};
-        Tensor<float, 3> t(pod);
+        datapod::mat::vector<float, 3> pod{1.0f, 2.0f, 3.0f};
+        Vector<float, 3> t(pod);
         CHECK(t[0] == 1.0f);
         CHECK(t[1] == 2.0f);
         CHECK(t[2] == 3.0f);
@@ -19,7 +19,7 @@ TEST_CASE("Tensor construction") {
 }
 
 TEST_CASE("Tensor element access") {
-    Tensor<float, 4> t;
+    Vector<float, 4> t;
     t[0] = 1.0f;
     t[1] = 2.0f;
     t[2] = 3.0f;
@@ -32,7 +32,7 @@ TEST_CASE("Tensor element access") {
 }
 
 TEST_CASE("Tensor fill") {
-    Tensor<double, 5> t;
+    Vector<double, 5> t;
     t.fill(3.14);
 
     for (std::size_t i = 0; i < t.size(); ++i) {
@@ -41,12 +41,12 @@ TEST_CASE("Tensor fill") {
 }
 
 TEST_CASE("Tensor arithmetic") {
-    Tensor<float, 3> a;
+    Vector<float, 3> a;
     a[0] = 1.0f;
     a[1] = 2.0f;
     a[2] = 3.0f;
 
-    Tensor<float, 3> b;
+    Vector<float, 3> b;
     b[0] = 4.0f;
     b[1] = 5.0f;
     b[2] = 6.0f;
@@ -88,12 +88,12 @@ TEST_CASE("Tensor arithmetic") {
 }
 
 TEST_CASE("Tensor compound assignment") {
-    Tensor<float, 3> a;
+    Vector<float, 3> a;
     a[0] = 1.0f;
     a[1] = 2.0f;
     a[2] = 3.0f;
 
-    Tensor<float, 3> b;
+    Vector<float, 3> b;
     b[0] = 1.0f;
     b[1] = 1.0f;
     b[2] = 1.0f;
@@ -114,12 +114,12 @@ TEST_CASE("Tensor compound assignment") {
 }
 
 TEST_CASE("Tensor dot product") {
-    Tensor<float, 3> a;
+    Vector<float, 3> a;
     a[0] = 1.0f;
     a[1] = 2.0f;
     a[2] = 3.0f;
 
-    Tensor<float, 3> b;
+    Vector<float, 3> b;
     b[0] = 4.0f;
     b[1] = 5.0f;
     b[2] = 6.0f;
@@ -129,7 +129,7 @@ TEST_CASE("Tensor dot product") {
 }
 
 TEST_CASE("Tensor sum") {
-    Tensor<int, 4> t;
+    Vector<int, 4> t;
     t[0] = 1;
     t[1] = 2;
     t[2] = 3;
@@ -139,7 +139,7 @@ TEST_CASE("Tensor sum") {
 }
 
 TEST_CASE("Tensor norm") {
-    Tensor<float, 3> t;
+    Vector<float, 3> t;
     t[0] = 3.0f;
     t[1] = 0.0f;
     t[2] = 4.0f;
@@ -148,7 +148,7 @@ TEST_CASE("Tensor norm") {
 }
 
 TEST_CASE("Tensor normalized") {
-    Tensor<float, 3> t;
+    Vector<float, 3> t;
     t[0] = 3.0f;
     t[1] = 0.0f;
     t[2] = 4.0f;
@@ -161,17 +161,17 @@ TEST_CASE("Tensor normalized") {
 }
 
 TEST_CASE("Tensor comparison") {
-    Tensor<int, 3> a;
+    Vector<int, 3> a;
     a[0] = 1;
     a[1] = 2;
     a[2] = 3;
 
-    Tensor<int, 3> b;
+    Vector<int, 3> b;
     b[0] = 1;
     b[1] = 2;
     b[2] = 3;
 
-    Tensor<int, 3> c;
+    Vector<int, 3> c;
     c[0] = 1;
     c[1] = 2;
     c[2] = 4;
@@ -181,7 +181,7 @@ TEST_CASE("Tensor comparison") {
 }
 
 TEST_CASE("Tensor iteration") {
-    Tensor<int, 4> t;
+    Vector<int, 4> t;
     t[0] = 10;
     t[1] = 20;
     t[2] = 30;
@@ -195,12 +195,12 @@ TEST_CASE("Tensor iteration") {
 }
 
 TEST_CASE("Tensor pod access") {
-    Tensor<float, 3> t;
+    Vector<float, 3> t;
     t[0] = 1.0f;
     t[1] = 2.0f;
     t[2] = 3.0f;
 
-    datapod::tensor<float, 3> &pod = t.pod();
+    datapod::mat::vector<float, 3> &pod = t.pod();
     CHECK(pod[0] == 1.0f);
 
     pod[0] = 99.0f;

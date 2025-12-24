@@ -3,7 +3,7 @@
 
 using optinum::lina::eigen_sym;
 using optinum::simd::Matrix;
-using optinum::simd::Tensor;
+using optinum::simd::Vector;
 
 TEST_CASE("lina::eigen_sym A*v ~= lambda*v") {
     Matrix<double, 3, 3> a;
@@ -21,7 +21,7 @@ TEST_CASE("lina::eigen_sym A*v ~= lambda*v") {
     const auto e = eigen_sym<double, 3>(a, 128);
 
     for (std::size_t k = 0; k < 3; ++k) {
-        Tensor<double, 3> v;
+        Vector<double, 3> v;
         for (std::size_t i = 0; i < 3; ++i) {
             v[i] = e.vectors(i, k);
         }

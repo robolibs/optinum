@@ -5,7 +5,7 @@
 // =============================================================================
 
 #include <optinum/simd/matrix.hpp>
-#include <optinum/simd/tensor.hpp>
+#include <optinum/simd/vector.hpp>
 
 namespace optinum::lina {
 
@@ -16,8 +16,8 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t R, std::size_t C>
-    [[nodiscard]] constexpr simd::Tensor<T, R> matmul(const simd::Matrix<T, R, C> &a,
-                                                      const simd::Tensor<T, C> &x) noexcept {
+    [[nodiscard]] constexpr simd::Vector<T, R> matmul(const simd::Matrix<T, R, C> &a,
+                                                      const simd::Vector<T, C> &x) noexcept {
         return a * x;
     }
 
