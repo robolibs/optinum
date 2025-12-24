@@ -5,6 +5,7 @@
 // AVX/AVX2 specializations for pack<float,8>, pack<double,4>, pack<int32_t,8>, pack<int64_t,4>
 // =============================================================================
 
+#include <optinum/simd/mask.hpp>
 #include <optinum/simd/pack/pack.hpp>
 
 #ifdef OPTINUM_HAS_AVX
@@ -312,6 +313,159 @@ namespace optinum::simd {
             return detail::hsum_pd256(_mm256_mul_pd(data_, other.data_));
         }
     };
+
+    // =============================================================================
+    // mask<float, 8> - AVX comparison mask
+    // =============================================================================
+
+    template <> struct mask<float, 8> {
+        using value_type = float;
+        static constexpr std::size_t width = 8;
+
+        __m256 data_;
+
+        OPTINUM_INLINE mask() noexcept : data_(_mm256_setzero_ps()) {}
+        OPTINUM_INLINE explicit mask(__m256 v) noexcept : data_(v) {}
+
+        OPTINUM_INLINE static mask all_true() noexcept { return mask(_mm256_castsi256_ps(_mm256_set1_epi32(-1))); }
+        OPTINUM_INLINE static mask all_false() noexcept { return mask(_mm256_setzero_ps()); }
+        OPTINUM_INLINE static mask first_n(std::size_t n) noexcept {
+            alignas(32) int32_t tmp[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+            for (std::size_t i = 0; i < n && i < 8; ++i)
+                tmp[i] = -1;
+            return mask(_mm256_castsi256_ps(_mm256_load_si256(reinterpret_cast<const __m256i *>(tmp))));
+        }
+
+        OPTINUM_INLINE mask operator&(const mask &rhs) const noexcept { return mask(_mm256_and_ps(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator|(const mask &rhs) const noexcept { return mask(_mm256_or_ps(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator^(const mask &rhs) const noexcept { return mask(_mm256_xor_ps(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator!() const noexcept {
+            return mask(_mm256_xor_ps(data_, _mm256_castsi256_ps(_mm256_set1_epi32(-1))));
+        }
+
+        OPTINUM_INLINE bool all() const noexcept { return _mm256_movemask_ps(data_) == 0xFF; }
+        OPTINUM_INLINE bool any() const noexcept { return _mm256_movemask_ps(data_) != 0; }
+        OPTINUM_INLINE bool none() const noexcept { return _mm256_movemask_ps(data_) == 0; }
+        OPTINUM_INLINE int popcount() const noexcept { return __builtin_popcount(_mm256_movemask_ps(data_)); }
+
+        OPTINUM_INLINE bool operator[](std::size_t i) const noexcept {
+            alignas(32) int32_t tmp[8];
+            _mm256_store_si256(reinterpret_cast<__m256i *>(tmp), _mm256_castps_si256(data_));
+            return tmp[i] != 0;
+        }
+    };
+
+    // Comparison functions for pack<float, 8>
+    template <> OPTINUM_INLINE mask<float, 8> cmp_eq(const pack<float, 8> &a, const pack<float, 8> &b) noexcept {
+        return mask<float, 8>(_mm256_cmp_ps(a.data_, b.data_, _CMP_EQ_OQ));
+    }
+    template <> OPTINUM_INLINE mask<float, 8> cmp_ne(const pack<float, 8> &a, const pack<float, 8> &b) noexcept {
+        return mask<float, 8>(_mm256_cmp_ps(a.data_, b.data_, _CMP_NEQ_OQ));
+    }
+    template <> OPTINUM_INLINE mask<float, 8> cmp_lt(const pack<float, 8> &a, const pack<float, 8> &b) noexcept {
+        return mask<float, 8>(_mm256_cmp_ps(a.data_, b.data_, _CMP_LT_OQ));
+    }
+    template <> OPTINUM_INLINE mask<float, 8> cmp_le(const pack<float, 8> &a, const pack<float, 8> &b) noexcept {
+        return mask<float, 8>(_mm256_cmp_ps(a.data_, b.data_, _CMP_LE_OQ));
+    }
+    template <> OPTINUM_INLINE mask<float, 8> cmp_gt(const pack<float, 8> &a, const pack<float, 8> &b) noexcept {
+        return mask<float, 8>(_mm256_cmp_ps(a.data_, b.data_, _CMP_GT_OQ));
+    }
+    template <> OPTINUM_INLINE mask<float, 8> cmp_ge(const pack<float, 8> &a, const pack<float, 8> &b) noexcept {
+        return mask<float, 8>(_mm256_cmp_ps(a.data_, b.data_, _CMP_GE_OQ));
+    }
+
+    // Masked operations for pack<float, 8>
+    template <>
+    OPTINUM_INLINE pack<float, 8> blend(const pack<float, 8> &a, const pack<float, 8> &b,
+                                        const mask<float, 8> &m) noexcept {
+        return pack<float, 8>(_mm256_blendv_ps(a.data_, b.data_, m.data_));
+    }
+
+    template <> OPTINUM_INLINE pack<float, 8> maskload(const float *ptr, const mask<float, 8> &m) noexcept {
+        return pack<float, 8>(_mm256_maskload_ps(ptr, _mm256_castps_si256(m.data_)));
+    }
+
+    template <> OPTINUM_INLINE void maskstore(float *ptr, const pack<float, 8> &v, const mask<float, 8> &m) noexcept {
+        _mm256_maskstore_ps(ptr, _mm256_castps_si256(m.data_), v.data_);
+    }
+
+    // =============================================================================
+    // mask<double, 4> - AVX comparison mask
+    // =============================================================================
+
+    template <> struct mask<double, 4> {
+        using value_type = double;
+        static constexpr std::size_t width = 4;
+
+        __m256d data_;
+
+        OPTINUM_INLINE mask() noexcept : data_(_mm256_setzero_pd()) {}
+        OPTINUM_INLINE explicit mask(__m256d v) noexcept : data_(v) {}
+
+        OPTINUM_INLINE static mask all_true() noexcept { return mask(_mm256_castsi256_pd(_mm256_set1_epi64x(-1LL))); }
+        OPTINUM_INLINE static mask all_false() noexcept { return mask(_mm256_setzero_pd()); }
+        OPTINUM_INLINE static mask first_n(std::size_t n) noexcept {
+            alignas(32) int64_t tmp[4] = {0, 0, 0, 0};
+            for (std::size_t i = 0; i < n && i < 4; ++i)
+                tmp[i] = -1LL;
+            return mask(_mm256_castsi256_pd(_mm256_load_si256(reinterpret_cast<const __m256i *>(tmp))));
+        }
+
+        OPTINUM_INLINE mask operator&(const mask &rhs) const noexcept { return mask(_mm256_and_pd(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator|(const mask &rhs) const noexcept { return mask(_mm256_or_pd(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator^(const mask &rhs) const noexcept { return mask(_mm256_xor_pd(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator!() const noexcept {
+            return mask(_mm256_xor_pd(data_, _mm256_castsi256_pd(_mm256_set1_epi64x(-1LL))));
+        }
+
+        OPTINUM_INLINE bool all() const noexcept { return _mm256_movemask_pd(data_) == 0xF; }
+        OPTINUM_INLINE bool any() const noexcept { return _mm256_movemask_pd(data_) != 0; }
+        OPTINUM_INLINE bool none() const noexcept { return _mm256_movemask_pd(data_) == 0; }
+        OPTINUM_INLINE int popcount() const noexcept { return __builtin_popcount(_mm256_movemask_pd(data_)); }
+
+        OPTINUM_INLINE bool operator[](std::size_t i) const noexcept {
+            alignas(32) int64_t tmp[4];
+            _mm256_store_si256(reinterpret_cast<__m256i *>(tmp), _mm256_castpd_si256(data_));
+            return tmp[i] != 0;
+        }
+    };
+
+    // Comparison functions for pack<double, 4>
+    template <> OPTINUM_INLINE mask<double, 4> cmp_eq(const pack<double, 4> &a, const pack<double, 4> &b) noexcept {
+        return mask<double, 4>(_mm256_cmp_pd(a.data_, b.data_, _CMP_EQ_OQ));
+    }
+    template <> OPTINUM_INLINE mask<double, 4> cmp_ne(const pack<double, 4> &a, const pack<double, 4> &b) noexcept {
+        return mask<double, 4>(_mm256_cmp_pd(a.data_, b.data_, _CMP_NEQ_OQ));
+    }
+    template <> OPTINUM_INLINE mask<double, 4> cmp_lt(const pack<double, 4> &a, const pack<double, 4> &b) noexcept {
+        return mask<double, 4>(_mm256_cmp_pd(a.data_, b.data_, _CMP_LT_OQ));
+    }
+    template <> OPTINUM_INLINE mask<double, 4> cmp_le(const pack<double, 4> &a, const pack<double, 4> &b) noexcept {
+        return mask<double, 4>(_mm256_cmp_pd(a.data_, b.data_, _CMP_LE_OQ));
+    }
+    template <> OPTINUM_INLINE mask<double, 4> cmp_gt(const pack<double, 4> &a, const pack<double, 4> &b) noexcept {
+        return mask<double, 4>(_mm256_cmp_pd(a.data_, b.data_, _CMP_GT_OQ));
+    }
+    template <> OPTINUM_INLINE mask<double, 4> cmp_ge(const pack<double, 4> &a, const pack<double, 4> &b) noexcept {
+        return mask<double, 4>(_mm256_cmp_pd(a.data_, b.data_, _CMP_GE_OQ));
+    }
+
+    // Masked operations for pack<double, 4>
+    template <>
+    OPTINUM_INLINE pack<double, 4> blend(const pack<double, 4> &a, const pack<double, 4> &b,
+                                         const mask<double, 4> &m) noexcept {
+        return pack<double, 4>(_mm256_blendv_pd(a.data_, b.data_, m.data_));
+    }
+
+    template <> OPTINUM_INLINE pack<double, 4> maskload(const double *ptr, const mask<double, 4> &m) noexcept {
+        return pack<double, 4>(_mm256_maskload_pd(ptr, _mm256_castpd_si256(m.data_)));
+    }
+
+    template <>
+    OPTINUM_INLINE void maskstore(double *ptr, const pack<double, 4> &v, const mask<double, 4> &m) noexcept {
+        _mm256_maskstore_pd(ptr, _mm256_castpd_si256(m.data_), v.data_);
+    }
 
 } // namespace optinum::simd
 

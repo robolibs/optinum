@@ -5,6 +5,7 @@
 // SSE specializations for pack<float,4>, pack<double,2>, pack<int32_t,4>, pack<int64_t,2>
 // =============================================================================
 
+#include <optinum/simd/mask.hpp>
 #include <optinum/simd/pack/pack.hpp>
 
 #ifdef OPTINUM_HAS_SSE2
@@ -599,6 +600,205 @@ namespace optinum::simd {
         // Dot product
         OPTINUM_INLINE int64_t dot(const pack &other) const noexcept { return (*this * other).hsum(); }
     };
+
+    // =============================================================================
+    // mask<float, 4> - SSE comparison mask
+    // =============================================================================
+
+    template <> struct mask<float, 4> {
+        using value_type = float;
+        static constexpr std::size_t width = 4;
+
+        __m128 data_; // All bits set = true, all bits clear = false
+
+        OPTINUM_INLINE mask() noexcept : data_(_mm_setzero_ps()) {}
+        OPTINUM_INLINE explicit mask(__m128 v) noexcept : data_(v) {}
+
+        OPTINUM_INLINE static mask all_true() noexcept { return mask(_mm_castsi128_ps(_mm_set1_epi32(-1))); }
+        OPTINUM_INLINE static mask all_false() noexcept { return mask(_mm_setzero_ps()); }
+        OPTINUM_INLINE static mask first_n(std::size_t n) noexcept {
+            alignas(16) int32_t tmp[4] = {0, 0, 0, 0};
+            for (std::size_t i = 0; i < n && i < 4; ++i)
+                tmp[i] = -1;
+            return mask(_mm_castsi128_ps(_mm_load_si128(reinterpret_cast<const __m128i *>(tmp))));
+        }
+
+        OPTINUM_INLINE mask operator&(const mask &rhs) const noexcept { return mask(_mm_and_ps(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator|(const mask &rhs) const noexcept { return mask(_mm_or_ps(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator^(const mask &rhs) const noexcept { return mask(_mm_xor_ps(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator!() const noexcept {
+            return mask(_mm_xor_ps(data_, _mm_castsi128_ps(_mm_set1_epi32(-1))));
+        }
+
+        OPTINUM_INLINE bool all() const noexcept { return _mm_movemask_ps(data_) == 0xF; }
+        OPTINUM_INLINE bool any() const noexcept { return _mm_movemask_ps(data_) != 0; }
+        OPTINUM_INLINE bool none() const noexcept { return _mm_movemask_ps(data_) == 0; }
+        OPTINUM_INLINE int popcount() const noexcept { return __builtin_popcount(_mm_movemask_ps(data_)); }
+
+        OPTINUM_INLINE bool operator[](std::size_t i) const noexcept {
+            alignas(16) int32_t tmp[4];
+            _mm_store_si128(reinterpret_cast<__m128i *>(tmp), _mm_castps_si128(data_));
+            return tmp[i] != 0;
+        }
+    };
+
+    // Comparison functions for pack<float, 4>
+    template <> OPTINUM_INLINE mask<float, 4> cmp_eq(const pack<float, 4> &a, const pack<float, 4> &b) noexcept {
+        return mask<float, 4>(_mm_cmpeq_ps(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<float, 4> cmp_ne(const pack<float, 4> &a, const pack<float, 4> &b) noexcept {
+        return mask<float, 4>(_mm_cmpneq_ps(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<float, 4> cmp_lt(const pack<float, 4> &a, const pack<float, 4> &b) noexcept {
+        return mask<float, 4>(_mm_cmplt_ps(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<float, 4> cmp_le(const pack<float, 4> &a, const pack<float, 4> &b) noexcept {
+        return mask<float, 4>(_mm_cmple_ps(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<float, 4> cmp_gt(const pack<float, 4> &a, const pack<float, 4> &b) noexcept {
+        return mask<float, 4>(_mm_cmpgt_ps(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<float, 4> cmp_ge(const pack<float, 4> &a, const pack<float, 4> &b) noexcept {
+        return mask<float, 4>(_mm_cmpge_ps(a.data_, b.data_));
+    }
+
+    // Masked operations for pack<float, 4>
+    template <>
+    OPTINUM_INLINE pack<float, 4> blend(const pack<float, 4> &a, const pack<float, 4> &b,
+                                        const mask<float, 4> &m) noexcept {
+#ifdef OPTINUM_HAS_SSE41
+        return pack<float, 4>(_mm_blendv_ps(a.data_, b.data_, m.data_));
+#else
+        return pack<float, 4>(_mm_or_ps(_mm_and_ps(m.data_, b.data_), _mm_andnot_ps(m.data_, a.data_)));
+#endif
+    }
+
+    template <> OPTINUM_INLINE pack<float, 4> maskload(const float *ptr, const mask<float, 4> &m) noexcept {
+#ifdef OPTINUM_HAS_AVX
+        return pack<float, 4>(_mm_maskload_ps(ptr, _mm_castps_si128(m.data_)));
+#else
+        alignas(16) float tmp[4];
+        alignas(16) int32_t mask_i[4];
+        _mm_store_si128(reinterpret_cast<__m128i *>(mask_i), _mm_castps_si128(m.data_));
+        for (int i = 0; i < 4; ++i)
+            tmp[i] = mask_i[i] ? ptr[i] : 0.0f;
+        return pack<float, 4>(_mm_load_ps(tmp));
+#endif
+    }
+
+    template <> OPTINUM_INLINE void maskstore(float *ptr, const pack<float, 4> &v, const mask<float, 4> &m) noexcept {
+#ifdef OPTINUM_HAS_AVX
+        _mm_maskstore_ps(ptr, _mm_castps_si128(m.data_), v.data_);
+#else
+        alignas(16) float vals[4];
+        alignas(16) int32_t mask_i[4];
+        _mm_store_ps(vals, v.data_);
+        _mm_store_si128(reinterpret_cast<__m128i *>(mask_i), _mm_castps_si128(m.data_));
+        for (int i = 0; i < 4; ++i)
+            if (mask_i[i])
+                ptr[i] = vals[i];
+#endif
+    }
+
+    // =============================================================================
+    // mask<double, 2> - SSE2 comparison mask
+    // =============================================================================
+
+    template <> struct mask<double, 2> {
+        using value_type = double;
+        static constexpr std::size_t width = 2;
+
+        __m128d data_;
+
+        OPTINUM_INLINE mask() noexcept : data_(_mm_setzero_pd()) {}
+        OPTINUM_INLINE explicit mask(__m128d v) noexcept : data_(v) {}
+
+        OPTINUM_INLINE static mask all_true() noexcept { return mask(_mm_castsi128_pd(_mm_set1_epi64x(-1LL))); }
+        OPTINUM_INLINE static mask all_false() noexcept { return mask(_mm_setzero_pd()); }
+        OPTINUM_INLINE static mask first_n(std::size_t n) noexcept {
+            alignas(16) int64_t tmp[2] = {0, 0};
+            for (std::size_t i = 0; i < n && i < 2; ++i)
+                tmp[i] = -1LL;
+            return mask(_mm_castsi128_pd(_mm_load_si128(reinterpret_cast<const __m128i *>(tmp))));
+        }
+
+        OPTINUM_INLINE mask operator&(const mask &rhs) const noexcept { return mask(_mm_and_pd(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator|(const mask &rhs) const noexcept { return mask(_mm_or_pd(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator^(const mask &rhs) const noexcept { return mask(_mm_xor_pd(data_, rhs.data_)); }
+        OPTINUM_INLINE mask operator!() const noexcept {
+            return mask(_mm_xor_pd(data_, _mm_castsi128_pd(_mm_set1_epi64x(-1LL))));
+        }
+
+        OPTINUM_INLINE bool all() const noexcept { return _mm_movemask_pd(data_) == 0x3; }
+        OPTINUM_INLINE bool any() const noexcept { return _mm_movemask_pd(data_) != 0; }
+        OPTINUM_INLINE bool none() const noexcept { return _mm_movemask_pd(data_) == 0; }
+        OPTINUM_INLINE int popcount() const noexcept { return __builtin_popcount(_mm_movemask_pd(data_)); }
+
+        OPTINUM_INLINE bool operator[](std::size_t i) const noexcept {
+            alignas(16) int64_t tmp[2];
+            _mm_store_si128(reinterpret_cast<__m128i *>(tmp), _mm_castpd_si128(data_));
+            return tmp[i] != 0;
+        }
+    };
+
+    // Comparison functions for pack<double, 2>
+    template <> OPTINUM_INLINE mask<double, 2> cmp_eq(const pack<double, 2> &a, const pack<double, 2> &b) noexcept {
+        return mask<double, 2>(_mm_cmpeq_pd(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<double, 2> cmp_ne(const pack<double, 2> &a, const pack<double, 2> &b) noexcept {
+        return mask<double, 2>(_mm_cmpneq_pd(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<double, 2> cmp_lt(const pack<double, 2> &a, const pack<double, 2> &b) noexcept {
+        return mask<double, 2>(_mm_cmplt_pd(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<double, 2> cmp_le(const pack<double, 2> &a, const pack<double, 2> &b) noexcept {
+        return mask<double, 2>(_mm_cmple_pd(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<double, 2> cmp_gt(const pack<double, 2> &a, const pack<double, 2> &b) noexcept {
+        return mask<double, 2>(_mm_cmpgt_pd(a.data_, b.data_));
+    }
+    template <> OPTINUM_INLINE mask<double, 2> cmp_ge(const pack<double, 2> &a, const pack<double, 2> &b) noexcept {
+        return mask<double, 2>(_mm_cmpge_pd(a.data_, b.data_));
+    }
+
+    // Masked operations for pack<double, 2>
+    template <>
+    OPTINUM_INLINE pack<double, 2> blend(const pack<double, 2> &a, const pack<double, 2> &b,
+                                         const mask<double, 2> &m) noexcept {
+#ifdef OPTINUM_HAS_SSE41
+        return pack<double, 2>(_mm_blendv_pd(a.data_, b.data_, m.data_));
+#else
+        return pack<double, 2>(_mm_or_pd(_mm_and_pd(m.data_, b.data_), _mm_andnot_pd(m.data_, a.data_)));
+#endif
+    }
+
+    template <> OPTINUM_INLINE pack<double, 2> maskload(const double *ptr, const mask<double, 2> &m) noexcept {
+#ifdef OPTINUM_HAS_AVX
+        return pack<double, 2>(_mm_maskload_pd(ptr, _mm_castpd_si128(m.data_)));
+#else
+        alignas(16) double tmp[2];
+        alignas(16) int64_t mask_i[2];
+        _mm_store_si128(reinterpret_cast<__m128i *>(mask_i), _mm_castpd_si128(m.data_));
+        for (int i = 0; i < 2; ++i)
+            tmp[i] = mask_i[i] ? ptr[i] : 0.0;
+        return pack<double, 2>(_mm_load_pd(tmp));
+#endif
+    }
+
+    template <>
+    OPTINUM_INLINE void maskstore(double *ptr, const pack<double, 2> &v, const mask<double, 2> &m) noexcept {
+#ifdef OPTINUM_HAS_AVX
+        _mm_maskstore_pd(ptr, _mm_castpd_si128(m.data_), v.data_);
+#else
+        alignas(16) double vals[2];
+        alignas(16) int64_t mask_i[2];
+        _mm_store_pd(vals, v.data_);
+        _mm_store_si128(reinterpret_cast<__m128i *>(mask_i), _mm_castpd_si128(m.data_));
+        for (int i = 0; i < 2; ++i)
+            if (mask_i[i])
+                ptr[i] = vals[i];
+#endif
+    }
 
 } // namespace optinum::simd
 
