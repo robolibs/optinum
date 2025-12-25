@@ -9,12 +9,17 @@
 #include <optinum/simd/algo/traits.hpp>
 #include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
+#include <optinum/simd/math/cosh.hpp>
 #include <optinum/simd/math/exp.hpp>
+#include <optinum/simd/math/exp2.hpp>
 #include <optinum/simd/math/floor.hpp>
 #include <optinum/simd/math/log.hpp>
+#include <optinum/simd/math/log10.hpp>
+#include <optinum/simd/math/log2.hpp>
 #include <optinum/simd/math/pow.hpp>
 #include <optinum/simd/math/round.hpp>
 #include <optinum/simd/math/sin.hpp>
+#include <optinum/simd/math/sinh.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/math/tan.hpp>
 #include <optinum/simd/math/tanh.hpp>
@@ -292,6 +297,101 @@ namespace optinum::simd {
             const std::size_t last_idx = num_packs - 1;
             z.store_pack_tail(last_idx, pow(x.load_pack_tail(last_idx), y.load_pack_tail(last_idx)));
         }
+    }
+
+    // =============================================================================
+    // sinh: y = sinh(x)
+    // Elementwise hyperbolic sine
+    // =============================================================================
+
+    // y = sinh(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void sinh(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return sinh(p); });
+    }
+
+    // In-place: x = sinh(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void sinh(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return sinh(p); });
+    }
+
+    // =============================================================================
+    // cosh: y = cosh(x)
+    // Elementwise hyperbolic cosine
+    // =============================================================================
+
+    // y = cosh(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void cosh(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return cosh(p); });
+    }
+
+    // In-place: x = cosh(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void cosh(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return cosh(p); });
+    }
+
+    // =============================================================================
+    // exp2: y = exp2(x)
+    // Elementwise base-2 exponential (2^x)
+    // =============================================================================
+
+    // y = exp2(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void exp2(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return exp2(p); });
+    }
+
+    // In-place: x = exp2(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void exp2(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return exp2(p); });
+    }
+
+    // =============================================================================
+    // log2: y = log2(x)
+    // Elementwise base-2 logarithm
+    // =============================================================================
+
+    // y = log2(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void log2(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return log2(p); });
+    }
+
+    // In-place: x = log2(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void log2(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return log2(p); });
+    }
+
+    // =============================================================================
+    // log10: y = log10(x)
+    // Elementwise base-10 logarithm
+    // =============================================================================
+
+    // y = log10(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void log10(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return log10(p); });
+    }
+
+    // In-place: x = log10(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void log10(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return log10(p); });
     }
 
 } // namespace optinum::simd

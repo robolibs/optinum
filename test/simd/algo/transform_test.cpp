@@ -1034,3 +1034,198 @@ TEST_CASE("algo::pow - special cases") {
     CHECK(z[2] == doctest::Approx(1024.0f).epsilon(0.01)); // 2^10 = 1024
     CHECK(z[3] == doctest::Approx(2.0f).epsilon(0.01));    // 16^0.25 = 2 (4th root)
 }
+
+// =============================================================================
+// sinh tests
+// =============================================================================
+
+TEST_CASE("algo::sinh - y = sinh(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0, 3.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::sinh(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::sinh(-2.0)).epsilon(0.001));
+    CHECK(y[1] == doctest::Approx(std::sinh(-1.0)).epsilon(0.001));
+    CHECK(y[2] == doctest::Approx(std::sinh(-0.5)).epsilon(0.001));
+    CHECK(y[3] == doctest::Approx(std::sinh(0.0)).epsilon(0.001));
+    CHECK(y[4] == doctest::Approx(std::sinh(0.5)).epsilon(0.001));
+    CHECK(y[5] == doctest::Approx(std::sinh(1.0)).epsilon(0.001));
+    CHECK(y[6] == doctest::Approx(std::sinh(2.0)).epsilon(0.001));
+    CHECK(y[7] == doctest::Approx(std::sinh(3.0)).epsilon(0.001));
+}
+
+TEST_CASE("algo::sinh - in-place x = sinh(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::sinh(vx);
+
+    CHECK(x[0] == doctest::Approx(std::sinh(-1.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(std::sinh(0.0f)).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(std::sinh(0.5f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::sinh(1.0f)).epsilon(0.01));
+}
+
+// =============================================================================
+// cosh tests
+// =============================================================================
+
+TEST_CASE("algo::cosh - y = cosh(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0, 3.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::cosh(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::cosh(-2.0)).epsilon(0.001));
+    CHECK(y[1] == doctest::Approx(std::cosh(-1.0)).epsilon(0.001));
+    CHECK(y[2] == doctest::Approx(std::cosh(-0.5)).epsilon(0.001));
+    CHECK(y[3] == doctest::Approx(std::cosh(0.0)).epsilon(0.001));   // cosh(0) = 1
+    CHECK(y[4] == doctest::Approx(std::cosh(0.5)).epsilon(0.001));
+    CHECK(y[5] == doctest::Approx(std::cosh(1.0)).epsilon(0.001));
+    CHECK(y[6] == doctest::Approx(std::cosh(2.0)).epsilon(0.001));
+    CHECK(y[7] == doctest::Approx(std::cosh(3.0)).epsilon(0.001));
+}
+
+TEST_CASE("algo::cosh - in-place x = cosh(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::cosh(vx);
+
+    CHECK(x[0] == doctest::Approx(std::cosh(-1.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01));               // cosh(0) = 1
+    CHECK(x[2] == doctest::Approx(std::cosh(0.5f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::cosh(1.0f)).epsilon(0.01));
+}
+
+// =============================================================================
+// exp2 tests
+// =============================================================================
+
+TEST_CASE("algo::exp2 - y = exp2(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 10.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::exp2(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(0.25).epsilon(0.001));     // 2^-2 = 0.25
+    CHECK(y[1] == doctest::Approx(0.5).epsilon(0.001));      // 2^-1 = 0.5
+    CHECK(y[2] == doctest::Approx(1.0).epsilon(0.001));      // 2^0 = 1
+    CHECK(y[3] == doctest::Approx(2.0).epsilon(0.001));      // 2^1 = 2
+    CHECK(y[4] == doctest::Approx(4.0).epsilon(0.001));      // 2^2 = 4
+    CHECK(y[5] == doctest::Approx(8.0).epsilon(0.001));      // 2^3 = 8
+    CHECK(y[6] == doctest::Approx(16.0).epsilon(0.001));     // 2^4 = 16
+    CHECK(y[7] == doctest::Approx(1024.0).epsilon(0.001));   // 2^10 = 1024
+}
+
+TEST_CASE("algo::exp2 - in-place x = exp2(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{0.0f, 1.0f, 2.0f, 3.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::exp2(vx);
+
+    CHECK(x[0] == doctest::Approx(1.0f).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(2.0f).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(4.0f).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(8.0f).epsilon(0.01));
+}
+
+// =============================================================================
+// log2 tests
+// =============================================================================
+
+TEST_CASE("algo::log2 - y = log2(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 1024.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::log2(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(-2.0).epsilon(0.001));  // log2(0.25) = -2
+    CHECK(y[1] == doctest::Approx(-1.0).epsilon(0.001));  // log2(0.5) = -1
+    CHECK(y[2] == doctest::Approx(0.0).epsilon(0.001));   // log2(1) = 0
+    CHECK(y[3] == doctest::Approx(1.0).epsilon(0.001));   // log2(2) = 1
+    CHECK(y[4] == doctest::Approx(2.0).epsilon(0.001));   // log2(4) = 2
+    CHECK(y[5] == doctest::Approx(3.0).epsilon(0.001));   // log2(8) = 3
+    CHECK(y[6] == doctest::Approx(4.0).epsilon(0.001));   // log2(16) = 4
+    CHECK(y[7] == doctest::Approx(10.0).epsilon(0.001));  // log2(1024) = 10
+}
+
+TEST_CASE("algo::log2 - in-place x = log2(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{1.0f, 2.0f, 4.0f, 8.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::log2(vx);
+
+    CHECK(x[0] == doctest::Approx(0.0f).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(2.0f).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(3.0f).epsilon(0.01));
+}
+
+// =============================================================================
+// log10 tests
+// =============================================================================
+
+TEST_CASE("algo::log10 - y = log10(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0, 2.0, 5.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::log10(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(-1.0).epsilon(0.001));  // log10(0.1) = -1
+    CHECK(y[1] == doctest::Approx(0.0).epsilon(0.001));   // log10(1) = 0
+    CHECK(y[2] == doctest::Approx(1.0).epsilon(0.001));   // log10(10) = 1
+    CHECK(y[3] == doctest::Approx(2.0).epsilon(0.001));   // log10(100) = 2
+    CHECK(y[4] == doctest::Approx(3.0).epsilon(0.001));   // log10(1000) = 3
+    CHECK(y[5] == doctest::Approx(4.0).epsilon(0.001));   // log10(10000) = 4
+    CHECK(y[6] == doctest::Approx(std::log10(2.0)).epsilon(0.001));
+    CHECK(y[7] == doctest::Approx(std::log10(5.0)).epsilon(0.001));
+}
+
+TEST_CASE("algo::log10 - in-place x = log10(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{1.0f, 10.0f, 100.0f, 1000.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::log10(vx);
+
+    CHECK(x[0] == doctest::Approx(0.0f).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(2.0f).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(3.0f).epsilon(0.01));
+}

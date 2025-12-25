@@ -5,11 +5,16 @@
 // High-performance SIMD math API using pack<T,W>
 //
 // Functions available:
-//   simd::exp(pack<T,W>)   - exponential
-//   simd::log(pack<T,W>)   - natural logarithm
+//   simd::exp(pack<T,W>)   - exponential (e^x)
+//   simd::exp2(pack<T,W>)  - base-2 exponential (2^x)
+//   simd::log(pack<T,W>)   - natural logarithm (ln)
+//   simd::log2(pack<T,W>)  - base-2 logarithm
+//   simd::log10(pack<T,W>) - base-10 logarithm
 //   simd::sin(pack<T,W>)   - sine
 //   simd::cos(pack<T,W>)   - cosine
 //   simd::tan(pack<T,W>)   - tangent
+//   simd::sinh(pack<T,W>)  - hyperbolic sine
+//   simd::cosh(pack<T,W>)  - hyperbolic cosine
 //   simd::tanh(pack<T,W>)  - hyperbolic tangent
 //   simd::sqrt(pack<T,W>)  - square root
 //   simd::pow(pack<T,W>, pack<T,W>) - power
@@ -34,12 +39,17 @@
 // Native SIMD implementations using pack<T,W>
 #include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
+#include <optinum/simd/math/cosh.hpp>
 #include <optinum/simd/math/exp.hpp>
+#include <optinum/simd/math/exp2.hpp>
 #include <optinum/simd/math/floor.hpp>
 #include <optinum/simd/math/log.hpp>
+#include <optinum/simd/math/log10.hpp>
+#include <optinum/simd/math/log2.hpp>
 #include <optinum/simd/math/pow.hpp>
 #include <optinum/simd/math/round.hpp>
 #include <optinum/simd/math/sin.hpp>
+#include <optinum/simd/math/sinh.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/math/tan.hpp>
 #include <optinum/simd/math/tanh.hpp>

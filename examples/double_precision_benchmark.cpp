@@ -439,5 +439,172 @@ int main() {
         g_sink = output[0] + scalar_output[0];
     }
 
+    // sinh() benchmark
+    {
+        for (size_t i = 0; i < N; ++i) {
+            input[i] = -3.0 + (6.0 * i) / N;
+        }
+
+        std::cout << "=== sinh() ===\n";
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            auto vx = on::simd::view<4>(input);
+            auto vy = on::simd::view<4>(output);
+            on::simd::sinh(vx, vy);
+            clobber();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            for (size_t i = 0; i < N; ++i) {
+                scalar_output[i] = std::sinh(input[i]);
+            }
+            clobber();
+        }
+        end = std::chrono::high_resolution_clock::now();
+        auto scalar_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        std::cout << "SIMD:   " << simd_time << " ms\n";
+        std::cout << "Scalar: " << scalar_time << " ms\n";
+        std::cout << "Speedup: " << (scalar_time / simd_time) << "x\n\n";
+
+        g_sink = output[0] + scalar_output[0];
+    }
+
+    // cosh() benchmark
+    {
+        std::cout << "=== cosh() ===\n";
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            auto vx = on::simd::view<4>(input);
+            auto vy = on::simd::view<4>(output);
+            on::simd::cosh(vx, vy);
+            clobber();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            for (size_t i = 0; i < N; ++i) {
+                scalar_output[i] = std::cosh(input[i]);
+            }
+            clobber();
+        }
+        end = std::chrono::high_resolution_clock::now();
+        auto scalar_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        std::cout << "SIMD:   " << simd_time << " ms\n";
+        std::cout << "Scalar: " << scalar_time << " ms\n";
+        std::cout << "Speedup: " << (scalar_time / simd_time) << "x\n\n";
+
+        g_sink = output[0] + scalar_output[0];
+    }
+
+    // exp2() benchmark
+    {
+        for (size_t i = 0; i < N; ++i) {
+            input[i] = -5.0 + (15.0 * i) / N;
+        }
+
+        std::cout << "=== exp2() ===\n";
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            auto vx = on::simd::view<4>(input);
+            auto vy = on::simd::view<4>(output);
+            on::simd::exp2(vx, vy);
+            clobber();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            for (size_t i = 0; i < N; ++i) {
+                scalar_output[i] = std::exp2(input[i]);
+            }
+            clobber();
+        }
+        end = std::chrono::high_resolution_clock::now();
+        auto scalar_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        std::cout << "SIMD:   " << simd_time << " ms\n";
+        std::cout << "Scalar: " << scalar_time << " ms\n";
+        std::cout << "Speedup: " << (scalar_time / simd_time) << "x\n\n";
+
+        g_sink = output[0] + scalar_output[0];
+    }
+
+    // log2() benchmark
+    {
+        for (size_t i = 0; i < N; ++i) {
+            input[i] = 0.1 + (1000.0 * i) / N;
+        }
+
+        std::cout << "=== log2() ===\n";
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            auto vx = on::simd::view<4>(input);
+            auto vy = on::simd::view<4>(output);
+            on::simd::log2(vx, vy);
+            clobber();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            for (size_t i = 0; i < N; ++i) {
+                scalar_output[i] = std::log2(input[i]);
+            }
+            clobber();
+        }
+        end = std::chrono::high_resolution_clock::now();
+        auto scalar_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        std::cout << "SIMD:   " << simd_time << " ms\n";
+        std::cout << "Scalar: " << scalar_time << " ms\n";
+        std::cout << "Speedup: " << (scalar_time / simd_time) << "x\n\n";
+
+        g_sink = output[0] + scalar_output[0];
+    }
+
+    // log10() benchmark
+    {
+        std::cout << "=== log10() ===\n";
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            auto vx = on::simd::view<4>(input);
+            auto vy = on::simd::view<4>(output);
+            on::simd::log10(vx, vy);
+            clobber();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            for (size_t i = 0; i < N; ++i) {
+                scalar_output[i] = std::log10(input[i]);
+            }
+            clobber();
+        }
+        end = std::chrono::high_resolution_clock::now();
+        auto scalar_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        std::cout << "SIMD:   " << simd_time << " ms\n";
+        std::cout << "Scalar: " << scalar_time << " ms\n";
+        std::cout << "Speedup: " << (scalar_time / simd_time) << "x\n\n";
+
+        g_sink = output[0] + scalar_output[0];
+    }
+
     return 0;
 }
