@@ -23,6 +23,8 @@
 //   simd::asinh(pack<T,W>) - inverse hyperbolic sine
 //   simd::acosh(pack<T,W>) - inverse hyperbolic cosine
 //   simd::atanh(pack<T,W>) - inverse hyperbolic tangent
+//   simd::expm1(pack<T,W>) - exp(x) - 1 (accurate for small x)
+//   simd::log1p(pack<T,W>) - log(1 + x) (accurate for small x)
 //   simd::sqrt(pack<T,W>)  - square root
 //   simd::pow(pack<T,W>, pack<T,W>) - power
 //   simd::ceil(pack<T,W>)  - ceiling (round up)
@@ -56,9 +58,11 @@
 #include <optinum/simd/math/cosh.hpp>
 #include <optinum/simd/math/exp.hpp>
 #include <optinum/simd/math/exp2.hpp>
+#include <optinum/simd/math/expm1.hpp>
 #include <optinum/simd/math/floor.hpp>
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/log10.hpp>
+#include <optinum/simd/math/log1p.hpp>
 #include <optinum/simd/math/log2.hpp>
 #include <optinum/simd/math/pow.hpp>
 #include <optinum/simd/math/round.hpp>

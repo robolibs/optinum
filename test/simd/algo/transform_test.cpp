@@ -1665,3 +1665,105 @@ TEST_CASE("algo::atanh - double precision") {
         CHECK(y[i] == doctest::Approx(std::atanh(x[i])).epsilon(0.001));
     }
 }
+
+// =============================================================================
+// expm1 tests
+// =============================================================================
+
+TEST_CASE("algo::expm1 - y = expm1(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-2.0, -1.0, -0.1, 0.0, 0.1, 1.0, 2.0, 5.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::expm1(vx, vy);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::expm1(x[i])).epsilon(0.001));
+    }
+}
+
+TEST_CASE("algo::expm1 - in-place x = expm1(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-1.0f, 0.0f, 0.1f, 1.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::expm1(vx);
+
+    CHECK(x[0] == doctest::Approx(std::expm1(-1.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(0.0f).epsilon(0.01)); // expm1(0) = 0
+    CHECK(x[2] == doctest::Approx(std::expm1(0.1f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::expm1(1.0f)).epsilon(0.01));
+}
+
+TEST_CASE("algo::expm1 - small values (numerical stability)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-0.01, -0.001, -0.0001, 0.0, 0.0001, 0.001, 0.01, 0.1}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::expm1(vx, vy);
+
+    // For small x, expm1(x) should be accurate (testing Taylor series path)
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::expm1(x[i])).epsilon(0.0001));
+    }
+}
+
+// =============================================================================
+// log1p tests
+// =============================================================================
+
+TEST_CASE("algo::log1p - y = log1p(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-0.5, -0.1, 0.0, 0.1, 0.5, 1.0, 2.0, 9.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::log1p(vx, vy);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::log1p(x[i])).epsilon(0.001));
+    }
+}
+
+TEST_CASE("algo::log1p - in-place x = log1p(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-0.5f, 0.0f, 0.1f, 1.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::log1p(vx);
+
+    CHECK(x[0] == doctest::Approx(std::log1p(-0.5f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(0.0f).epsilon(0.01)); // log1p(0) = 0
+    CHECK(x[2] == doctest::Approx(std::log1p(0.1f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::log1p(1.0f)).epsilon(0.01));
+}
+
+TEST_CASE("algo::log1p - small values (numerical stability)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-0.01, -0.001, -0.0001, 0.0, 0.0001, 0.001, 0.01, 0.1}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::log1p(vx, vy);
+
+    // For small x, log1p(x) should be accurate (testing Taylor series path)
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::log1p(x[i])).epsilon(0.0001));
+    }
+}

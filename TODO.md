@@ -114,11 +114,11 @@ include/optinum/simd/
 │   ├── asinh.hpp                # asinh() (PLANNED)
 │   ├── acosh.hpp                # acosh() (PLANNED)
 │   ├── atanh.hpp                # atanh() (PLANNED)
-│   ├── exp2.hpp                 # exp2() (PLANNED)
-│   ├── expm1.hpp                # expm1() (PLANNED)
-│   ├── log2.hpp                 # log2() (PLANNED)
-│   ├── log10.hpp                # log10() (PLANNED)
-│   ├── log1p.hpp                # log1p() (PLANNED)
+│   ├── exp2.hpp                 # exp2() ✅
+│   ├── expm1.hpp                # expm1() ✅
+│   ├── log2.hpp                 # log2() ✅
+│   ├── log10.hpp                # log10() ✅
+│   ├── log1p.hpp                # log1p() ✅
 │   ├── cbrt.hpp                 # cbrt() (PLANNED)
 │   ├── hypot.hpp                # hypot() (PLANNED)
 │   ├── ceil.hpp                 # ceil() (PLANNED)
@@ -190,7 +190,7 @@ include/optinum/simd/
 - [x] `tan(view)` - Tangent ✅
 - [x] `asin(view)`, `acos(view)`, `atan(view)`, `atan2(view)` - Inverse trig ✅
 - [x] `sinh(view)`, `cosh(view)` - Hyperbolic ✅
-- [ ] `asinh(view)`, `acosh(view)`, `atanh(view)` - Inverse hyperbolic
+- [x] `asinh(view)`, `acosh(view)`, `atanh(view)` - Inverse hyperbolic ✅
 - [x] `pow(view, exp)` - Power ✅
 - [x] `ceil(view)`, `floor(view)`, `round(view)`, `trunc(view)` - Rounding ✅
 - [x] `exp2(view)`, `log2(view)`, `log10(view)` - Alternative bases ✅
@@ -285,16 +285,16 @@ include/optinum/simd/
 - [x] `pow.hpp` - Power function pow(x, y) = exp(y * log(x)) - 4.0x speedup ✅
 - [x] `sinh.hpp` - Hyperbolic sine - 19.1x (float), 18.6x (double) ✅
 - [x] `cosh.hpp` - Hyperbolic cosine - 8.2x (float), 3.5x (double) ✅
-- [ ] `asinh.hpp` - Inverse hyperbolic sine
-- [ ] `acosh.hpp` - Inverse hyperbolic cosine
-- [ ] `atanh.hpp` - Inverse hyperbolic tangent
+- [x] `asinh.hpp` - Inverse hyperbolic sine - 3.7x (float), 2.1x (double) ✅
+- [x] `acosh.hpp` - Inverse hyperbolic cosine - 3.9x (float), 2.0x (double) ✅
+- [x] `atanh.hpp` - Inverse hyperbolic tangent - 14.6x (float), 5.3x (double) ✅
 
 #### Additional Math Functions - MEDIUM PRIORITY
 - [x] `exp2.hpp` - Base-2 exponential - 6.7x (float), 3.5x (double) ✅
-- [ ] `expm1.hpp` - exp(x) - 1 (accurate for small x)
+- [x] `expm1.hpp` - exp(x) - 1 (accurate for small x) - 11.4x (float), 3.7x (double) ✅
 - [x] `log2.hpp` - Base-2 logarithm - 4.3x (float), 2.6x (double) ✅
 - [x] `log10.hpp` - Base-10 logarithm - 9.9x (float), 4.8x (double) ✅
-- [ ] `log1p.hpp` - log(1 + x) (accurate for small x)
+- [x] `log1p.hpp` - log(1 + x) (accurate for small x) - 7.9x (float), 3.0x (double) ✅
 - [ ] `cbrt.hpp` - Cube root
 - [ ] `hypot.hpp` - Hypotenuse sqrt(x^2 + y^2) without overflow
 
@@ -708,9 +708,9 @@ This section tracks features present in Fastor that are missing in optinum.
 | Feature | Category | Status |
 |---------|----------|--------|
 | `sinh()`, `cosh()` | SIMD Math | **DONE** ✅ |
-| `asinh()`, `acosh()`, `atanh()` | SIMD Math | Missing |
+| `asinh()`, `acosh()`, `atanh()` | SIMD Math | **DONE** ✅ |
 | `exp2()`, `log2()`, `log10()` | SIMD Math | **DONE** ✅ |
-| `expm1()`, `log1p()` | SIMD Math | Missing |
+| `expm1()`, `log1p()` | SIMD Math | **DONE** ✅ |
 | `isinf()`, `isnan()`, `isfinite()` | SIMD Math | Missing |
 | `zeros()`, `ones()`, `iota()` factories | Tensor | Missing |
 | `random()`, `randint()` factories | Tensor | Missing |

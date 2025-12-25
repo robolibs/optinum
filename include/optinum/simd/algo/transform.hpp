@@ -19,9 +19,11 @@
 #include <optinum/simd/math/cosh.hpp>
 #include <optinum/simd/math/exp.hpp>
 #include <optinum/simd/math/exp2.hpp>
+#include <optinum/simd/math/expm1.hpp>
 #include <optinum/simd/math/floor.hpp>
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/log10.hpp>
+#include <optinum/simd/math/log1p.hpp>
 #include <optinum/simd/math/log2.hpp>
 #include <optinum/simd/math/pow.hpp>
 #include <optinum/simd/math/round.hpp>
@@ -536,6 +538,44 @@ namespace optinum::simd {
               std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
     OPTINUM_INLINE void atanh(const View &x) noexcept {
         detail::transform_inplace_impl(x, [](auto p) { return atanh(p); });
+    }
+
+    // =============================================================================
+    // expm1: y = expm1(x)
+    // Elementwise exp(x) - 1 (accurate for small x)
+    // =============================================================================
+
+    // y = expm1(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void expm1(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return expm1(p); });
+    }
+
+    // In-place: x = expm1(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void expm1(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return expm1(p); });
+    }
+
+    // =============================================================================
+    // log1p: y = log1p(x)
+    // Elementwise log(1 + x) (accurate for small x)
+    // =============================================================================
+
+    // y = log1p(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void log1p(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return log1p(p); });
+    }
+
+    // In-place: x = log1p(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void log1p(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return log1p(p); });
     }
 
 } // namespace optinum::simd
