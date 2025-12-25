@@ -20,6 +20,9 @@
 //   simd::sinh(pack<T,W>)  - hyperbolic sine
 //   simd::cosh(pack<T,W>)  - hyperbolic cosine
 //   simd::tanh(pack<T,W>)  - hyperbolic tangent
+//   simd::asinh(pack<T,W>) - inverse hyperbolic sine
+//   simd::acosh(pack<T,W>) - inverse hyperbolic cosine
+//   simd::atanh(pack<T,W>) - inverse hyperbolic tangent
 //   simd::sqrt(pack<T,W>)  - square root
 //   simd::pow(pack<T,W>, pack<T,W>) - power
 //   simd::ceil(pack<T,W>)  - ceiling (round up)
@@ -42,9 +45,12 @@
 
 // Native SIMD implementations using pack<T,W>
 #include <optinum/simd/math/acos.hpp>
+#include <optinum/simd/math/acosh.hpp>
 #include <optinum/simd/math/asin.hpp>
+#include <optinum/simd/math/asinh.hpp>
 #include <optinum/simd/math/atan.hpp>
 #include <optinum/simd/math/atan2.hpp>
+#include <optinum/simd/math/atanh.hpp>
 #include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/cosh.hpp>

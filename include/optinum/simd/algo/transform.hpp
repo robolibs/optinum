@@ -8,9 +8,12 @@
 #include <cstddef>
 #include <optinum/simd/algo/traits.hpp>
 #include <optinum/simd/math/acos.hpp>
+#include <optinum/simd/math/acosh.hpp>
 #include <optinum/simd/math/asin.hpp>
+#include <optinum/simd/math/asinh.hpp>
 #include <optinum/simd/math/atan.hpp>
 #include <optinum/simd/math/atan2.hpp>
+#include <optinum/simd/math/atanh.hpp>
 #include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/cosh.hpp>
@@ -476,6 +479,63 @@ namespace optinum::simd {
               std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
     OPTINUM_INLINE void acos(const View &x) noexcept {
         detail::transform_inplace_impl(x, [](auto p) { return acos(p); });
+    }
+
+    // =============================================================================
+    // asinh: y = asinh(x)
+    // Elementwise inverse hyperbolic sine
+    // =============================================================================
+
+    // y = asinh(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void asinh(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return asinh(p); });
+    }
+
+    // In-place: x = asinh(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void asinh(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return asinh(p); });
+    }
+
+    // =============================================================================
+    // acosh: y = acosh(x)
+    // Elementwise inverse hyperbolic cosine
+    // =============================================================================
+
+    // y = acosh(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void acosh(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return acosh(p); });
+    }
+
+    // In-place: x = acosh(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void acosh(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return acosh(p); });
+    }
+
+    // =============================================================================
+    // atanh: y = atanh(x)
+    // Elementwise inverse hyperbolic tangent
+    // =============================================================================
+
+    // y = atanh(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void atanh(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return atanh(p); });
+    }
+
+    // In-place: x = atanh(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void atanh(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return atanh(p); });
     }
 
 } // namespace optinum::simd

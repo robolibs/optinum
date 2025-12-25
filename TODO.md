@@ -188,11 +188,12 @@ include/optinum/simd/
 
 #### Algorithms - Missing Transform Functions
 - [x] `tan(view)` - Tangent ✅
-- [ ] `asin(view)`, `acos(view)`, `atan(view)`, `atan2(view)` - Inverse trig
-- [ ] `sinh(view)`, `cosh(view)` - Hyperbolic
+- [x] `asin(view)`, `acos(view)`, `atan(view)`, `atan2(view)` - Inverse trig ✅
+- [x] `sinh(view)`, `cosh(view)` - Hyperbolic ✅
 - [ ] `asinh(view)`, `acosh(view)`, `atanh(view)` - Inverse hyperbolic
 - [x] `pow(view, exp)` - Power ✅
 - [x] `ceil(view)`, `floor(view)`, `round(view)`, `trunc(view)` - Rounding ✅
+- [x] `exp2(view)`, `log2(view)`, `log10(view)` - Alternative bases ✅
 - [ ] `abs(view)` - Absolute value
 - [ ] `clamp(view, lo, hi)` - Clamp to range
 
@@ -277,22 +278,22 @@ include/optinum/simd/
 
 #### Additional Math Functions - HIGH PRIORITY
 - [x] `tan.hpp` - Tangent (sin/cos based) - 4.8x speedup ✅
-- [ ] `asin.hpp` - Arc sine
-- [ ] `acos.hpp` - Arc cosine
-- [ ] `atan.hpp` - Arc tangent
-- [ ] `atan2.hpp` - Two-argument arc tangent
+- [x] `asin.hpp` - Arc sine - 5.5x (float), 4.0x (double) ✅
+- [x] `acos.hpp` - Arc cosine - 6.5x (float), 4.4x (double) ✅
+- [x] `atan.hpp` - Arc tangent - 11.4x (float), 4.7x (double) ✅
+- [x] `atan2.hpp` - Two-argument arc tangent - 9.2x (float), 5.0x (double) ✅
 - [x] `pow.hpp` - Power function pow(x, y) = exp(y * log(x)) - 4.0x speedup ✅
-- [ ] `sinh.hpp` - Hyperbolic sine
-- [ ] `cosh.hpp` - Hyperbolic cosine
+- [x] `sinh.hpp` - Hyperbolic sine - 19.1x (float), 18.6x (double) ✅
+- [x] `cosh.hpp` - Hyperbolic cosine - 8.2x (float), 3.5x (double) ✅
 - [ ] `asinh.hpp` - Inverse hyperbolic sine
 - [ ] `acosh.hpp` - Inverse hyperbolic cosine
 - [ ] `atanh.hpp` - Inverse hyperbolic tangent
 
 #### Additional Math Functions - MEDIUM PRIORITY
-- [ ] `exp2.hpp` - Base-2 exponential
+- [x] `exp2.hpp` - Base-2 exponential - 6.7x (float), 3.5x (double) ✅
 - [ ] `expm1.hpp` - exp(x) - 1 (accurate for small x)
-- [ ] `log2.hpp` - Base-2 logarithm
-- [ ] `log10.hpp` - Base-10 logarithm
+- [x] `log2.hpp` - Base-2 logarithm - 4.3x (float), 2.6x (double) ✅
+- [x] `log10.hpp` - Base-10 logarithm - 9.9x (float), 4.8x (double) ✅
 - [ ] `log1p.hpp` - log(1 + x) (accurate for small x)
 - [ ] `cbrt.hpp` - Cube root
 - [ ] `hypot.hpp` - Hypotenuse sqrt(x^2 + y^2) without overflow
@@ -696,7 +697,7 @@ This section tracks features present in Fastor that are missing in optinum.
 |---------|----------|--------|
 | AVX-512 full implementation | SIMD | Stub only |
 | ARM NEON full implementation | SIMD | Stub only |
-| `asin()`, `acos()`, `atan()`, `atan2()` | SIMD Math | Missing |
+| `asin()`, `acos()`, `atan()`, `atan2()` | SIMD Math | **DONE** ✅ |
 | `pow()` function | SIMD Math | **DONE** ✅ |
 | `ceil()`, `floor()`, `round()`, `trunc()` | SIMD Math | **DONE** ✅ |
 | Specialized 2x2, 3x3, 4x4 inverse kernels | Backend | Missing |
@@ -706,9 +707,9 @@ This section tracks features present in Fastor that are missing in optinum.
 
 | Feature | Category | Status |
 |---------|----------|--------|
-| `sinh()`, `cosh()` | SIMD Math | Missing |
+| `sinh()`, `cosh()` | SIMD Math | **DONE** ✅ |
 | `asinh()`, `acosh()`, `atanh()` | SIMD Math | Missing |
-| `exp2()`, `log2()`, `log10()` | SIMD Math | Missing |
+| `exp2()`, `log2()`, `log10()` | SIMD Math | **DONE** ✅ |
 | `expm1()`, `log1p()` | SIMD Math | Missing |
 | `isinf()`, `isnan()`, `isfinite()` | SIMD Math | Missing |
 | `zeros()`, `ones()`, `iota()` factories | Tensor | Missing |
