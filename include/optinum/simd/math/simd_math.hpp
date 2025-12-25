@@ -9,6 +9,7 @@
 //   simd::log(pack<T,W>)   - natural logarithm
 //   simd::sin(pack<T,W>)   - sine
 //   simd::cos(pack<T,W>)   - cosine
+//   simd::tan(pack<T,W>)   - tangent
 //   simd::tanh(pack<T,W>)  - hyperbolic tangent
 //   simd::sqrt(pack<T,W>)  - square root
 //
@@ -31,4 +32,5 @@
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/sin.hpp>
 #include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/math/tan.hpp>
 #include <optinum/simd/math/tanh.hpp>

@@ -12,6 +12,7 @@
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/sin.hpp>
 #include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/math/tan.hpp>
 #include <optinum/simd/math/tanh.hpp>
 
 namespace optinum::simd {
@@ -130,6 +131,25 @@ namespace optinum::simd {
               std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
     OPTINUM_INLINE void cos(const View &x) noexcept {
         detail::transform_inplace_impl(x, [](auto p) { return cos(p); });
+    }
+
+    // =============================================================================
+    // tan: y = tan(x)
+    // Elementwise tangent
+    // =============================================================================
+
+    // y = tan(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void tan(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return tan(p); });
+    }
+
+    // In-place: x = tan(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void tan(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return tan(p); });
     }
 
     // =============================================================================

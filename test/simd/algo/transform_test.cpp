@@ -675,3 +675,66 @@ TEST_CASE("algo::sqrt - double precision") {
     CHECK(y[6] == doctest::Approx(std::sqrt(2.0)).epsilon(0.001));  // sqrt(2) ≈ 1.414
     CHECK(y[7] == doctest::Approx(std::sqrt(0.25)).epsilon(0.001)); // sqrt(0.25) = 0.5
 }
+
+// =============================================================================
+// tan tests
+// =============================================================================
+
+TEST_CASE("algo::tan - y = tan(x)") {
+    using vec_t = datapod::mat::vector<float, 8>;
+
+    constexpr float PI = 3.14159265f;
+    alignas(32) vec_t x{{0.0f, PI / 6.0f, PI / 4.0f, PI / 3.0f, -PI / 6.0f, -PI / 4.0f, -PI / 3.0f, 0.5f}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::tan(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::tan(0.0f)).epsilon(0.01));         // tan(0) = 0
+    CHECK(y[1] == doctest::Approx(std::tan(PI / 6.0f)).epsilon(0.01));    // tan(π/6) ≈ 0.577
+    CHECK(y[2] == doctest::Approx(std::tan(PI / 4.0f)).epsilon(0.01));    // tan(π/4) = 1
+    CHECK(y[3] == doctest::Approx(std::tan(PI / 3.0f)).epsilon(0.01));    // tan(π/3) ≈ 1.732
+    CHECK(y[4] == doctest::Approx(std::tan(-PI / 6.0f)).epsilon(0.01));   // tan(-π/6) ≈ -0.577
+    CHECK(y[5] == doctest::Approx(std::tan(-PI / 4.0f)).epsilon(0.01));   // tan(-π/4) = -1
+    CHECK(y[6] == doctest::Approx(std::tan(-PI / 3.0f)).epsilon(0.01));   // tan(-π/3) ≈ -1.732
+    CHECK(y[7] == doctest::Approx(std::tan(0.5f)).epsilon(0.01));         // tan(0.5) ≈ 0.546
+}
+
+TEST_CASE("algo::tan - in-place x = tan(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    constexpr float PI = 3.14159265f;
+    alignas(32) vec_t x{{0.0f, PI / 6.0f, PI / 4.0f, -PI / 4.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::tan(vx);
+
+    CHECK(x[0] == doctest::Approx(std::tan(0.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(std::tan(PI / 6.0f)).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(std::tan(PI / 4.0f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::tan(-PI / 4.0f)).epsilon(0.01));
+}
+
+TEST_CASE("algo::tan - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    constexpr double PI = 3.141592653589793;
+    alignas(32) vec_t x{{0.0, PI / 6.0, PI / 4.0, PI / 3.0, -PI / 6.0, -PI / 4.0, -PI / 3.0, 1.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::tan(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::tan(0.0)).epsilon(0.001));        // tan(0) = 0
+    CHECK(y[1] == doctest::Approx(std::tan(PI / 6.0)).epsilon(0.001));   // tan(π/6) ≈ 0.577
+    CHECK(y[2] == doctest::Approx(std::tan(PI / 4.0)).epsilon(0.001));   // tan(π/4) = 1
+    CHECK(y[3] == doctest::Approx(std::tan(PI / 3.0)).epsilon(0.001));   // tan(π/3) ≈ 1.732
+    CHECK(y[4] == doctest::Approx(std::tan(-PI / 6.0)).epsilon(0.001));  // tan(-π/6) ≈ -0.577
+    CHECK(y[5] == doctest::Approx(std::tan(-PI / 4.0)).epsilon(0.001));  // tan(-π/4) = -1
+    CHECK(y[6] == doctest::Approx(std::tan(-PI / 3.0)).epsilon(0.001));  // tan(-π/3) ≈ -1.732
+    CHECK(y[7] == doctest::Approx(std::tan(1.0)).epsilon(0.001));        // tan(1) ≈ 1.557
+}

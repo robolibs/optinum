@@ -196,13 +196,14 @@ include/optinum/simd/
 - [ ] `abs(view)` - Absolute value
 - [ ] `clamp(view, lo, hi)` - Clamp to range
 
-#### SIMD Math - DONE (float only)
-- [x] `exp.hpp` - 7.94x speedup vs scalar
-- [x] `log.hpp` - 4.80x speedup vs scalar
-- [x] `sin.hpp` - 22.94x speedup vs scalar
-- [x] `cos.hpp` - 22.02x speedup vs scalar
-- [x] `tanh.hpp` - 27.55x speedup vs scalar
-- [x] `sqrt.hpp` - 4.03x speedup vs scalar
+#### SIMD Math - DONE (float and double)
+- [x] `exp.hpp` - 7.94x speedup vs scalar (float), 5.4x (double)
+- [x] `log.hpp` - 4.80x speedup vs scalar (float), 3.0x (double)
+- [x] `sin.hpp` - 22.94x speedup vs scalar (float), 6.2x (double)
+- [x] `cos.hpp` - 22.02x speedup vs scalar (float), 6.2x (double)
+- [x] `tan.hpp` - 4.8x speedup vs scalar (double) ✅
+- [x] `tanh.hpp` - 27.55x speedup vs scalar (float), 7.0x (double)
+- [x] `sqrt.hpp` - 4.03x speedup vs scalar (float), 2.0x (double)
 
 #### Wrapper Types (Scalar, Vector, Matrix, Tensor) - Missing Features
 - [ ] `fill(value)` - Fill all elements with value
@@ -267,15 +268,15 @@ include/optinum/simd/
 - [ ] `conj()` - Complex conjugate
 - [ ] `magnitude()`, `arg()` - Polar form operations
 
-#### Double Precision Math - CRITICAL
-- [ ] `exp.hpp` - double precision (exp for pack<double,2/4>)
-- [ ] `log.hpp` - double precision
-- [ ] `sin.hpp` / `cos.hpp` - double precision
-- [ ] `tanh.hpp` - double precision
-- [ ] `sqrt.hpp` - double precision (Newton-Raphson refinement)
+#### Double Precision Math - DONE ✅
+- [x] `exp.hpp` - double precision (exp for pack<double,2/4>) - 5.4x speedup
+- [x] `log.hpp` - double precision - 3.0x speedup
+- [x] `sin.hpp` / `cos.hpp` - double precision - 6.1x / 6.2x speedup
+- [x] `tanh.hpp` - double precision - 7.3x speedup
+- [x] `sqrt.hpp` - double precision (hardware sqrt_pd) - 2.0x speedup
 
 #### Additional Math Functions - HIGH PRIORITY
-- [ ] `tan.hpp` - Tangent (sin/cos based)
+- [x] `tan.hpp` - Tangent (sin/cos based) ✅
 - [ ] `asin.hpp` - Arc sine
 - [ ] `acos.hpp` - Arc cosine
 - [ ] `atan.hpp` - Arc tangent
@@ -695,8 +696,6 @@ This section tracks features present in Fastor that are missing in optinum.
 |---------|----------|--------|
 | AVX-512 full implementation | SIMD | Stub only |
 | ARM NEON full implementation | SIMD | Stub only |
-| Double precision math (exp, log, sin, cos, tanh) | SIMD Math | Missing |
-| `tan()` function | SIMD Math | Missing |
 | `asin()`, `acos()`, `atan()`, `atan2()` | SIMD Math | Missing |
 | `pow()` function | SIMD Math | Missing |
 | `ceil()`, `floor()`, `round()`, `trunc()` | SIMD Math | Missing |

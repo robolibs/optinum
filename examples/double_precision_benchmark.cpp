@@ -172,6 +172,37 @@ int main() {
         g_sink = output[0] + scalar_output[0];
     }
 
+    // tan() benchmark
+    {
+        std::cout << "=== tan() ===\n";
+
+        auto start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            auto vx = on::simd::view<4>(input);
+            auto vy = on::simd::view<4>(output);
+            on::simd::tan(vx, vy);
+            clobber();
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        start = std::chrono::high_resolution_clock::now();
+        for (size_t iter = 0; iter < ITERATIONS; ++iter) {
+            for (size_t i = 0; i < N; ++i) {
+                scalar_output[i] = std::tan(input[i]);
+            }
+            clobber();
+        }
+        end = std::chrono::high_resolution_clock::now();
+        auto scalar_time = std::chrono::duration<double, std::milli>(end - start).count();
+
+        std::cout << "SIMD:   " << simd_time << " ms\n";
+        std::cout << "Scalar: " << scalar_time << " ms\n";
+        std::cout << "Speedup: " << (scalar_time / simd_time) << "x\n\n";
+
+        g_sink = output[0] + scalar_output[0];
+    }
+
     // tanh() benchmark
     {
         for (size_t i = 0; i < N; ++i) {
