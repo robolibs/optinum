@@ -13,6 +13,10 @@
 //   simd::sin(pack<T,W>)   - sine
 //   simd::cos(pack<T,W>)   - cosine
 //   simd::tan(pack<T,W>)   - tangent
+//   simd::asin(pack<T,W>)  - arc sine
+//   simd::acos(pack<T,W>)  - arc cosine
+//   simd::atan(pack<T,W>)  - arc tangent
+//   simd::atan2(pack<T,W>, pack<T,W>) - two-argument arc tangent
 //   simd::sinh(pack<T,W>)  - hyperbolic sine
 //   simd::cosh(pack<T,W>)  - hyperbolic cosine
 //   simd::tanh(pack<T,W>)  - hyperbolic tangent
@@ -37,6 +41,10 @@
 // =============================================================================
 
 // Native SIMD implementations using pack<T,W>
+#include <optinum/simd/math/acos.hpp>
+#include <optinum/simd/math/asin.hpp>
+#include <optinum/simd/math/atan.hpp>
+#include <optinum/simd/math/atan2.hpp>
 #include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/cosh.hpp>

@@ -7,6 +7,10 @@
 
 #include <cstddef>
 #include <optinum/simd/algo/traits.hpp>
+#include <optinum/simd/math/acos.hpp>
+#include <optinum/simd/math/asin.hpp>
+#include <optinum/simd/math/atan.hpp>
+#include <optinum/simd/math/atan2.hpp>
 #include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/cosh.hpp>
@@ -392,6 +396,86 @@ namespace optinum::simd {
               std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
     OPTINUM_INLINE void log10(const View &x) noexcept {
         detail::transform_inplace_impl(x, [](auto p) { return log10(p); });
+    }
+
+    // =============================================================================
+    // atan: y = atan(x)
+    // Elementwise arc tangent
+    // =============================================================================
+
+    // y = atan(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void atan(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return atan(p); });
+    }
+
+    // In-place: x = atan(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void atan(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return atan(p); });
+    }
+
+    // =============================================================================
+    // atan2: z = atan2(y, x)
+    // Elementwise two-argument arc tangent (y/x with correct quadrant)
+    // =============================================================================
+
+    // z = atan2(y, x)
+    template <typename SrcView1, typename SrcView2, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView1> && detail::is_packable_view_v<SrcView2> &&
+                                   detail::is_packable_view_v<DstView>,
+                               int> = 0>
+    OPTINUM_INLINE void atan2(const SrcView1 &y, const SrcView2 &x, const DstView &z) noexcept {
+        const std::size_t num_packs = y.num_packs();
+
+        for (std::size_t i = 0; i < num_packs - 1; ++i) {
+            z.store_pack(i, atan2(y.load_pack(i), x.load_pack(i)));
+        }
+
+        if (num_packs > 0) {
+            const std::size_t last_idx = num_packs - 1;
+            z.store_pack_tail(last_idx, atan2(y.load_pack_tail(last_idx), x.load_pack_tail(last_idx)));
+        }
+    }
+
+    // =============================================================================
+    // asin: y = asin(x)
+    // Elementwise arc sine
+    // =============================================================================
+
+    // y = asin(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void asin(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return asin(p); });
+    }
+
+    // In-place: x = asin(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void asin(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return asin(p); });
+    }
+
+    // =============================================================================
+    // acos: y = acos(x)
+    // Elementwise arc cosine
+    // =============================================================================
+
+    // y = acos(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void acos(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return acos(p); });
+    }
+
+    // In-place: x = acos(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void acos(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return acos(p); });
     }
 
 } // namespace optinum::simd

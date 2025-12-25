@@ -3,7 +3,6 @@
 // Tests for SIMD transformation algorithms (exp, log, sin, cos, etc.)
 // =============================================================================
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
 #include <cmath>
@@ -197,7 +196,6 @@ TEST_CASE("algo::sin - in-place") {
     CHECK(x[2] == doctest::Approx(0.0f).epsilon(0.01));
     CHECK(x[3] == doctest::Approx(-1.0f).epsilon(0.01));
 }
-
 
 // =============================================================================
 // cos tests
@@ -1092,7 +1090,7 @@ TEST_CASE("algo::cosh - y = cosh(x)") {
     CHECK(y[0] == doctest::Approx(std::cosh(-2.0)).epsilon(0.001));
     CHECK(y[1] == doctest::Approx(std::cosh(-1.0)).epsilon(0.001));
     CHECK(y[2] == doctest::Approx(std::cosh(-0.5)).epsilon(0.001));
-    CHECK(y[3] == doctest::Approx(std::cosh(0.0)).epsilon(0.001));   // cosh(0) = 1
+    CHECK(y[3] == doctest::Approx(std::cosh(0.0)).epsilon(0.001)); // cosh(0) = 1
     CHECK(y[4] == doctest::Approx(std::cosh(0.5)).epsilon(0.001));
     CHECK(y[5] == doctest::Approx(std::cosh(1.0)).epsilon(0.001));
     CHECK(y[6] == doctest::Approx(std::cosh(2.0)).epsilon(0.001));
@@ -1108,7 +1106,7 @@ TEST_CASE("algo::cosh - in-place x = cosh(x)") {
     on::simd::cosh(vx);
 
     CHECK(x[0] == doctest::Approx(std::cosh(-1.0f)).epsilon(0.01));
-    CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01));               // cosh(0) = 1
+    CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01)); // cosh(0) = 1
     CHECK(x[2] == doctest::Approx(std::cosh(0.5f)).epsilon(0.01));
     CHECK(x[3] == doctest::Approx(std::cosh(1.0f)).epsilon(0.01));
 }
@@ -1128,14 +1126,14 @@ TEST_CASE("algo::exp2 - y = exp2(x)") {
 
     on::simd::exp2(vx, vy);
 
-    CHECK(y[0] == doctest::Approx(0.25).epsilon(0.001));     // 2^-2 = 0.25
-    CHECK(y[1] == doctest::Approx(0.5).epsilon(0.001));      // 2^-1 = 0.5
-    CHECK(y[2] == doctest::Approx(1.0).epsilon(0.001));      // 2^0 = 1
-    CHECK(y[3] == doctest::Approx(2.0).epsilon(0.001));      // 2^1 = 2
-    CHECK(y[4] == doctest::Approx(4.0).epsilon(0.001));      // 2^2 = 4
-    CHECK(y[5] == doctest::Approx(8.0).epsilon(0.001));      // 2^3 = 8
-    CHECK(y[6] == doctest::Approx(16.0).epsilon(0.001));     // 2^4 = 16
-    CHECK(y[7] == doctest::Approx(1024.0).epsilon(0.001));   // 2^10 = 1024
+    CHECK(y[0] == doctest::Approx(0.25).epsilon(0.001));   // 2^-2 = 0.25
+    CHECK(y[1] == doctest::Approx(0.5).epsilon(0.001));    // 2^-1 = 0.5
+    CHECK(y[2] == doctest::Approx(1.0).epsilon(0.001));    // 2^0 = 1
+    CHECK(y[3] == doctest::Approx(2.0).epsilon(0.001));    // 2^1 = 2
+    CHECK(y[4] == doctest::Approx(4.0).epsilon(0.001));    // 2^2 = 4
+    CHECK(y[5] == doctest::Approx(8.0).epsilon(0.001));    // 2^3 = 8
+    CHECK(y[6] == doctest::Approx(16.0).epsilon(0.001));   // 2^4 = 16
+    CHECK(y[7] == doctest::Approx(1024.0).epsilon(0.001)); // 2^10 = 1024
 }
 
 TEST_CASE("algo::exp2 - in-place x = exp2(x)") {
@@ -1167,14 +1165,14 @@ TEST_CASE("algo::log2 - y = log2(x)") {
 
     on::simd::log2(vx, vy);
 
-    CHECK(y[0] == doctest::Approx(-2.0).epsilon(0.001));  // log2(0.25) = -2
-    CHECK(y[1] == doctest::Approx(-1.0).epsilon(0.001));  // log2(0.5) = -1
-    CHECK(y[2] == doctest::Approx(0.0).epsilon(0.001));   // log2(1) = 0
-    CHECK(y[3] == doctest::Approx(1.0).epsilon(0.001));   // log2(2) = 1
-    CHECK(y[4] == doctest::Approx(2.0).epsilon(0.001));   // log2(4) = 2
-    CHECK(y[5] == doctest::Approx(3.0).epsilon(0.001));   // log2(8) = 3
-    CHECK(y[6] == doctest::Approx(4.0).epsilon(0.001));   // log2(16) = 4
-    CHECK(y[7] == doctest::Approx(10.0).epsilon(0.001));  // log2(1024) = 10
+    CHECK(y[0] == doctest::Approx(-2.0).epsilon(0.001)); // log2(0.25) = -2
+    CHECK(y[1] == doctest::Approx(-1.0).epsilon(0.001)); // log2(0.5) = -1
+    CHECK(y[2] == doctest::Approx(0.0).epsilon(0.001));  // log2(1) = 0
+    CHECK(y[3] == doctest::Approx(1.0).epsilon(0.001));  // log2(2) = 1
+    CHECK(y[4] == doctest::Approx(2.0).epsilon(0.001));  // log2(4) = 2
+    CHECK(y[5] == doctest::Approx(3.0).epsilon(0.001));  // log2(8) = 3
+    CHECK(y[6] == doctest::Approx(4.0).epsilon(0.001));  // log2(16) = 4
+    CHECK(y[7] == doctest::Approx(10.0).epsilon(0.001)); // log2(1024) = 10
 }
 
 TEST_CASE("algo::log2 - in-place x = log2(x)") {
@@ -1206,12 +1204,12 @@ TEST_CASE("algo::log10 - y = log10(x)") {
 
     on::simd::log10(vx, vy);
 
-    CHECK(y[0] == doctest::Approx(-1.0).epsilon(0.001));  // log10(0.1) = -1
-    CHECK(y[1] == doctest::Approx(0.0).epsilon(0.001));   // log10(1) = 0
-    CHECK(y[2] == doctest::Approx(1.0).epsilon(0.001));   // log10(10) = 1
-    CHECK(y[3] == doctest::Approx(2.0).epsilon(0.001));   // log10(100) = 2
-    CHECK(y[4] == doctest::Approx(3.0).epsilon(0.001));   // log10(1000) = 3
-    CHECK(y[5] == doctest::Approx(4.0).epsilon(0.001));   // log10(10000) = 4
+    CHECK(y[0] == doctest::Approx(-1.0).epsilon(0.001)); // log10(0.1) = -1
+    CHECK(y[1] == doctest::Approx(0.0).epsilon(0.001));  // log10(1) = 0
+    CHECK(y[2] == doctest::Approx(1.0).epsilon(0.001));  // log10(10) = 1
+    CHECK(y[3] == doctest::Approx(2.0).epsilon(0.001));  // log10(100) = 2
+    CHECK(y[4] == doctest::Approx(3.0).epsilon(0.001));  // log10(1000) = 3
+    CHECK(y[5] == doctest::Approx(4.0).epsilon(0.001));  // log10(10000) = 4
     CHECK(y[6] == doctest::Approx(std::log10(2.0)).epsilon(0.001));
     CHECK(y[7] == doctest::Approx(std::log10(5.0)).epsilon(0.001));
 }
@@ -1228,4 +1226,272 @@ TEST_CASE("algo::log10 - in-place x = log10(x)") {
     CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01));
     CHECK(x[2] == doctest::Approx(2.0f).epsilon(0.01));
     CHECK(x[3] == doctest::Approx(3.0f).epsilon(0.01));
+}
+
+// =============================================================================
+// atan tests
+// =============================================================================
+
+TEST_CASE("algo::atan - y = atan(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0, 10.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::atan(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::atan(-2.0)).epsilon(0.001));
+    CHECK(y[1] == doctest::Approx(std::atan(-1.0)).epsilon(0.001)); // -π/4
+    CHECK(y[2] == doctest::Approx(std::atan(-0.5)).epsilon(0.001));
+    CHECK(y[3] == doctest::Approx(std::atan(0.0)).epsilon(0.001)); // 0
+    CHECK(y[4] == doctest::Approx(std::atan(0.5)).epsilon(0.001));
+    CHECK(y[5] == doctest::Approx(std::atan(1.0)).epsilon(0.001)); // π/4
+    CHECK(y[6] == doctest::Approx(std::atan(2.0)).epsilon(0.001));
+    CHECK(y[7] == doctest::Approx(std::atan(10.0)).epsilon(0.001));
+}
+
+TEST_CASE("algo::atan - in-place x = atan(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-1.0f, 0.0f, 1.0f, 5.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::atan(vx);
+
+    CHECK(x[0] == doctest::Approx(std::atan(-1.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(std::atan(0.0f)).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(std::atan(1.0f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::atan(5.0f)).epsilon(0.01));
+}
+
+TEST_CASE("algo::atan - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-100.0, -10.0, -1.0, -0.1, 0.1, 1.0, 10.0, 100.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::atan(vx, vy);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::atan(x[i])).epsilon(0.001));
+    }
+}
+
+// =============================================================================
+// atan2 tests
+// =============================================================================
+
+TEST_CASE("algo::atan2 - z = atan2(y, x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t y_vals{{1.0, 1.0, -1.0, -1.0, 0.0, 1.0, -1.0, 2.0}};
+    alignas(32) vec_t x_vals{{1.0, -1.0, -1.0, 1.0, 1.0, 0.0, 0.0, 2.0}};
+    alignas(32) vec_t z;
+
+    auto vy = on::simd::view<4>(y_vals);
+    auto vx = on::simd::view<4>(x_vals);
+    auto vz = on::simd::view<4>(z);
+
+    on::simd::atan2(vy, vx, vz);
+
+    // Quadrant I: y=1, x=1 → π/4
+    CHECK(z[0] == doctest::Approx(std::atan2(1.0, 1.0)).epsilon(0.001));
+    // Quadrant II: y=1, x=-1 → 3π/4
+    CHECK(z[1] == doctest::Approx(std::atan2(1.0, -1.0)).epsilon(0.001));
+    // Quadrant III: y=-1, x=-1 → -3π/4
+    CHECK(z[2] == doctest::Approx(std::atan2(-1.0, -1.0)).epsilon(0.001));
+    // Quadrant IV: y=-1, x=1 → -π/4
+    CHECK(z[3] == doctest::Approx(std::atan2(-1.0, 1.0)).epsilon(0.001));
+    // Special: y=0, x=1 → 0
+    CHECK(z[4] == doctest::Approx(std::atan2(0.0, 1.0)).epsilon(0.001));
+    // Special: y=1, x=0 → π/2
+    CHECK(z[5] == doctest::Approx(std::atan2(1.0, 0.0)).epsilon(0.001));
+    // Special: y=-1, x=0 → -π/2
+    CHECK(z[6] == doctest::Approx(std::atan2(-1.0, 0.0)).epsilon(0.001));
+    // 45 degree angle
+    CHECK(z[7] == doctest::Approx(std::atan2(2.0, 2.0)).epsilon(0.001));
+}
+
+TEST_CASE("algo::atan2 - float precision") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t y_vals{{1.0f, -1.0f, 1.0f, 0.0f}};
+    alignas(32) vec_t x_vals{{1.0f, 1.0f, 0.0f, -1.0f}};
+    alignas(32) vec_t z;
+
+    auto vy = on::simd::view<4>(y_vals);
+    auto vx = on::simd::view<4>(x_vals);
+    auto vz = on::simd::view<4>(z);
+
+    on::simd::atan2(vy, vx, vz);
+
+    CHECK(z[0] == doctest::Approx(std::atan2(1.0f, 1.0f)).epsilon(0.01));
+    CHECK(z[1] == doctest::Approx(std::atan2(-1.0f, 1.0f)).epsilon(0.01));
+    CHECK(z[2] == doctest::Approx(std::atan2(1.0f, 0.0f)).epsilon(0.01));
+    CHECK(z[3] == doctest::Approx(std::atan2(0.0f, -1.0f)).epsilon(0.01));
+}
+
+TEST_CASE("algo::atan2 - robotics use case (Cartesian to polar)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    // Robot positions in 2D space
+    alignas(32) vec_t x_pos{{3.0, 0.0, -4.0, -5.0, 1.0, 1.732, -1.0, 0.0}};
+    alignas(32) vec_t y_pos{{4.0, 5.0, 3.0, -12.0, 1.0, 1.0, -1.732, 0.0}};
+    alignas(32) vec_t angles;
+
+    auto vx = on::simd::view<4>(x_pos);
+    auto vy = on::simd::view<4>(y_pos);
+    auto va = on::simd::view<4>(angles);
+
+    on::simd::atan2(vy, vx, va);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(angles[i] == doctest::Approx(std::atan2(y_pos[i], x_pos[i])).epsilon(0.001));
+    }
+}
+
+// =============================================================================
+// asin tests
+// =============================================================================
+
+TEST_CASE("algo::asin - y = asin(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-1.0, -0.866, -0.5, 0.0, 0.5, 0.866, 1.0, 0.707}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::asin(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::asin(-1.0)).epsilon(0.001));   // -π/2
+    CHECK(y[1] == doctest::Approx(std::asin(-0.866)).epsilon(0.001)); // -π/3
+    CHECK(y[2] == doctest::Approx(std::asin(-0.5)).epsilon(0.001));   // -π/6
+    CHECK(y[3] == doctest::Approx(std::asin(0.0)).epsilon(0.001));    // 0
+    CHECK(y[4] == doctest::Approx(std::asin(0.5)).epsilon(0.001));    // π/6
+    CHECK(y[5] == doctest::Approx(std::asin(0.866)).epsilon(0.001));  // π/3
+    CHECK(y[6] == doctest::Approx(std::asin(1.0)).epsilon(0.001));    // π/2
+    CHECK(y[7] == doctest::Approx(std::asin(0.707)).epsilon(0.001));  // π/4
+}
+
+TEST_CASE("algo::asin - in-place x = asin(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::asin(vx);
+
+    CHECK(x[0] == doctest::Approx(std::asin(-1.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(std::asin(0.0f)).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(std::asin(0.5f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::asin(1.0f)).epsilon(0.01));
+}
+
+TEST_CASE("algo::asin - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x;
+    alignas(32) vec_t y;
+
+    // Test range [-1, 1]
+    for (std::size_t i = 0; i < 8; ++i) {
+        x[i] = -1.0 + (i / 7.0) * 2.0;
+    }
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::asin(vx, vy);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::asin(x[i])).epsilon(0.001));
+    }
+}
+
+// =============================================================================
+// acos tests
+// =============================================================================
+
+TEST_CASE("algo::acos - y = acos(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-1.0, -0.866, -0.5, 0.0, 0.5, 0.866, 1.0, 0.707}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::acos(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::acos(-1.0)).epsilon(0.001));   // π
+    CHECK(y[1] == doctest::Approx(std::acos(-0.866)).epsilon(0.001)); // 5π/6
+    CHECK(y[2] == doctest::Approx(std::acos(-0.5)).epsilon(0.001));   // 2π/3
+    CHECK(y[3] == doctest::Approx(std::acos(0.0)).epsilon(0.001));    // π/2
+    CHECK(y[4] == doctest::Approx(std::acos(0.5)).epsilon(0.001));    // π/3
+    CHECK(y[5] == doctest::Approx(std::acos(0.866)).epsilon(0.001));  // π/6
+    CHECK(y[6] == doctest::Approx(std::acos(1.0)).epsilon(0.001));    // 0
+    CHECK(y[7] == doctest::Approx(std::acos(0.707)).epsilon(0.001));  // π/4
+}
+
+TEST_CASE("algo::acos - in-place x = acos(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::acos(vx);
+
+    CHECK(x[0] == doctest::Approx(std::acos(-1.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(std::acos(0.0f)).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(std::acos(0.5f)).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(std::acos(1.0f)).epsilon(0.01));
+}
+
+TEST_CASE("algo::acos - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x;
+    alignas(32) vec_t y;
+
+    // Test range [-1, 1]
+    for (std::size_t i = 0; i < 8; ++i) {
+        x[i] = -1.0 + (i / 7.0) * 2.0;
+    }
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::acos(vx, vy);
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK(y[i] == doctest::Approx(std::acos(x[i])).epsilon(0.001));
+    }
+}
+
+TEST_CASE("algo::acos - asin/acos identity: asin(x) + acos(x) = π/2") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-0.9, -0.7, -0.3, 0.0, 0.3, 0.7, 0.9, 0.5}};
+    alignas(32) vec_t y_sin, y_cos;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy_sin = on::simd::view<4>(y_sin);
+    auto vy_cos = on::simd::view<4>(y_cos);
+
+    on::simd::asin(vx, vy_sin);
+    on::simd::acos(vx, vy_cos);
+
+    const double pi_over_2 = 1.5707963267948966;
+
+    for (std::size_t i = 0; i < 8; ++i) {
+        CHECK((y_sin[i] + y_cos[i]) == doctest::Approx(pi_over_2).epsilon(0.001));
+    }
 }
