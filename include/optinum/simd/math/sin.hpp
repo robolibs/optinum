@@ -157,6 +157,176 @@ namespace optinum::simd {
         return pack<float, 8>(result);
     }
 
-    // TODO: Add double precision variants (pack<double, 2>, pack<double, 4>)
+    // =========================================================================
+    // pack<double, 2> - SSE implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_SSE41)
+
+    template <> inline pack<double, 2> sin(const pack<double, 2> &x) noexcept {
+        __m128d vx = x.data_;
+        __m128d sign_mask = _mm_set1_pd(-0.0);
+
+        // Constants for range reduction to [-π/4, π/4]
+        __m128d two_over_pi = _mm_set1_pd(0.6366197723675814);     // 2/π
+        __m128d pi_over_2_hi = _mm_set1_pd(1.5707963267948966);    // π/2 high part
+        __m128d pi_over_2_lo = _mm_set1_pd(6.123233995736766e-17); // π/2 low (precision)
+
+        // Extract sign and work with |x|
+        __m128d abs_x = _mm_andnot_pd(sign_mask, vx);
+        __m128d sign_x = _mm_and_pd(vx, sign_mask);
+
+        // Range reduction: y = |x| * (2/π), q = round(y)
+        __m128d y = _mm_mul_pd(abs_x, two_over_pi);
+        __m128d q = _mm_round_pd(y, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+        __m128i qi32 = _mm_cvtpd_epi32(q); // Converts 2 doubles to 2 int32s
+
+        // z = |x| - q * (π/2)
+        __m128d z = _mm_sub_pd(abs_x, _mm_mul_pd(q, pi_over_2_hi));
+        z = _mm_sub_pd(z, _mm_mul_pd(q, pi_over_2_lo)); // Extra precision
+        __m128d z2 = _mm_mul_pd(z, z);
+
+        // Higher-order polynomial for sin(z) on [-π/4, π/4]
+        // sin(z) ≈ z * (1 - z²/6 + z⁴/120 - z⁶/5040 + z⁸/362880)
+        __m128d s_c7 = _mm_set1_pd(-1.98412698412698e-4); // -1/5040
+        __m128d s_c5 = _mm_set1_pd(8.33333333333333e-3);  // 1/120
+        __m128d s_c3 = _mm_set1_pd(-0.166666666666667);   // -1/6
+
+#ifdef OPTINUM_HAS_FMA
+        __m128d sin_p = _mm_fmadd_pd(s_c7, z2, s_c5);
+        sin_p = _mm_fmadd_pd(sin_p, z2, s_c3);
+        sin_p = _mm_fmadd_pd(sin_p, z2, _mm_set1_pd(1.0));
+#else
+        __m128d sin_p = _mm_add_pd(_mm_mul_pd(s_c7, z2), s_c5);
+        sin_p = _mm_add_pd(_mm_mul_pd(sin_p, z2), s_c3);
+        sin_p = _mm_add_pd(_mm_mul_pd(sin_p, z2), _mm_set1_pd(1.0));
+#endif
+        __m128d sin_z = _mm_mul_pd(z, sin_p);
+
+        // Higher-order polynomial for cos(z) on [-π/4, π/4]
+        // cos(z) ≈ 1 - z²/2 + z⁴/24 - z⁶/720 + z⁸/40320
+        __m128d c_c6 = _mm_set1_pd(-1.38888888888889e-3); // -1/720
+        __m128d c_c4 = _mm_set1_pd(4.16666666666667e-2);  // 1/24
+        __m128d c_c2 = _mm_set1_pd(-0.5);                 // -1/2
+
+#ifdef OPTINUM_HAS_FMA
+        __m128d cos_p = _mm_fmadd_pd(c_c6, z2, c_c4);
+        cos_p = _mm_fmadd_pd(cos_p, z2, c_c2);
+        cos_p = _mm_fmadd_pd(cos_p, z2, _mm_set1_pd(1.0));
+#else
+        __m128d cos_p = _mm_add_pd(_mm_mul_pd(c_c6, z2), c_c4);
+        cos_p = _mm_add_pd(_mm_mul_pd(cos_p, z2), c_c2);
+        cos_p = _mm_add_pd(_mm_mul_pd(cos_p, z2), _mm_set1_pd(1.0));
+#endif
+        __m128d cos_z = cos_p;
+
+        // Select sin or cos based on quadrant (q mod 4)
+        // q&1 == 1: use cos, else use sin
+        __m128i q_and_1 = _mm_and_si128(qi32, _mm_set1_epi32(1));
+        __m128i use_cos_mask = _mm_cmpeq_epi32(q_and_1, _mm_set1_epi32(1));
+        // Convert int32 mask to int64 mask for blending doubles
+        __m128i use_cos_mask64 = _mm_shuffle_epi32(use_cos_mask, _MM_SHUFFLE(1, 1, 0, 0));
+        __m128d use_cos = _mm_castsi128_pd(use_cos_mask64);
+        __m128d result = _mm_blendv_pd(sin_z, cos_z, use_cos);
+
+        // Negate based on quadrant (q mod 4)
+        // q&2 == 2: negate result
+        __m128i q_and_2 = _mm_and_si128(qi32, _mm_set1_epi32(2));
+        __m128i negate_mask = _mm_cmpeq_epi32(q_and_2, _mm_set1_epi32(2));
+        __m128i negate_mask64 = _mm_shuffle_epi32(negate_mask, _MM_SHUFFLE(1, 1, 0, 0));
+        __m128d negate = _mm_castsi128_pd(negate_mask64);
+        result = _mm_xor_pd(result, _mm_and_pd(negate, sign_mask));
+
+        // Apply original sign of x
+        result = _mm_xor_pd(result, sign_x);
+
+        return pack<double, 2>(result);
+    }
+
+#endif // OPTINUM_HAS_SSE41
+
+    // =========================================================================
+    // pack<double, 4> - AVX implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
+
+    template <> inline pack<double, 4> sin(const pack<double, 4> &x) noexcept {
+        __m256d vx = x.data_;
+        __m256d sign_mask = _mm256_set1_pd(-0.0);
+
+        // Constants for range reduction to [-π/4, π/4]
+        __m256d two_over_pi = _mm256_set1_pd(0.6366197723675814);     // 2/π
+        __m256d pi_over_2_hi = _mm256_set1_pd(1.5707963267948966);    // π/2 high part
+        __m256d pi_over_2_lo = _mm256_set1_pd(6.123233995736766e-17); // π/2 low
+
+        // Extract sign and work with |x|
+        __m256d abs_x = _mm256_andnot_pd(sign_mask, vx);
+        __m256d sign_x = _mm256_and_pd(vx, sign_mask);
+
+        // Range reduction: y = |x| * (2/π), q = round(y)
+        __m256d y = _mm256_mul_pd(abs_x, two_over_pi);
+        __m256d q = _mm256_round_pd(y, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+        __m128i qi32 = _mm256_cvtpd_epi32(q); // 4 doubles -> 4 int32s (lower 128 bits)
+
+        // z = |x| - q * (π/2)
+        __m256d z = _mm256_sub_pd(abs_x, _mm256_mul_pd(q, pi_over_2_hi));
+        z = _mm256_sub_pd(z, _mm256_mul_pd(q, pi_over_2_lo));
+        __m256d z2 = _mm256_mul_pd(z, z);
+
+        // Higher-order polynomial for sin(z)
+        __m256d s_c7 = _mm256_set1_pd(-1.98412698412698e-4);
+        __m256d s_c5 = _mm256_set1_pd(8.33333333333333e-3);
+        __m256d s_c3 = _mm256_set1_pd(-0.166666666666667);
+
+#ifdef OPTINUM_HAS_FMA
+        __m256d sin_p = _mm256_fmadd_pd(s_c7, z2, s_c5);
+        sin_p = _mm256_fmadd_pd(sin_p, z2, s_c3);
+        sin_p = _mm256_fmadd_pd(sin_p, z2, _mm256_set1_pd(1.0));
+#else
+        __m256d sin_p = _mm256_add_pd(_mm256_mul_pd(s_c7, z2), s_c5);
+        sin_p = _mm256_add_pd(_mm256_mul_pd(sin_p, z2), s_c3);
+        sin_p = _mm256_add_pd(_mm256_mul_pd(sin_p, z2), _mm256_set1_pd(1.0));
+#endif
+        __m256d sin_z = _mm256_mul_pd(z, sin_p);
+
+        // Higher-order polynomial for cos(z)
+        __m256d c_c6 = _mm256_set1_pd(-1.38888888888889e-3);
+        __m256d c_c4 = _mm256_set1_pd(4.16666666666667e-2);
+        __m256d c_c2 = _mm256_set1_pd(-0.5);
+
+#ifdef OPTINUM_HAS_FMA
+        __m256d cos_p = _mm256_fmadd_pd(c_c6, z2, c_c4);
+        cos_p = _mm256_fmadd_pd(cos_p, z2, c_c2);
+        cos_p = _mm256_fmadd_pd(cos_p, z2, _mm256_set1_pd(1.0));
+#else
+        __m256d cos_p = _mm256_add_pd(_mm256_mul_pd(c_c6, z2), c_c4);
+        cos_p = _mm256_add_pd(_mm256_mul_pd(cos_p, z2), c_c2);
+        cos_p = _mm256_add_pd(_mm256_mul_pd(cos_p, z2), _mm256_set1_pd(1.0));
+#endif
+        __m256d cos_z = cos_p;
+
+        // Select sin or cos based on quadrant (q mod 4)
+        // q&1 == 1: use cos, else use sin
+        __m128i q_and_1 = _mm_and_si128(qi32, _mm_set1_epi32(1));
+        __m128i use_cos_mask32 = _mm_cmpeq_epi32(q_and_1, _mm_set1_epi32(1));
+        // Broadcast int32 mask to int64 for each lane
+        __m256i use_cos_mask64 = _mm256_cvtepi32_epi64(use_cos_mask32);
+        __m256d use_cos = _mm256_castsi256_pd(use_cos_mask64);
+        __m256d result = _mm256_blendv_pd(sin_z, cos_z, use_cos);
+
+        // Negate based on quadrant (q mod 4)
+        // q&2 == 2: negate result
+        __m128i q_and_2 = _mm_and_si128(qi32, _mm_set1_epi32(2));
+        __m128i negate_mask32 = _mm_cmpeq_epi32(q_and_2, _mm_set1_epi32(2));
+        __m256i negate_mask64 = _mm256_cvtepi32_epi64(negate_mask32);
+        __m256d negate = _mm256_castsi256_pd(negate_mask64);
+        result = _mm256_xor_pd(result, _mm256_and_pd(negate, sign_mask));
+
+        // Apply original sign of x
+        result = _mm256_xor_pd(result, sign_x);
+
+        return pack<double, 4>(result);
+    }
+
+#endif // OPTINUM_HAS_AVX
 
 } // namespace optinum::simd

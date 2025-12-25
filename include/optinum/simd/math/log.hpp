@@ -174,6 +174,176 @@ namespace optinum::simd {
         return pack<float, 8>(vresult);
     }
 
-    // TODO: Add double precision variants (pack<double, 2>, pack<double, 4>)
+    // =========================================================================
+    // pack<double, 2> - SSE implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_SSE41)
+
+    template <> inline pack<double, 2> log(const pack<double, 2> &x) noexcept {
+        using namespace detail;
+
+        __m128d vx = x.data_;
+
+        __m128d vone = _mm_set1_pd(1.0);
+        __m128d vhalf = _mm_set1_pd(0.5);
+        __m128d vsqrt2 = _mm_set1_pd(SQRT2_D);
+        __m128d vln2 = _mm_set1_pd(LN2_D);
+
+        // Extract exponent (double has 11-bit exponent at bits 52-62)
+        __m128i vi = _mm_castpd_si128(vx);
+        __m128i vexp = _mm_srli_epi64(vi, 52);
+        vexp = _mm_sub_epi64(vexp, _mm_set1_epi64x(1023));
+
+        // Convert exponent to double (need to extract lower 32 bits and convert)
+        __m128i vexp32 = _mm_shuffle_epi32(vexp, _MM_SHUFFLE(2, 0, 2, 0)); // Extract low 32 bits
+        __m128d vn = _mm_cvtepi32_pd(vexp32);
+
+        // Extract mantissa (52-bit mantissa)
+        __m128i vmant_mask = _mm_set1_epi64x(0x000FFFFFFFFFFFFF);
+        __m128i vexp_zero = _mm_set1_epi64x(0x3FF0000000000000); // 1.0 in double format
+        __m128i vmant = _mm_or_si128(_mm_and_si128(vi, vmant_mask), vexp_zero);
+        __m128d vm = _mm_castsi128_pd(vmant);
+
+        // If m > sqrt(2), adjust
+        __m128d vmask = _mm_cmpgt_pd(vm, vsqrt2);
+        vm = _mm_blendv_pd(vm, _mm_mul_pd(vm, vhalf), vmask);
+        vn = _mm_blendv_pd(vn, _mm_add_pd(vn, vone), vmask);
+
+        // f = m - 1
+        __m128d vf = _mm_sub_pd(vm, vone);
+
+        // s = f / (2 + f)
+        __m128d vs = _mm_div_pd(vf, _mm_add_pd(_mm_set1_pd(2.0), vf));
+        __m128d vs2 = _mm_mul_pd(vs, vs);
+
+        // Higher-order polynomial for double precision
+        __m128d vc11 = _mm_set1_pd(0.090909090909090909); // 1/11
+        __m128d vc9 = _mm_set1_pd(0.11111111111111111);   // 1/9
+        __m128d vc7 = _mm_set1_pd(0.14285714285714285);   // 1/7
+        __m128d vc5 = _mm_set1_pd(0.2);                   // 1/5
+        __m128d vc3 = _mm_set1_pd(0.33333333333333333);   // 1/3
+
+#ifdef OPTINUM_HAS_FMA
+        __m128d vp = _mm_fmadd_pd(vc11, vs2, vc9);
+        vp = _mm_fmadd_pd(vp, vs2, vc7);
+        vp = _mm_fmadd_pd(vp, vs2, vc5);
+        vp = _mm_fmadd_pd(vp, vs2, vc3);
+        vp = _mm_fmadd_pd(vp, vs2, vone);
+#else
+        __m128d vp = _mm_add_pd(_mm_mul_pd(vc11, vs2), vc9);
+        vp = _mm_add_pd(_mm_mul_pd(vp, vs2), vc7);
+        vp = _mm_add_pd(_mm_mul_pd(vp, vs2), vc5);
+        vp = _mm_add_pd(_mm_mul_pd(vp, vs2), vc3);
+        vp = _mm_add_pd(_mm_mul_pd(vp, vs2), vone);
+#endif
+
+        __m128d vlog_m = _mm_mul_pd(_mm_mul_pd(_mm_set1_pd(2.0), vs), vp);
+
+#ifdef OPTINUM_HAS_FMA
+        __m128d vresult = _mm_fmadd_pd(vn, vln2, vlog_m);
+#else
+        __m128d vresult = _mm_add_pd(_mm_mul_pd(vn, vln2), vlog_m);
+#endif
+
+        // Handle special cases
+        __m128d vzero = _mm_setzero_pd();
+        __m128d vneg_inf = _mm_set1_pd(-__builtin_inf());
+        __m128d vnan = _mm_set1_pd(__builtin_nan(""));
+
+        vresult = _mm_blendv_pd(vresult, vneg_inf, _mm_cmpeq_pd(vx, vzero));
+        vresult = _mm_blendv_pd(vresult, vnan, _mm_cmplt_pd(vx, vzero));
+
+        return pack<double, 2>(vresult);
+    }
+
+#endif // OPTINUM_HAS_SSE41
+
+    // =========================================================================
+    // pack<double, 4> - AVX implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
+
+    template <> inline pack<double, 4> log(const pack<double, 4> &x) noexcept {
+        using namespace detail;
+
+        __m256d vx = x.data_;
+
+        __m256d vone = _mm256_set1_pd(1.0);
+        __m256d vhalf = _mm256_set1_pd(0.5);
+        __m256d vsqrt2 = _mm256_set1_pd(SQRT2_D);
+        __m256d vln2 = _mm256_set1_pd(LN2_D);
+
+        // Extract exponent
+        __m256i vi = _mm256_castpd_si256(vx);
+        __m256i vexp = _mm256_srli_epi64(vi, 52);
+        vexp = _mm256_sub_epi64(vexp, _mm256_set1_epi64x(1023));
+
+        // Convert exponent to double (extract low 32 bits from each 64-bit lane)
+        __m128i vexp_low = _mm256_castsi256_si128(vexp);
+        __m128i vexp_high = _mm256_extractf128_si256(vexp, 1);
+        __m128i vexp32_low = _mm_shuffle_epi32(vexp_low, _MM_SHUFFLE(2, 0, 2, 0));
+        __m128i vexp32_high = _mm_shuffle_epi32(vexp_high, _MM_SHUFFLE(2, 0, 2, 0));
+        __m128i vexp32 = _mm_unpacklo_epi64(vexp32_low, vexp32_high);
+        __m256d vn = _mm256_cvtepi32_pd(vexp32);
+
+        // Extract mantissa
+        __m256i vmant_mask = _mm256_set1_epi64x(0x000FFFFFFFFFFFFF);
+        __m256i vexp_zero = _mm256_set1_epi64x(0x3FF0000000000000);
+        __m256i vmant = _mm256_or_si256(_mm256_and_si256(vi, vmant_mask), vexp_zero);
+        __m256d vm = _mm256_castsi256_pd(vmant);
+
+        // If m > sqrt(2), adjust
+        __m256d vmask = _mm256_cmp_pd(vm, vsqrt2, _CMP_GT_OQ);
+        vm = _mm256_blendv_pd(vm, _mm256_mul_pd(vm, vhalf), vmask);
+        vn = _mm256_blendv_pd(vn, _mm256_add_pd(vn, vone), vmask);
+
+        // f = m - 1
+        __m256d vf = _mm256_sub_pd(vm, vone);
+
+        // s = f / (2 + f)
+        __m256d vs = _mm256_div_pd(vf, _mm256_add_pd(_mm256_set1_pd(2.0), vf));
+        __m256d vs2 = _mm256_mul_pd(vs, vs);
+
+        // Higher-order polynomial for double precision
+        __m256d vc11 = _mm256_set1_pd(0.090909090909090909);
+        __m256d vc9 = _mm256_set1_pd(0.11111111111111111);
+        __m256d vc7 = _mm256_set1_pd(0.14285714285714285);
+        __m256d vc5 = _mm256_set1_pd(0.2);
+        __m256d vc3 = _mm256_set1_pd(0.33333333333333333);
+
+#ifdef OPTINUM_HAS_FMA
+        __m256d vp = _mm256_fmadd_pd(vc11, vs2, vc9);
+        vp = _mm256_fmadd_pd(vp, vs2, vc7);
+        vp = _mm256_fmadd_pd(vp, vs2, vc5);
+        vp = _mm256_fmadd_pd(vp, vs2, vc3);
+        vp = _mm256_fmadd_pd(vp, vs2, vone);
+#else
+        __m256d vp = _mm256_add_pd(_mm256_mul_pd(vc11, vs2), vc9);
+        vp = _mm256_add_pd(_mm256_mul_pd(vp, vs2), vc7);
+        vp = _mm256_add_pd(_mm256_mul_pd(vp, vs2), vc5);
+        vp = _mm256_add_pd(_mm256_mul_pd(vp, vs2), vc3);
+        vp = _mm256_add_pd(_mm256_mul_pd(vp, vs2), vone);
+#endif
+
+        __m256d vlog_m = _mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(2.0), vs), vp);
+
+#ifdef OPTINUM_HAS_FMA
+        __m256d vresult = _mm256_fmadd_pd(vn, vln2, vlog_m);
+#else
+        __m256d vresult = _mm256_add_pd(_mm256_mul_pd(vn, vln2), vlog_m);
+#endif
+
+        // Handle special cases
+        __m256d vzero = _mm256_setzero_pd();
+        __m256d vneg_inf = _mm256_set1_pd(-__builtin_inf());
+        __m256d vnan = _mm256_set1_pd(__builtin_nan(""));
+
+        vresult = _mm256_blendv_pd(vresult, vneg_inf, _mm256_cmp_pd(vx, vzero, _CMP_EQ_OQ));
+        vresult = _mm256_blendv_pd(vresult, vnan, _mm256_cmp_pd(vx, vzero, _CMP_LT_OQ));
+
+        return pack<double, 4>(vresult);
+    }
+
+#endif // OPTINUM_HAS_AVX
 
 } // namespace optinum::simd

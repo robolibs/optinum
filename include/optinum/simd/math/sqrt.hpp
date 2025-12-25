@@ -81,6 +81,52 @@ namespace optinum::simd {
         return pack<float, 8>(vresult);
     }
 
-    // TODO: Add double precision variants (pack<double, 2>, pack<double, 4>)
+    // =========================================================================
+    // pack<double, 2> - SSE implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_SSE2)
+
+    template <> inline pack<double, 2> sqrt(const pack<double, 2> &x) noexcept {
+        __m128d vx = x.data_;
+
+        // Use hardware sqrt for double precision (more accurate than rsqrt + refinement)
+        __m128d vresult = _mm_sqrt_pd(vx);
+
+        // Handle special cases
+        __m128d vzero = _mm_setzero_pd();
+        __m128d vnan = _mm_set1_pd(__builtin_nan(""));
+
+        // x < 0 -> NaN
+        __m128d vx_neg = _mm_cmplt_pd(vx, vzero);
+        vresult = _mm_blendv_pd(vresult, vnan, vx_neg);
+
+        return pack<double, 2>(vresult);
+    }
+
+#endif // OPTINUM_HAS_SSE2
+
+    // =========================================================================
+    // pack<double, 4> - AVX implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
+
+    template <> inline pack<double, 4> sqrt(const pack<double, 4> &x) noexcept {
+        __m256d vx = x.data_;
+
+        // Use hardware sqrt for double precision
+        __m256d vresult = _mm256_sqrt_pd(vx);
+
+        // Handle special cases
+        __m256d vzero = _mm256_setzero_pd();
+        __m256d vnan = _mm256_set1_pd(__builtin_nan(""));
+
+        // x < 0 -> NaN
+        __m256d vx_neg = _mm256_cmp_pd(vx, vzero, _CMP_LT_OQ);
+        vresult = _mm256_blendv_pd(vresult, vnan, vx_neg);
+
+        return pack<double, 4>(vresult);
+    }
+
+#endif // OPTINUM_HAS_AVX
 
 } // namespace optinum::simd

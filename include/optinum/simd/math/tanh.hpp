@@ -131,6 +131,118 @@ namespace optinum::simd {
         return pack<float, 8>(vresult);
     }
 
-    // TODO: Add double precision variants (pack<double, 2>, pack<double, 4>)
+    // =========================================================================
+    // pack<double, 2> - SSE implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_SSE41)
+
+    template <> inline pack<double, 2> tanh(const pack<double, 2> &x) noexcept {
+        __m128d vx = x.data_;
+
+        __m128d vone = _mm_set1_pd(1.0);
+        __m128d vtwo = _mm_set1_pd(2.0);
+        __m128d vthreshold = _mm_set1_pd(0.625);
+        __m128d vsaturate = _mm_set1_pd(9.0);
+
+        __m128d vabs_x = _mm_andnot_pd(_mm_set1_pd(-0.0), vx);
+        __m128d vsign = _mm_and_pd(vx, _mm_set1_pd(-0.0));
+
+        // Higher-order polynomial for double precision
+        __m128d vc1 = _mm_set1_pd(1.0);
+        __m128d vc3 = _mm_set1_pd(-0.33333333333333333); // -1/3
+        __m128d vc5 = _mm_set1_pd(0.13333333333333333);  // 2/15
+        __m128d vc7 = _mm_set1_pd(-0.05396825396825397); // -17/315
+        __m128d vc9 = _mm_set1_pd(0.021869488536155203); // 62/2835
+
+        __m128d vx2 = _mm_mul_pd(vx, vx);
+
+#ifdef OPTINUM_HAS_FMA
+        __m128d vpoly = _mm_fmadd_pd(vc9, vx2, vc7);
+        vpoly = _mm_fmadd_pd(vpoly, vx2, vc5);
+        vpoly = _mm_fmadd_pd(vpoly, vx2, vc3);
+        vpoly = _mm_fmadd_pd(vpoly, vx2, vc1);
+#else
+        __m128d vpoly = _mm_add_pd(_mm_mul_pd(vc9, vx2), vc7);
+        vpoly = _mm_add_pd(_mm_mul_pd(vpoly, vx2), vc5);
+        vpoly = _mm_add_pd(_mm_mul_pd(vpoly, vx2), vc3);
+        vpoly = _mm_add_pd(_mm_mul_pd(vpoly, vx2), vc1);
+#endif
+        __m128d vtanh_small = _mm_mul_pd(vx, vpoly);
+
+        __m128d v2x = _mm_mul_pd(vabs_x, vtwo);
+        pack<double, 2> exp_2x = exp(pack<double, 2>(v2x));
+        __m128d vexp_2x = exp_2x.data_;
+
+        __m128d vtanh_large = _mm_sub_pd(vone, _mm_div_pd(vtwo, _mm_add_pd(vexp_2x, vone)));
+        vtanh_large = _mm_or_pd(vtanh_large, vsign);
+
+        __m128d vmask_small = _mm_cmplt_pd(vabs_x, vthreshold);
+        __m128d vresult = _mm_blendv_pd(vtanh_large, vtanh_small, vmask_small);
+
+        __m128d vmask_saturate = _mm_cmpgt_pd(vabs_x, vsaturate);
+        __m128d vsaturated = _mm_or_pd(vone, vsign);
+        vresult = _mm_blendv_pd(vresult, vsaturated, vmask_saturate);
+
+        return pack<double, 2>(vresult);
+    }
+
+#endif // OPTINUM_HAS_SSE41
+
+    // =========================================================================
+    // pack<double, 4> - AVX implementation
+    // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
+
+    template <> inline pack<double, 4> tanh(const pack<double, 4> &x) noexcept {
+        __m256d vx = x.data_;
+
+        __m256d vone = _mm256_set1_pd(1.0);
+        __m256d vtwo = _mm256_set1_pd(2.0);
+        __m256d vthreshold = _mm256_set1_pd(0.625);
+        __m256d vsaturate = _mm256_set1_pd(9.0);
+
+        __m256d vabs_x = _mm256_andnot_pd(_mm256_set1_pd(-0.0), vx);
+        __m256d vsign = _mm256_and_pd(vx, _mm256_set1_pd(-0.0));
+
+        // Higher-order polynomial for double precision
+        __m256d vc1 = _mm256_set1_pd(1.0);
+        __m256d vc3 = _mm256_set1_pd(-0.33333333333333333);
+        __m256d vc5 = _mm256_set1_pd(0.13333333333333333);
+        __m256d vc7 = _mm256_set1_pd(-0.05396825396825397);
+        __m256d vc9 = _mm256_set1_pd(0.021869488536155203);
+
+        __m256d vx2 = _mm256_mul_pd(vx, vx);
+
+#ifdef OPTINUM_HAS_FMA
+        __m256d vpoly = _mm256_fmadd_pd(vc9, vx2, vc7);
+        vpoly = _mm256_fmadd_pd(vpoly, vx2, vc5);
+        vpoly = _mm256_fmadd_pd(vpoly, vx2, vc3);
+        vpoly = _mm256_fmadd_pd(vpoly, vx2, vc1);
+#else
+        __m256d vpoly = _mm256_add_pd(_mm256_mul_pd(vc9, vx2), vc7);
+        vpoly = _mm256_add_pd(_mm256_mul_pd(vpoly, vx2), vc5);
+        vpoly = _mm256_add_pd(_mm256_mul_pd(vpoly, vx2), vc3);
+        vpoly = _mm256_add_pd(_mm256_mul_pd(vpoly, vx2), vc1);
+#endif
+        __m256d vtanh_small = _mm256_mul_pd(vx, vpoly);
+
+        __m256d v2x = _mm256_mul_pd(vabs_x, vtwo);
+        pack<double, 4> exp_2x = exp(pack<double, 4>(v2x));
+        __m256d vexp_2x = exp_2x.data_;
+
+        __m256d vtanh_large = _mm256_sub_pd(vone, _mm256_div_pd(vtwo, _mm256_add_pd(vexp_2x, vone)));
+        vtanh_large = _mm256_or_pd(vtanh_large, vsign);
+
+        __m256d vmask_small = _mm256_cmp_pd(vabs_x, vthreshold, _CMP_LT_OQ);
+        __m256d vresult = _mm256_blendv_pd(vtanh_large, vtanh_small, vmask_small);
+
+        __m256d vmask_saturate = _mm256_cmp_pd(vabs_x, vsaturate, _CMP_GT_OQ);
+        __m256d vsaturated = _mm256_or_pd(vone, vsign);
+        vresult = _mm256_blendv_pd(vresult, vsaturated, vmask_saturate);
+
+        return pack<double, 4>(vresult);
+    }
+
+#endif // OPTINUM_HAS_AVX
 
 } // namespace optinum::simd

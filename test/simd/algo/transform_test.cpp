@@ -568,3 +568,110 @@ TEST_CASE("algo - matrix and vector same underlying data") {
         CHECK(m[i] == doctest::Approx(v[i]).epsilon(0.0001));
     }
 }
+
+// =============================================================================
+// Double precision tests for all functions
+// =============================================================================
+
+TEST_CASE("algo::log - double precision") {
+    using vec_t = datapod::mat::vector<double, 4>;
+
+    alignas(32) vec_t x{{1.0, 2.0, 0.5, std::exp(1.0)}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<2>(x);
+    auto vy = on::simd::view<2>(y);
+
+    on::simd::log(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::log(1.0)).epsilon(0.001));           // log(1) = 0
+    CHECK(y[1] == doctest::Approx(std::log(2.0)).epsilon(0.001));           // log(2) ≈ 0.693
+    CHECK(y[2] == doctest::Approx(std::log(0.5)).epsilon(0.001));           // log(0.5) ≈ -0.693
+    CHECK(y[3] == doctest::Approx(std::log(std::exp(1.0))).epsilon(0.001)); // log(e) = 1
+}
+
+TEST_CASE("algo::sin - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    constexpr double PI = 3.141592653589793;
+    alignas(32) vec_t x{{0.0, PI / 6.0, PI / 4.0, PI / 3.0, PI / 2.0, PI, -PI / 2.0, 2.0 * PI}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::sin(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::sin(0.0)).epsilon(0.001));
+    CHECK(y[1] == doctest::Approx(std::sin(PI / 6.0)).epsilon(0.001));  // sin(π/6) = 0.5
+    CHECK(y[2] == doctest::Approx(std::sin(PI / 4.0)).epsilon(0.001));  // sin(π/4) ≈ 0.707
+    CHECK(y[3] == doctest::Approx(std::sin(PI / 3.0)).epsilon(0.001));  // sin(π/3) ≈ 0.866
+    CHECK(y[4] == doctest::Approx(std::sin(PI / 2.0)).epsilon(0.001));  // sin(π/2) = 1
+    CHECK(y[5] == doctest::Approx(std::sin(PI)).epsilon(0.001));        // sin(π) ≈ 0
+    CHECK(y[6] == doctest::Approx(std::sin(-PI / 2.0)).epsilon(0.001)); // sin(-π/2) = -1
+    CHECK(y[7] == doctest::Approx(std::sin(2.0 * PI)).epsilon(0.001));  // sin(2π) ≈ 0
+}
+
+TEST_CASE("algo::cos - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    constexpr double PI = 3.141592653589793;
+    alignas(32) vec_t x{{0.0, PI / 6.0, PI / 4.0, PI / 3.0, PI / 2.0, PI, -PI / 2.0, 2.0 * PI}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::cos(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::cos(0.0)).epsilon(0.001));       // cos(0) = 1
+    CHECK(y[1] == doctest::Approx(std::cos(PI / 6.0)).epsilon(0.001));  // cos(π/6) ≈ 0.866
+    CHECK(y[2] == doctest::Approx(std::cos(PI / 4.0)).epsilon(0.001));  // cos(π/4) ≈ 0.707
+    CHECK(y[3] == doctest::Approx(std::cos(PI / 3.0)).epsilon(0.001));  // cos(π/3) = 0.5
+    CHECK(y[4] == doctest::Approx(std::cos(PI / 2.0)).epsilon(0.001));  // cos(π/2) ≈ 0
+    CHECK(y[5] == doctest::Approx(std::cos(PI)).epsilon(0.001));        // cos(π) = -1
+    CHECK(y[6] == doctest::Approx(std::cos(-PI / 2.0)).epsilon(0.001)); // cos(-π/2) ≈ 0
+    CHECK(y[7] == doctest::Approx(std::cos(2.0 * PI)).epsilon(0.001));  // cos(2π) = 1
+}
+
+TEST_CASE("algo::tanh - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{0.0, 0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 5.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::tanh(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::tanh(0.0)).epsilon(0.001));  // tanh(0) = 0
+    CHECK(y[1] == doctest::Approx(std::tanh(0.5)).epsilon(0.001));  // tanh(0.5) ≈ 0.462
+    CHECK(y[2] == doctest::Approx(std::tanh(-0.5)).epsilon(0.001)); // tanh(-0.5) ≈ -0.462
+    CHECK(y[3] == doctest::Approx(std::tanh(1.0)).epsilon(0.001));  // tanh(1) ≈ 0.762
+    CHECK(y[4] == doctest::Approx(std::tanh(-1.0)).epsilon(0.001)); // tanh(-1) ≈ -0.762
+    CHECK(y[5] == doctest::Approx(std::tanh(2.0)).epsilon(0.001));  // tanh(2) ≈ 0.964
+    CHECK(y[6] == doctest::Approx(std::tanh(-2.0)).epsilon(0.001)); // tanh(-2) ≈ -0.964
+    CHECK(y[7] == doctest::Approx(std::tanh(5.0)).epsilon(0.001));  // tanh(5) ≈ 0.9999
+}
+
+TEST_CASE("algo::sqrt - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{0.0, 1.0, 4.0, 9.0, 16.0, 25.0, 2.0, 0.25}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::sqrt(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(std::sqrt(0.0)).epsilon(0.001));  // sqrt(0) = 0
+    CHECK(y[1] == doctest::Approx(std::sqrt(1.0)).epsilon(0.001));  // sqrt(1) = 1
+    CHECK(y[2] == doctest::Approx(std::sqrt(4.0)).epsilon(0.001));  // sqrt(4) = 2
+    CHECK(y[3] == doctest::Approx(std::sqrt(9.0)).epsilon(0.001));  // sqrt(9) = 3
+    CHECK(y[4] == doctest::Approx(std::sqrt(16.0)).epsilon(0.001)); // sqrt(16) = 4
+    CHECK(y[5] == doctest::Approx(std::sqrt(25.0)).epsilon(0.001)); // sqrt(25) = 5
+    CHECK(y[6] == doctest::Approx(std::sqrt(2.0)).epsilon(0.001));  // sqrt(2) ≈ 1.414
+    CHECK(y[7] == doctest::Approx(std::sqrt(0.25)).epsilon(0.001)); // sqrt(0.25) = 0.5
+}
