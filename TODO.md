@@ -187,12 +187,12 @@ include/optinum/simd/
 - [x] `algo/traits.hpp` - is_packable_view, view_value_t, view_width_v
 
 #### Algorithms - Missing Transform Functions
-- [ ] `tan(view)` - Tangent
+- [x] `tan(view)` - Tangent ✅
 - [ ] `asin(view)`, `acos(view)`, `atan(view)`, `atan2(view)` - Inverse trig
 - [ ] `sinh(view)`, `cosh(view)` - Hyperbolic
 - [ ] `asinh(view)`, `acosh(view)`, `atanh(view)` - Inverse hyperbolic
-- [ ] `pow(view, exp)` - Power
-- [ ] `ceil(view)`, `floor(view)`, `round(view)`, `trunc(view)` - Rounding
+- [x] `pow(view, exp)` - Power ✅
+- [x] `ceil(view)`, `floor(view)`, `round(view)`, `trunc(view)` - Rounding ✅
 - [ ] `abs(view)` - Absolute value
 - [ ] `clamp(view, lo, hi)` - Clamp to range
 
@@ -276,12 +276,12 @@ include/optinum/simd/
 - [x] `sqrt.hpp` - double precision (hardware sqrt_pd) - 2.0x speedup
 
 #### Additional Math Functions - HIGH PRIORITY
-- [x] `tan.hpp` - Tangent (sin/cos based) ✅
+- [x] `tan.hpp` - Tangent (sin/cos based) - 4.8x speedup ✅
 - [ ] `asin.hpp` - Arc sine
 - [ ] `acos.hpp` - Arc cosine
 - [ ] `atan.hpp` - Arc tangent
 - [ ] `atan2.hpp` - Two-argument arc tangent
-- [ ] `pow.hpp` - Power function pow(x, y) = exp(y * log(x))
+- [x] `pow.hpp` - Power function pow(x, y) = exp(y * log(x)) - 4.0x speedup ✅
 - [ ] `sinh.hpp` - Hyperbolic sine
 - [ ] `cosh.hpp` - Hyperbolic cosine
 - [ ] `asinh.hpp` - Inverse hyperbolic sine
@@ -297,11 +297,11 @@ include/optinum/simd/
 - [ ] `cbrt.hpp` - Cube root
 - [ ] `hypot.hpp` - Hypotenuse sqrt(x^2 + y^2) without overflow
 
-#### Rounding Functions
-- [ ] `ceil.hpp` - Ceiling (round up)
-- [ ] `floor.hpp` - Floor (round down)
-- [ ] `round.hpp` - Round to nearest
-- [ ] `trunc.hpp` - Truncate toward zero
+#### Rounding Functions - DONE ✅
+- [x] `ceil.hpp` - Ceiling (round up) - 3.7x speedup ✅
+- [x] `floor.hpp` - Floor (round down) - 3.9x speedup ✅
+- [x] `round.hpp` - Round to nearest - 18.5x speedup ✅
+- [x] `trunc.hpp` - Truncate toward zero - 3.7x speedup ✅
 
 #### Special Functions
 - [ ] `erf.hpp` - Error function
@@ -697,8 +697,8 @@ This section tracks features present in Fastor that are missing in optinum.
 | AVX-512 full implementation | SIMD | Stub only |
 | ARM NEON full implementation | SIMD | Stub only |
 | `asin()`, `acos()`, `atan()`, `atan2()` | SIMD Math | Missing |
-| `pow()` function | SIMD Math | Missing |
-| `ceil()`, `floor()`, `round()`, `trunc()` | SIMD Math | Missing |
+| `pow()` function | SIMD Math | **DONE** ✅ |
+| `ceil()`, `floor()`, `round()`, `trunc()` | SIMD Math | **DONE** ✅ |
 | Specialized 2x2, 3x3, 4x4 inverse kernels | Backend | Missing |
 | Gather/Scatter operations | SIMD | Missing |
 

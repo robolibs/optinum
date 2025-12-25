@@ -12,6 +12,11 @@
 //   simd::tan(pack<T,W>)   - tangent
 //   simd::tanh(pack<T,W>)  - hyperbolic tangent
 //   simd::sqrt(pack<T,W>)  - square root
+//   simd::pow(pack<T,W>, pack<T,W>) - power
+//   simd::ceil(pack<T,W>)  - ceiling (round up)
+//   simd::floor(pack<T,W>) - floor (round down)
+//   simd::round(pack<T,W>) - round to nearest
+//   simd::trunc(pack<T,W>) - truncate (round toward zero)
 //
 // All functions are optimized for speed (~3-5 ULP accuracy).
 //
@@ -27,10 +32,15 @@
 // =============================================================================
 
 // Native SIMD implementations using pack<T,W>
+#include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/exp.hpp>
+#include <optinum/simd/math/floor.hpp>
 #include <optinum/simd/math/log.hpp>
+#include <optinum/simd/math/pow.hpp>
+#include <optinum/simd/math/round.hpp>
 #include <optinum/simd/math/sin.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/math/tan.hpp>
 #include <optinum/simd/math/tanh.hpp>
+#include <optinum/simd/math/trunc.hpp>

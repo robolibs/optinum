@@ -198,20 +198,6 @@ TEST_CASE("algo::sin - in-place") {
     CHECK(x[3] == doctest::Approx(-1.0f).epsilon(0.01));
 }
 
-TEST_CASE("algo::sin - in-place") {
-    using vec_t = datapod::mat::vector<float, 4>;
-
-    constexpr float PI = 3.14159265358979323846f;
-    alignas(32) vec_t x{{0.0f, PI / 2.0f, PI, 3.0f * PI / 2.0f}};
-
-    auto vx = on::simd::view<4>(x);
-    on::simd::sin(vx);
-
-    CHECK(x[0] == doctest::Approx(0.0f).epsilon(0.01));
-    CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01));
-    CHECK(x[2] == doctest::Approx(0.0f).epsilon(0.01));
-    CHECK(x[3] == doctest::Approx(-1.0f).epsilon(0.01));
-}
 
 // =============================================================================
 // cos tests
@@ -692,14 +678,14 @@ TEST_CASE("algo::tan - y = tan(x)") {
 
     on::simd::tan(vx, vy);
 
-    CHECK(y[0] == doctest::Approx(std::tan(0.0f)).epsilon(0.01));         // tan(0) = 0
-    CHECK(y[1] == doctest::Approx(std::tan(PI / 6.0f)).epsilon(0.01));    // tan(π/6) ≈ 0.577
-    CHECK(y[2] == doctest::Approx(std::tan(PI / 4.0f)).epsilon(0.01));    // tan(π/4) = 1
-    CHECK(y[3] == doctest::Approx(std::tan(PI / 3.0f)).epsilon(0.01));    // tan(π/3) ≈ 1.732
-    CHECK(y[4] == doctest::Approx(std::tan(-PI / 6.0f)).epsilon(0.01));   // tan(-π/6) ≈ -0.577
-    CHECK(y[5] == doctest::Approx(std::tan(-PI / 4.0f)).epsilon(0.01));   // tan(-π/4) = -1
-    CHECK(y[6] == doctest::Approx(std::tan(-PI / 3.0f)).epsilon(0.01));   // tan(-π/3) ≈ -1.732
-    CHECK(y[7] == doctest::Approx(std::tan(0.5f)).epsilon(0.01));         // tan(0.5) ≈ 0.546
+    CHECK(y[0] == doctest::Approx(std::tan(0.0f)).epsilon(0.01));       // tan(0) = 0
+    CHECK(y[1] == doctest::Approx(std::tan(PI / 6.0f)).epsilon(0.01));  // tan(π/6) ≈ 0.577
+    CHECK(y[2] == doctest::Approx(std::tan(PI / 4.0f)).epsilon(0.01));  // tan(π/4) = 1
+    CHECK(y[3] == doctest::Approx(std::tan(PI / 3.0f)).epsilon(0.01));  // tan(π/3) ≈ 1.732
+    CHECK(y[4] == doctest::Approx(std::tan(-PI / 6.0f)).epsilon(0.01)); // tan(-π/6) ≈ -0.577
+    CHECK(y[5] == doctest::Approx(std::tan(-PI / 4.0f)).epsilon(0.01)); // tan(-π/4) = -1
+    CHECK(y[6] == doctest::Approx(std::tan(-PI / 3.0f)).epsilon(0.01)); // tan(-π/3) ≈ -1.732
+    CHECK(y[7] == doctest::Approx(std::tan(0.5f)).epsilon(0.01));       // tan(0.5) ≈ 0.546
 }
 
 TEST_CASE("algo::tan - in-place x = tan(x)") {
@@ -729,12 +715,322 @@ TEST_CASE("algo::tan - double precision") {
 
     on::simd::tan(vx, vy);
 
-    CHECK(y[0] == doctest::Approx(std::tan(0.0)).epsilon(0.001));        // tan(0) = 0
-    CHECK(y[1] == doctest::Approx(std::tan(PI / 6.0)).epsilon(0.001));   // tan(π/6) ≈ 0.577
-    CHECK(y[2] == doctest::Approx(std::tan(PI / 4.0)).epsilon(0.001));   // tan(π/4) = 1
-    CHECK(y[3] == doctest::Approx(std::tan(PI / 3.0)).epsilon(0.001));   // tan(π/3) ≈ 1.732
-    CHECK(y[4] == doctest::Approx(std::tan(-PI / 6.0)).epsilon(0.001));  // tan(-π/6) ≈ -0.577
-    CHECK(y[5] == doctest::Approx(std::tan(-PI / 4.0)).epsilon(0.001));  // tan(-π/4) = -1
-    CHECK(y[6] == doctest::Approx(std::tan(-PI / 3.0)).epsilon(0.001));  // tan(-π/3) ≈ -1.732
-    CHECK(y[7] == doctest::Approx(std::tan(1.0)).epsilon(0.001));        // tan(1) ≈ 1.557
+    CHECK(y[0] == doctest::Approx(std::tan(0.0)).epsilon(0.001));       // tan(0) = 0
+    CHECK(y[1] == doctest::Approx(std::tan(PI / 6.0)).epsilon(0.001));  // tan(π/6) ≈ 0.577
+    CHECK(y[2] == doctest::Approx(std::tan(PI / 4.0)).epsilon(0.001));  // tan(π/4) = 1
+    CHECK(y[3] == doctest::Approx(std::tan(PI / 3.0)).epsilon(0.001));  // tan(π/3) ≈ 1.732
+    CHECK(y[4] == doctest::Approx(std::tan(-PI / 6.0)).epsilon(0.001)); // tan(-π/6) ≈ -0.577
+    CHECK(y[5] == doctest::Approx(std::tan(-PI / 4.0)).epsilon(0.001)); // tan(-π/4) = -1
+    CHECK(y[6] == doctest::Approx(std::tan(-PI / 3.0)).epsilon(0.001)); // tan(-π/3) ≈ -1.732
+    CHECK(y[7] == doctest::Approx(std::tan(1.0)).epsilon(0.001));       // tan(1) ≈ 1.557
+}
+
+// =============================================================================
+// ceil tests
+// =============================================================================
+
+TEST_CASE("algo::ceil - y = ceil(x)") {
+    using vec_t = datapod::mat::vector<float, 8>;
+
+    alignas(32) vec_t x{{1.5f, -1.5f, 2.9f, -2.9f, 0.1f, -0.1f, 3.0f, -3.0f}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::ceil(vx, vy);
+
+    CHECK(y[0] == 2.0f);  // ceil(1.5) = 2
+    CHECK(y[1] == -1.0f); // ceil(-1.5) = -1
+    CHECK(y[2] == 3.0f);  // ceil(2.9) = 3
+    CHECK(y[3] == -2.0f); // ceil(-2.9) = -2
+    CHECK(y[4] == 1.0f);  // ceil(0.1) = 1
+    CHECK(y[5] == -0.0f); // ceil(-0.1) = -0
+    CHECK(y[6] == 3.0f);  // ceil(3.0) = 3
+    CHECK(y[7] == -3.0f); // ceil(-3.0) = -3
+}
+
+TEST_CASE("algo::ceil - in-place x = ceil(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{1.5f, -1.5f, 2.9f, -2.9f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::ceil(vx);
+
+    CHECK(x[0] == 2.0f);
+    CHECK(x[1] == -1.0f);
+    CHECK(x[2] == 3.0f);
+    CHECK(x[3] == -2.0f);
+}
+
+TEST_CASE("algo::ceil - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{1.5, -1.5, 2.9, -2.9, 0.1, -0.1, 3.0, -3.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::ceil(vx, vy);
+
+    CHECK(y[0] == 2.0);
+    CHECK(y[1] == -1.0);
+    CHECK(y[2] == 3.0);
+    CHECK(y[3] == -2.0);
+    CHECK(y[4] == 1.0);
+    CHECK(y[5] == -0.0);
+    CHECK(y[6] == 3.0);
+    CHECK(y[7] == -3.0);
+}
+
+// =============================================================================
+// floor tests
+// =============================================================================
+
+TEST_CASE("algo::floor - y = floor(x)") {
+    using vec_t = datapod::mat::vector<float, 8>;
+
+    alignas(32) vec_t x{{1.5f, -1.5f, 2.1f, -2.1f, 0.9f, -0.9f, 3.0f, -3.0f}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::floor(vx, vy);
+
+    CHECK(y[0] == 1.0f);  // floor(1.5) = 1
+    CHECK(y[1] == -2.0f); // floor(-1.5) = -2
+    CHECK(y[2] == 2.0f);  // floor(2.1) = 2
+    CHECK(y[3] == -3.0f); // floor(-2.1) = -3
+    CHECK(y[4] == 0.0f);  // floor(0.9) = 0
+    CHECK(y[5] == -1.0f); // floor(-0.9) = -1
+    CHECK(y[6] == 3.0f);  // floor(3.0) = 3
+    CHECK(y[7] == -3.0f); // floor(-3.0) = -3
+}
+
+TEST_CASE("algo::floor - in-place x = floor(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{1.5f, -1.5f, 2.1f, -2.1f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::floor(vx);
+
+    CHECK(x[0] == 1.0f);
+    CHECK(x[1] == -2.0f);
+    CHECK(x[2] == 2.0f);
+    CHECK(x[3] == -3.0f);
+}
+
+TEST_CASE("algo::floor - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{1.5, -1.5, 2.1, -2.1, 0.9, -0.9, 3.0, -3.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::floor(vx, vy);
+
+    CHECK(y[0] == 1.0);
+    CHECK(y[1] == -2.0);
+    CHECK(y[2] == 2.0);
+    CHECK(y[3] == -3.0);
+    CHECK(y[4] == 0.0);
+    CHECK(y[5] == -1.0);
+    CHECK(y[6] == 3.0);
+    CHECK(y[7] == -3.0);
+}
+
+// =============================================================================
+// round tests
+// =============================================================================
+
+TEST_CASE("algo::round - y = round(x)") {
+    using vec_t = datapod::mat::vector<float, 8>;
+
+    alignas(32) vec_t x{{1.5f, 2.5f, -1.5f, -2.5f, 1.4f, 1.6f, -1.4f, -1.6f}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::round(vx, vy);
+
+    // Note: uses banker's rounding (round to nearest even)
+    CHECK(y[0] == 2.0f);  // round(1.5) = 2 (even)
+    CHECK(y[1] == 2.0f);  // round(2.5) = 2 (even)
+    CHECK(y[2] == -2.0f); // round(-1.5) = -2 (even)
+    CHECK(y[3] == -2.0f); // round(-2.5) = -2 (even)
+    CHECK(y[4] == 1.0f);  // round(1.4) = 1
+    CHECK(y[5] == 2.0f);  // round(1.6) = 2
+    CHECK(y[6] == -1.0f); // round(-1.4) = -1
+    CHECK(y[7] == -2.0f); // round(-1.6) = -2
+}
+
+TEST_CASE("algo::round - in-place x = round(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{1.5f, 2.5f, -1.5f, -2.5f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::round(vx);
+
+    CHECK(x[0] == 2.0f);
+    CHECK(x[1] == 2.0f);
+    CHECK(x[2] == -2.0f);
+    CHECK(x[3] == -2.0f);
+}
+
+TEST_CASE("algo::round - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{1.5, 2.5, -1.5, -2.5, 1.4, 1.6, -1.4, -1.6}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::round(vx, vy);
+
+    CHECK(y[0] == 2.0);
+    CHECK(y[1] == 2.0);
+    CHECK(y[2] == -2.0);
+    CHECK(y[3] == -2.0);
+    CHECK(y[4] == 1.0);
+    CHECK(y[5] == 2.0);
+    CHECK(y[6] == -1.0);
+    CHECK(y[7] == -2.0);
+}
+
+// =============================================================================
+// trunc tests
+// =============================================================================
+
+TEST_CASE("algo::trunc - y = trunc(x)") {
+    using vec_t = datapod::mat::vector<float, 8>;
+
+    alignas(32) vec_t x{{1.9f, -1.9f, 2.1f, -2.1f, 0.9f, -0.9f, 3.0f, -3.0f}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::trunc(vx, vy);
+
+    CHECK(y[0] == 1.0f);  // trunc(1.9) = 1
+    CHECK(y[1] == -1.0f); // trunc(-1.9) = -1
+    CHECK(y[2] == 2.0f);  // trunc(2.1) = 2
+    CHECK(y[3] == -2.0f); // trunc(-2.1) = -2
+    CHECK(y[4] == 0.0f);  // trunc(0.9) = 0
+    CHECK(y[5] == -0.0f); // trunc(-0.9) = -0
+    CHECK(y[6] == 3.0f);  // trunc(3.0) = 3
+    CHECK(y[7] == -3.0f); // trunc(-3.0) = -3
+}
+
+TEST_CASE("algo::trunc - in-place x = trunc(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{1.9f, -1.9f, 2.1f, -2.1f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::trunc(vx);
+
+    CHECK(x[0] == 1.0f);
+    CHECK(x[1] == -1.0f);
+    CHECK(x[2] == 2.0f);
+    CHECK(x[3] == -2.0f);
+}
+
+TEST_CASE("algo::trunc - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{1.9, -1.9, 2.1, -2.1, 0.9, -0.9, 3.0, -3.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::trunc(vx, vy);
+
+    CHECK(y[0] == 1.0);
+    CHECK(y[1] == -1.0);
+    CHECK(y[2] == 2.0);
+    CHECK(y[3] == -2.0);
+    CHECK(y[4] == 0.0);
+    CHECK(y[5] == -0.0);
+    CHECK(y[6] == 3.0);
+    CHECK(y[7] == -3.0);
+}
+
+// =============================================================================
+// pow tests
+// =============================================================================
+
+TEST_CASE("algo::pow - z = pow(x, y)") {
+    using vec_t = datapod::mat::vector<float, 8>;
+
+    alignas(32) vec_t x{{2.0f, 3.0f, 4.0f, 5.0f, 2.0f, 10.0f, 1.5f, 2.5f}};
+    alignas(32) vec_t y{{3.0f, 2.0f, 0.5f, 0.0f, -1.0f, 2.0f, 3.0f, 2.0f}};
+    alignas(32) vec_t z;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+    auto vz = on::simd::view<4>(z);
+
+    on::simd::pow(vx, vy, vz);
+
+    CHECK(z[0] == doctest::Approx(8.0f).epsilon(0.01));   // 2^3 = 8
+    CHECK(z[1] == doctest::Approx(9.0f).epsilon(0.01));   // 3^2 = 9
+    CHECK(z[2] == doctest::Approx(2.0f).epsilon(0.01));   // 4^0.5 = 2
+    CHECK(z[3] == doctest::Approx(1.0f).epsilon(0.01));   // 5^0 = 1
+    CHECK(z[4] == doctest::Approx(0.5f).epsilon(0.01));   // 2^-1 = 0.5
+    CHECK(z[5] == doctest::Approx(100.0f).epsilon(0.01)); // 10^2 = 100
+    CHECK(z[6] == doctest::Approx(3.375f).epsilon(0.01)); // 1.5^3 = 3.375
+    CHECK(z[7] == doctest::Approx(6.25f).epsilon(0.01));  // 2.5^2 = 6.25
+}
+
+TEST_CASE("algo::pow - double precision") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{2.0, 3.0, 4.0, 5.0, 2.0, 10.0, 1.5, 2.5}};
+    alignas(32) vec_t y{{3.0, 2.0, 0.5, 0.0, -1.0, 2.0, 3.0, 2.0}};
+    alignas(32) vec_t z;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+    auto vz = on::simd::view<4>(z);
+
+    on::simd::pow(vx, vy, vz);
+
+    CHECK(z[0] == doctest::Approx(8.0).epsilon(0.001));   // 2^3 = 8
+    CHECK(z[1] == doctest::Approx(9.0).epsilon(0.001));   // 3^2 = 9
+    CHECK(z[2] == doctest::Approx(2.0).epsilon(0.001));   // 4^0.5 = 2
+    CHECK(z[3] == doctest::Approx(1.0).epsilon(0.001));   // 5^0 = 1
+    CHECK(z[4] == doctest::Approx(0.5).epsilon(0.001));   // 2^-1 = 0.5
+    CHECK(z[5] == doctest::Approx(100.0).epsilon(0.001)); // 10^2 = 100
+    CHECK(z[6] == doctest::Approx(3.375).epsilon(0.001)); // 1.5^3 = 3.375
+    CHECK(z[7] == doctest::Approx(6.25).epsilon(0.001));  // 2.5^2 = 6.25
+}
+
+TEST_CASE("algo::pow - special cases") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{0.0f, 1.0f, 2.0f, 16.0f}};
+    alignas(32) vec_t y{{5.0f, 100.0f, 10.0f, 0.25f}};
+    alignas(32) vec_t z;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+    auto vz = on::simd::view<4>(z);
+
+    on::simd::pow(vx, vy, vz);
+
+    CHECK(z[0] == doctest::Approx(0.0f).epsilon(0.01));    // 0^5 = 0
+    CHECK(z[1] == doctest::Approx(1.0f).epsilon(0.01));    // 1^100 = 1
+    CHECK(z[2] == doctest::Approx(1024.0f).epsilon(0.01)); // 2^10 = 1024
+    CHECK(z[3] == doctest::Approx(2.0f).epsilon(0.01));    // 16^0.25 = 2 (4th root)
 }

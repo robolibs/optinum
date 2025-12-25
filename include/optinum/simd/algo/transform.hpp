@@ -7,13 +7,18 @@
 
 #include <cstddef>
 #include <optinum/simd/algo/traits.hpp>
+#include <optinum/simd/math/ceil.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/exp.hpp>
+#include <optinum/simd/math/floor.hpp>
 #include <optinum/simd/math/log.hpp>
+#include <optinum/simd/math/pow.hpp>
+#include <optinum/simd/math/round.hpp>
 #include <optinum/simd/math/sin.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/math/tan.hpp>
 #include <optinum/simd/math/tanh.hpp>
+#include <optinum/simd/math/trunc.hpp>
 
 namespace optinum::simd {
 
@@ -188,6 +193,105 @@ namespace optinum::simd {
               std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
     OPTINUM_INLINE void sqrt(const View &x) noexcept {
         detail::transform_inplace_impl(x, [](auto p) { return sqrt(p); });
+    }
+
+    // =============================================================================
+    // ceil: y = ceil(x)
+    // Elementwise ceiling (round toward +infinity)
+    // =============================================================================
+
+    // y = ceil(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void ceil(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return ceil(p); });
+    }
+
+    // In-place: x = ceil(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void ceil(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return ceil(p); });
+    }
+
+    // =============================================================================
+    // floor: y = floor(x)
+    // Elementwise floor (round toward -infinity)
+    // =============================================================================
+
+    // y = floor(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void floor(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return floor(p); });
+    }
+
+    // In-place: x = floor(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void floor(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return floor(p); });
+    }
+
+    // =============================================================================
+    // round: y = round(x)
+    // Elementwise round to nearest integer
+    // =============================================================================
+
+    // y = round(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void round(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return round(p); });
+    }
+
+    // In-place: x = round(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void round(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return round(p); });
+    }
+
+    // =============================================================================
+    // trunc: y = trunc(x)
+    // Elementwise truncate (round toward zero)
+    // =============================================================================
+
+    // y = trunc(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void trunc(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return trunc(p); });
+    }
+
+    // In-place: x = trunc(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void trunc(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return trunc(p); });
+    }
+
+    // =============================================================================
+    // pow: z = pow(x, y)
+    // Elementwise power function
+    // =============================================================================
+
+    // z = pow(x, y)
+    template <typename SrcView1, typename SrcView2, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView1> && detail::is_packable_view_v<SrcView2> &&
+                                   detail::is_packable_view_v<DstView>,
+                               int> = 0>
+    OPTINUM_INLINE void pow(const SrcView1 &x, const SrcView2 &y, const DstView &z) noexcept {
+        const std::size_t num_packs = x.num_packs();
+
+        for (std::size_t i = 0; i < num_packs - 1; ++i) {
+            z.store_pack(i, pow(x.load_pack(i), y.load_pack(i)));
+        }
+
+        if (num_packs > 0) {
+            const std::size_t last_idx = num_packs - 1;
+            z.store_pack_tail(last_idx, pow(x.load_pack_tail(last_idx), y.load_pack_tail(last_idx)));
+        }
     }
 
 } // namespace optinum::simd
