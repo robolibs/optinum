@@ -316,10 +316,10 @@ include/optinum/simd/
 - [ ] `tgamma.hpp` - Gamma function
 - [ ] `lgamma.hpp` - Log gamma function
 
-#### Boolean/Status Functions
-- [ ] `isinf(pack)` - Test for infinity
-- [ ] `isnan(pack)` - Test for NaN
-- [ ] `isfinite(pack)` - Test for finite values
+#### Boolean/Status Functions - DONE ✅
+- [x] `isinf(pack)` - Test for infinity - 0.9x simple, **9.6x in physics sim** ✅
+- [x] `isnan(pack)` - Test for NaN - 0.7x simple, **9.6x in physics sim** ✅
+- [x] `isfinite(pack)` - Test for finite values - 0.7x simple, **1.6x in filtering** ✅
 
 #### Extended Intrinsics / Helpers
 - [ ] Element extraction helpers - `get<I>(pack)` compile-time lane access
@@ -719,7 +719,7 @@ This section tracks features present in Fastor that are missing in optinum.
 | `exp2()`, `log2()`, `log10()` | SIMD Math | **DONE** ✅ |
 | `expm1()`, `log1p()` | SIMD Math | **DONE** ✅ |
 | `abs()`, `cbrt()`, `clamp()`, `hypot()` | SIMD Math | **DONE** ✅ |
-| `isinf()`, `isnan()`, `isfinite()` | SIMD Math | Missing |
+| `isinf()`, `isnan()`, `isfinite()` | SIMD Math | **DONE** ✅ |
 | `zeros()`, `ones()`, `iota()` factories | Tensor | Missing |
 | `random()`, `randint()` factories | Tensor | Missing |
 | `reshape()`, `flatten()`, `squeeze()` | Tensor | Missing |

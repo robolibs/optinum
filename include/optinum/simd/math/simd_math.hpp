@@ -35,6 +35,9 @@
 //   simd::floor(pack<T,W>) - floor (round down)
 //   simd::round(pack<T,W>) - round to nearest
 //   simd::trunc(pack<T,W>) - truncate (round toward zero)
+//   simd::isinf(pack<T,W>)  - test for infinity (returns mask<T,W>)
+//   simd::isnan(pack<T,W>)  - test for NaN (returns mask<T,W>)
+//   simd::isfinite(pack<T,W>) - test for finite values (returns mask<T,W>)
 //
 // All functions are optimized for speed (~3-5 ULP accuracy).
 //
@@ -68,6 +71,9 @@
 #include <optinum/simd/math/expm1.hpp>
 #include <optinum/simd/math/floor.hpp>
 #include <optinum/simd/math/hypot.hpp>
+#include <optinum/simd/math/isfinite.hpp>
+#include <optinum/simd/math/isinf.hpp>
+#include <optinum/simd/math/isnan.hpp>
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/log10.hpp>
 #include <optinum/simd/math/log1p.hpp>

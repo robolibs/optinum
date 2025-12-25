@@ -5,9 +5,15 @@
 
 #include <doctest/doctest.h>
 #include <optinum/simd/mask.hpp>
+#include <optinum/simd/math/isfinite.hpp>
+#include <optinum/simd/math/isinf.hpp>
+#include <optinum/simd/math/isnan.hpp>
 #include <optinum/simd/pack/avx.hpp>
 #include <optinum/simd/pack/pack.hpp>
 #include <optinum/simd/pack/sse.hpp>
+
+#include <cmath>
+#include <limits>
 
 namespace on = optinum;
 
@@ -379,3 +385,226 @@ TEST_CASE("mask<double, 4> - AVX") {
 }
 
 #endif // OPTINUM_HAS_AVX
+
+// =============================================================================
+// Boolean Test Functions (isinf, isnan, isfinite)
+// =============================================================================
+
+TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
+    using pack_f4 = on::simd::pack<float, 4>;
+    using mask_f4 = on::simd::mask<float, 4>;
+
+    SUBCASE("isinf - SSE float") {
+        // Test positive infinity
+        alignas(16) float data_inf[4] = {INFINITY, 1.0f, -INFINITY, 2.0f};
+        auto p_inf = pack_f4::load(data_inf);
+        auto m_inf = on::simd::isinf(p_inf);
+
+        CHECK(m_inf[0] == true);  // +inf
+        CHECK(m_inf[1] == false); // normal
+        CHECK(m_inf[2] == true);  // -inf
+        CHECK(m_inf[3] == false); // normal
+        CHECK(m_inf.popcount() == 2);
+
+        // Test all normal values
+        pack_f4 normal(42.0f);
+        auto m_normal = on::simd::isinf(normal);
+        CHECK(m_normal.none());
+
+        // Test all infinities
+        pack_f4 all_inf(INFINITY);
+        auto m_all_inf = on::simd::isinf(all_inf);
+        CHECK(m_all_inf.all());
+    }
+
+    SUBCASE("isnan - SSE float") {
+        // Test NaN values
+        alignas(16) float data_nan[4] = {NAN, 1.0f, std::numeric_limits<float>::quiet_NaN(), 2.0f};
+        auto p_nan = pack_f4::load(data_nan);
+        auto m_nan = on::simd::isnan(p_nan);
+
+        CHECK(m_nan[0] == true);  // NaN
+        CHECK(m_nan[1] == false); // normal
+        CHECK(m_nan[2] == true);  // NaN
+        CHECK(m_nan[3] == false); // normal
+        CHECK(m_nan.popcount() == 2);
+
+        // Test all normal values
+        pack_f4 normal(3.14f);
+        auto m_normal = on::simd::isnan(normal);
+        CHECK(m_normal.none());
+
+        // Test infinity is not NaN
+        pack_f4 inf(INFINITY);
+        auto m_inf = on::simd::isnan(inf);
+        CHECK(m_inf.none());
+    }
+
+    SUBCASE("isfinite - SSE float") {
+        // Test mixed values
+        alignas(16) float data_mixed[4] = {1.0f, INFINITY, NAN, -42.0f};
+        auto p_mixed = pack_f4::load(data_mixed);
+        auto m_finite = on::simd::isfinite(p_mixed);
+
+        CHECK(m_finite[0] == true);  // normal
+        CHECK(m_finite[1] == false); // infinity
+        CHECK(m_finite[2] == false); // NaN
+        CHECK(m_finite[3] == true);  // normal
+        CHECK(m_finite.popcount() == 2);
+
+        // Test all finite values
+        pack_f4 all_finite(1.23f);
+        auto m_all_finite = on::simd::isfinite(all_finite);
+        CHECK(m_all_finite.all());
+
+        // Test all infinities
+        pack_f4 all_inf(INFINITY);
+        auto m_all_inf = on::simd::isfinite(all_inf);
+        CHECK(m_all_inf.none());
+    }
+
+#ifdef OPTINUM_HAS_SSE2
+    SUBCASE("isinf - SSE double") {
+        using pack_d2 = on::simd::pack<double, 2>;
+        using mask_d2 = on::simd::mask<double, 2>;
+
+        alignas(16) double data_inf[2] = {INFINITY, 1.5};
+        auto p_inf = pack_d2::load(data_inf);
+        auto m_inf = on::simd::isinf(p_inf);
+
+        CHECK(m_inf[0] == true);
+        CHECK(m_inf[1] == false);
+        CHECK(m_inf.popcount() == 1);
+
+        // Test negative infinity
+        pack_d2 neg_inf(-INFINITY);
+        auto m_neg_inf = on::simd::isinf(neg_inf);
+        CHECK(m_neg_inf.all());
+    }
+
+    SUBCASE("isnan - SSE double") {
+        using pack_d2 = on::simd::pack<double, 2>;
+        using mask_d2 = on::simd::mask<double, 2>;
+
+        alignas(16) double data_nan[2] = {std::numeric_limits<double>::quiet_NaN(), 2.5};
+        auto p_nan = pack_d2::load(data_nan);
+        auto m_nan = on::simd::isnan(p_nan);
+
+        CHECK(m_nan[0] == true);
+        CHECK(m_nan[1] == false);
+        CHECK(m_nan.popcount() == 1);
+    }
+
+    SUBCASE("isfinite - SSE double") {
+        using pack_d2 = on::simd::pack<double, 2>;
+        using mask_d2 = on::simd::mask<double, 2>;
+
+        alignas(16) double data_mixed[2] = {INFINITY, 3.14};
+        auto p_mixed = pack_d2::load(data_mixed);
+        auto m_finite = on::simd::isfinite(p_mixed);
+
+        CHECK(m_finite[0] == false);
+        CHECK(m_finite[1] == true);
+        CHECK(m_finite.popcount() == 1);
+    }
+#endif // OPTINUM_HAS_SSE2
+
+#ifdef OPTINUM_HAS_AVX
+    SUBCASE("isinf - AVX float") {
+        using pack_f8 = on::simd::pack<float, 8>;
+        using mask_f8 = on::simd::mask<float, 8>;
+
+        alignas(32) float data_inf[8] = {INFINITY, 1.0f, -INFINITY, 2.0f, 3.0f, INFINITY, 4.0f, -INFINITY};
+        auto p_inf = pack_f8::load(data_inf);
+        auto m_inf = on::simd::isinf(p_inf);
+
+        CHECK(m_inf[0] == true);
+        CHECK(m_inf[1] == false);
+        CHECK(m_inf[2] == true);
+        CHECK(m_inf[3] == false);
+        CHECK(m_inf[4] == false);
+        CHECK(m_inf[5] == true);
+        CHECK(m_inf[6] == false);
+        CHECK(m_inf[7] == true);
+        CHECK(m_inf.popcount() == 4);
+    }
+
+    SUBCASE("isnan - AVX float") {
+        using pack_f8 = on::simd::pack<float, 8>;
+        using mask_f8 = on::simd::mask<float, 8>;
+
+        alignas(32) float data_nan[8] = {NAN, 1.0f, 2.0f, NAN, 3.0f, 4.0f, NAN, 5.0f};
+        auto p_nan = pack_f8::load(data_nan);
+        auto m_nan = on::simd::isnan(p_nan);
+
+        CHECK(m_nan[0] == true);
+        CHECK(m_nan[3] == true);
+        CHECK(m_nan[6] == true);
+        CHECK(m_nan.popcount() == 3);
+    }
+
+    SUBCASE("isfinite - AVX float") {
+        using pack_f8 = on::simd::pack<float, 8>;
+        using mask_f8 = on::simd::mask<float, 8>;
+
+        alignas(32) float data_mixed[8] = {1.0f, INFINITY, NAN, 2.0f, 3.0f, -INFINITY, 4.0f, NAN};
+        auto p_mixed = pack_f8::load(data_mixed);
+        auto m_finite = on::simd::isfinite(p_mixed);
+
+        CHECK(m_finite[0] == true);
+        CHECK(m_finite[1] == false);
+        CHECK(m_finite[2] == false);
+        CHECK(m_finite[3] == true);
+        CHECK(m_finite[4] == true);
+        CHECK(m_finite[5] == false);
+        CHECK(m_finite[6] == true);
+        CHECK(m_finite[7] == false);
+        CHECK(m_finite.popcount() == 4);
+    }
+
+    SUBCASE("isinf - AVX double") {
+        using pack_d4 = on::simd::pack<double, 4>;
+        using mask_d4 = on::simd::mask<double, 4>;
+
+        alignas(32) double data_inf[4] = {INFINITY, 1.5, -INFINITY, 2.5};
+        auto p_inf = pack_d4::load(data_inf);
+        auto m_inf = on::simd::isinf(p_inf);
+
+        CHECK(m_inf[0] == true);
+        CHECK(m_inf[1] == false);
+        CHECK(m_inf[2] == true);
+        CHECK(m_inf[3] == false);
+        CHECK(m_inf.popcount() == 2);
+    }
+
+    SUBCASE("isnan - AVX double") {
+        using pack_d4 = on::simd::pack<double, 4>;
+        using mask_d4 = on::simd::mask<double, 4>;
+
+        alignas(32) double data_nan[4] = {std::numeric_limits<double>::quiet_NaN(), 1.5, 2.5, NAN};
+        auto p_nan = pack_d4::load(data_nan);
+        auto m_nan = on::simd::isnan(p_nan);
+
+        CHECK(m_nan[0] == true);
+        CHECK(m_nan[1] == false);
+        CHECK(m_nan[2] == false);
+        CHECK(m_nan[3] == true);
+        CHECK(m_nan.popcount() == 2);
+    }
+
+    SUBCASE("isfinite - AVX double") {
+        using pack_d4 = on::simd::pack<double, 4>;
+        using mask_d4 = on::simd::mask<double, 4>;
+
+        alignas(32) double data_mixed[4] = {1.5, INFINITY, NAN, 2.5};
+        auto p_mixed = pack_d4::load(data_mixed);
+        auto m_finite = on::simd::isfinite(p_mixed);
+
+        CHECK(m_finite[0] == true);
+        CHECK(m_finite[1] == false);
+        CHECK(m_finite[2] == false);
+        CHECK(m_finite[3] == true);
+        CHECK(m_finite.popcount() == 2);
+    }
+#endif // OPTINUM_HAS_AVX
+}
