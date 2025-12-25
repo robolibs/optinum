@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <optinum/simd/algo/traits.hpp>
+#include <optinum/simd/math/abs.hpp>
 #include <optinum/simd/math/acos.hpp>
 #include <optinum/simd/math/acosh.hpp>
 #include <optinum/simd/math/asin.hpp>
@@ -14,13 +15,16 @@
 #include <optinum/simd/math/atan.hpp>
 #include <optinum/simd/math/atan2.hpp>
 #include <optinum/simd/math/atanh.hpp>
+#include <optinum/simd/math/cbrt.hpp>
 #include <optinum/simd/math/ceil.hpp>
+#include <optinum/simd/math/clamp.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/cosh.hpp>
 #include <optinum/simd/math/exp.hpp>
 #include <optinum/simd/math/exp2.hpp>
 #include <optinum/simd/math/expm1.hpp>
 #include <optinum/simd/math/floor.hpp>
+#include <optinum/simd/math/hypot.hpp>
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/log10.hpp>
 #include <optinum/simd/math/log1p.hpp>
@@ -576,6 +580,87 @@ namespace optinum::simd {
               std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
     OPTINUM_INLINE void log1p(const View &x) noexcept {
         detail::transform_inplace_impl(x, [](auto p) { return log1p(p); });
+    }
+
+    // =============================================================================
+    // abs: y = abs(x)
+    // Elementwise absolute value
+    // =============================================================================
+
+    // y = abs(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void abs(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return abs(p); });
+    }
+
+    // In-place: x = abs(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void abs(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return abs(p); });
+    }
+
+    // =============================================================================
+    // cbrt: y = cbrt(x)
+    // Elementwise cube root
+    // =============================================================================
+
+    // y = cbrt(x)
+    template <typename SrcView, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView> && detail::is_packable_view_v<DstView>, int> = 0>
+    OPTINUM_INLINE void cbrt(const SrcView &x, const DstView &y) noexcept {
+        detail::transform_impl(x, y, [](auto p) { return cbrt(p); });
+    }
+
+    // In-place: x = cbrt(x)
+    template <typename View,
+              std::enable_if_t<detail::is_packable_view_v<View> && !detail::is_const_view_v<View>, int> = 0>
+    OPTINUM_INLINE void cbrt(const View &x) noexcept {
+        detail::transform_inplace_impl(x, [](auto p) { return cbrt(p); });
+    }
+
+    // =============================================================================
+    // clamp: y = clamp(x, lo, hi)
+    // Elementwise clamp to range [lo, hi]
+    // =============================================================================
+
+    // y = clamp(x, lo, hi)
+    template <typename SrcView1, typename SrcView2, typename SrcView3, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView1> && detail::is_packable_view_v<SrcView2> &&
+                                   detail::is_packable_view_v<SrcView3> && detail::is_packable_view_v<DstView>,
+                               int> = 0>
+    OPTINUM_INLINE void clamp(const SrcView1 &x, const SrcView2 &lo, const SrcView3 &hi, const DstView &y) noexcept {
+        const std::size_t num_packs = x.num_packs();
+
+        for (std::size_t i = 0; i < num_packs - 1; ++i) {
+            y.store_pack(i, clamp(x.load_pack(i), lo.load_pack(i), hi.load_pack(i)));
+        }
+
+        const std::size_t last_idx = num_packs - 1;
+        y.store_pack_tail(last_idx,
+                          clamp(x.load_pack_tail(last_idx), lo.load_pack_tail(last_idx), hi.load_pack_tail(last_idx)));
+    }
+
+    // =============================================================================
+    // hypot: z = hypot(x, y)
+    // Elementwise hypotenuse: sqrt(x² + y²) without overflow
+    // =============================================================================
+
+    // z = hypot(x, y)
+    template <typename SrcView1, typename SrcView2, typename DstView,
+              std::enable_if_t<detail::is_packable_view_v<SrcView1> && detail::is_packable_view_v<SrcView2> &&
+                                   detail::is_packable_view_v<DstView>,
+                               int> = 0>
+    OPTINUM_INLINE void hypot(const SrcView1 &x, const SrcView2 &y, const DstView &z) noexcept {
+        const std::size_t num_packs = x.num_packs();
+
+        for (std::size_t i = 0; i < num_packs - 1; ++i) {
+            z.store_pack(i, hypot(x.load_pack(i), y.load_pack(i)));
+        }
+
+        const std::size_t last_idx = num_packs - 1;
+        z.store_pack_tail(last_idx, hypot(x.load_pack_tail(last_idx), y.load_pack_tail(last_idx)));
     }
 
 } // namespace optinum::simd

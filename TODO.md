@@ -114,13 +114,15 @@ include/optinum/simd/
 │   ├── asinh.hpp                # asinh() (PLANNED)
 │   ├── acosh.hpp                # acosh() (PLANNED)
 │   ├── atanh.hpp                # atanh() (PLANNED)
+│   ├── abs.hpp                  # abs() ✅
 │   ├── exp2.hpp                 # exp2() ✅
 │   ├── expm1.hpp                # expm1() ✅
 │   ├── log2.hpp                 # log2() ✅
 │   ├── log10.hpp                # log10() ✅
 │   ├── log1p.hpp                # log1p() ✅
-│   ├── cbrt.hpp                 # cbrt() (PLANNED)
-│   ├── hypot.hpp                # hypot() (PLANNED)
+│   ├── cbrt.hpp                 # cbrt() ✅
+│   ├── clamp.hpp                # clamp() ✅
+│   ├── hypot.hpp                # hypot() ✅
 │   ├── ceil.hpp                 # ceil() (PLANNED)
 │   ├── floor.hpp                # floor() (PLANNED)
 │   ├── round.hpp                # round() (PLANNED)
@@ -194,8 +196,11 @@ include/optinum/simd/
 - [x] `pow(view, exp)` - Power ✅
 - [x] `ceil(view)`, `floor(view)`, `round(view)`, `trunc(view)` - Rounding ✅
 - [x] `exp2(view)`, `log2(view)`, `log10(view)` - Alternative bases ✅
-- [ ] `abs(view)` - Absolute value
-- [ ] `clamp(view, lo, hi)` - Clamp to range
+- [x] `expm1(view)`, `log1p(view)` - Numerical stability functions ✅
+- [x] `abs(view)` - Absolute value ✅
+- [x] `cbrt(view)` - Cube root ✅
+- [x] `clamp(view, lo, hi)` - Clamp to range ✅
+- [x] `hypot(x, y)` - Hypotenuse ✅
 
 #### SIMD Math - DONE (float and double)
 - [x] `exp.hpp` - 7.94x speedup vs scalar (float), 5.4x (double)
@@ -295,8 +300,10 @@ include/optinum/simd/
 - [x] `log2.hpp` - Base-2 logarithm - 4.3x (float), 2.6x (double) ✅
 - [x] `log10.hpp` - Base-10 logarithm - 9.9x (float), 4.8x (double) ✅
 - [x] `log1p.hpp` - log(1 + x) (accurate for small x) - 7.9x (float), 3.0x (double) ✅
-- [ ] `cbrt.hpp` - Cube root
-- [ ] `hypot.hpp` - Hypotenuse sqrt(x^2 + y^2) without overflow
+- [x] `abs.hpp` - Absolute value - 0.9x (float), 1.1x (double) ✅
+- [x] `cbrt.hpp` - Cube root - 7.4x (float), 4.6x (double) ✅
+- [x] `clamp.hpp` - Clamp to range - 0.8x (float), 0.7x (double) ✅
+- [x] `hypot.hpp` - Hypotenuse sqrt(x² + y²) - 4.8x (float), 2.7x (double) ✅
 
 #### Rounding Functions - DONE ✅
 - [x] `ceil.hpp` - Ceiling (round up) - 3.7x speedup ✅
@@ -711,6 +718,7 @@ This section tracks features present in Fastor that are missing in optinum.
 | `asinh()`, `acosh()`, `atanh()` | SIMD Math | **DONE** ✅ |
 | `exp2()`, `log2()`, `log10()` | SIMD Math | **DONE** ✅ |
 | `expm1()`, `log1p()` | SIMD Math | **DONE** ✅ |
+| `abs()`, `cbrt()`, `clamp()`, `hypot()` | SIMD Math | **DONE** ✅ |
 | `isinf()`, `isnan()`, `isfinite()` | SIMD Math | Missing |
 | `zeros()`, `ones()`, `iota()` factories | Tensor | Missing |
 | `random()`, `randint()` factories | Tensor | Missing |

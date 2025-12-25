@@ -1767,3 +1767,139 @@ TEST_CASE("algo::log1p - small values (numerical stability)") {
         CHECK(y[i] == doctest::Approx(std::log1p(x[i])).epsilon(0.0001));
     }
 }
+
+// =============================================================================
+// abs tests
+// =============================================================================
+
+TEST_CASE("algo::abs - y = abs(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-5.0, -3.0, -1.0, 0.0, 1.0, 3.0, 5.0, -10.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    using on::simd::abs;
+    abs(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(5.0).epsilon(0.001));
+    CHECK(y[1] == doctest::Approx(3.0).epsilon(0.001));
+    CHECK(y[2] == doctest::Approx(1.0).epsilon(0.001));
+    CHECK(y[3] == doctest::Approx(0.0).epsilon(0.001));
+    CHECK(y[4] == doctest::Approx(1.0).epsilon(0.001));
+    CHECK(y[5] == doctest::Approx(3.0).epsilon(0.001));
+    CHECK(y[6] == doctest::Approx(5.0).epsilon(0.001));
+    CHECK(y[7] == doctest::Approx(10.0).epsilon(0.001));
+}
+
+TEST_CASE("algo::abs - in-place x = abs(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-5.0f, -1.0f, 1.0f, 5.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    using on::simd::abs;
+    abs(vx);
+
+    CHECK(x[0] == doctest::Approx(5.0f).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(1.0f).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(1.0f).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(5.0f).epsilon(0.01));
+}
+
+// =============================================================================
+// cbrt tests
+// =============================================================================
+
+TEST_CASE("algo::cbrt - y = cbrt(x)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-8.0, -1.0, 0.0, 1.0, 8.0, 27.0, 64.0, 125.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::cbrt(vx, vy);
+
+    CHECK(y[0] == doctest::Approx(::cbrt(-8.0)).epsilon(0.001));
+    CHECK(y[1] == doctest::Approx(::cbrt(-1.0)).epsilon(0.001));
+    CHECK(y[2] == doctest::Approx(0.0).epsilon(0.001));
+    CHECK(y[3] == doctest::Approx(1.0).epsilon(0.001));
+    CHECK(y[4] == doctest::Approx(2.0).epsilon(0.001));
+    CHECK(y[5] == doctest::Approx(3.0).epsilon(0.001));
+    CHECK(y[6] == doctest::Approx(4.0).epsilon(0.001));
+    CHECK(y[7] == doctest::Approx(5.0).epsilon(0.001));
+}
+
+TEST_CASE("algo::cbrt - in-place x = cbrt(x)") {
+    using vec_t = datapod::mat::vector<float, 4>;
+
+    alignas(32) vec_t x{{-8.0f, 0.0f, 8.0f, 27.0f}};
+
+    auto vx = on::simd::view<4>(x);
+    on::simd::cbrt(vx);
+
+    CHECK(x[0] == doctest::Approx(::cbrt(-8.0f)).epsilon(0.01));
+    CHECK(x[1] == doctest::Approx(0.0f).epsilon(0.01));
+    CHECK(x[2] == doctest::Approx(2.0f).epsilon(0.01));
+    CHECK(x[3] == doctest::Approx(3.0f).epsilon(0.01));
+}
+
+// =============================================================================
+// clamp tests
+// =============================================================================
+
+TEST_CASE("algo::clamp - y = clamp(x, lo, hi)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{-10.0, -5.0, -1.0, 0.0, 1.0, 5.0, 10.0, 15.0}};
+    alignas(32) vec_t lo{{-5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0}};
+    alignas(32) vec_t hi{{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0}};
+    alignas(32) vec_t y;
+
+    auto vx = on::simd::view<4>(x);
+    auto vlo = on::simd::view<4>(lo);
+    auto vhi = on::simd::view<4>(hi);
+    auto vy = on::simd::view<4>(y);
+
+    on::simd::clamp(vx, vlo, vhi, vy);
+
+    CHECK(y[0] == doctest::Approx(-5.0).epsilon(0.001)); // clamped to lo
+    CHECK(y[1] == doctest::Approx(-5.0).epsilon(0.001)); // at lo
+    CHECK(y[2] == doctest::Approx(-1.0).epsilon(0.001)); // in range
+    CHECK(y[3] == doctest::Approx(0.0).epsilon(0.001));  // in range
+    CHECK(y[4] == doctest::Approx(1.0).epsilon(0.001));  // in range
+    CHECK(y[5] == doctest::Approx(5.0).epsilon(0.001));  // at hi
+    CHECK(y[6] == doctest::Approx(5.0).epsilon(0.001));  // clamped to hi
+    CHECK(y[7] == doctest::Approx(5.0).epsilon(0.001));  // clamped to hi
+}
+
+// =============================================================================
+// hypot tests
+// =============================================================================
+
+TEST_CASE("algo::hypot - z = hypot(x, y)") {
+    using vec_t = datapod::mat::vector<double, 8>;
+
+    alignas(32) vec_t x{{3.0, 0.0, 5.0, 1.0, 3.0, 0.0, 12.0, 15.0}};
+    alignas(32) vec_t y{{4.0, 1.0, 12.0, 1.0, 4.0, 0.0, 5.0, 8.0}};
+    alignas(32) vec_t z;
+
+    auto vx = on::simd::view<4>(x);
+    auto vy = on::simd::view<4>(y);
+    auto vz = on::simd::view<4>(z);
+
+    on::simd::hypot(vx, vy, vz);
+
+    CHECK(z[0] == doctest::Approx(5.0).epsilon(0.001));  // 3-4-5 triangle
+    CHECK(z[1] == doctest::Approx(1.0).epsilon(0.001));  // sqrt(0² + 1²)
+    CHECK(z[2] == doctest::Approx(13.0).epsilon(0.001)); // 5-12-13 triangle
+    CHECK(z[3] == doctest::Approx(::sqrt(2.0)).epsilon(0.001));
+    CHECK(z[4] == doctest::Approx(5.0).epsilon(0.001));  // 3-4-5 triangle
+    CHECK(z[5] == doctest::Approx(0.0).epsilon(0.001));  // sqrt(0² + 0²)
+    CHECK(z[6] == doctest::Approx(13.0).epsilon(0.001)); // 5-12-13 triangle
+    CHECK(z[7] == doctest::Approx(17.0).epsilon(0.001)); // 8-15-17 triangle
+}

@@ -27,6 +27,10 @@
 //   simd::log1p(pack<T,W>) - log(1 + x) (accurate for small x)
 //   simd::sqrt(pack<T,W>)  - square root
 //   simd::pow(pack<T,W>, pack<T,W>) - power
+//   simd::abs(pack<T,W>)   - absolute value
+//   simd::cbrt(pack<T,W>)  - cube root
+//   simd::clamp(pack<T,W>, pack<T,W>, pack<T,W>) - clamp to range [lo, hi]
+//   simd::hypot(pack<T,W>, pack<T,W>) - hypotenuse sqrt(x² + y²)
 //   simd::ceil(pack<T,W>)  - ceiling (round up)
 //   simd::floor(pack<T,W>) - floor (round down)
 //   simd::round(pack<T,W>) - round to nearest
@@ -46,6 +50,7 @@
 // =============================================================================
 
 // Native SIMD implementations using pack<T,W>
+#include <optinum/simd/math/abs.hpp>
 #include <optinum/simd/math/acos.hpp>
 #include <optinum/simd/math/acosh.hpp>
 #include <optinum/simd/math/asin.hpp>
@@ -53,13 +58,16 @@
 #include <optinum/simd/math/atan.hpp>
 #include <optinum/simd/math/atan2.hpp>
 #include <optinum/simd/math/atanh.hpp>
+#include <optinum/simd/math/cbrt.hpp>
 #include <optinum/simd/math/ceil.hpp>
+#include <optinum/simd/math/clamp.hpp>
 #include <optinum/simd/math/cos.hpp>
 #include <optinum/simd/math/cosh.hpp>
 #include <optinum/simd/math/exp.hpp>
 #include <optinum/simd/math/exp2.hpp>
 #include <optinum/simd/math/expm1.hpp>
 #include <optinum/simd/math/floor.hpp>
+#include <optinum/simd/math/hypot.hpp>
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/log10.hpp>
 #include <optinum/simd/math/log1p.hpp>
