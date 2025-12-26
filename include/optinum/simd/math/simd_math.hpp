@@ -94,3 +94,6 @@
 // Special functions
 #include <optinum/simd/math/erf.hpp>
 #include <optinum/simd/math/lgamma.hpp>
+
+// Complex math functions
+#include <optinum/simd/math/complex_math.hpp>

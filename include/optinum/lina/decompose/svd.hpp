@@ -6,6 +6,7 @@
 // =============================================================================
 
 #include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/matmul.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -42,21 +43,77 @@ namespace optinum::lina {
 
         template <typename T, std::size_t M, std::size_t N>
         OPTINUM_INLINE void rotate_cols(simd::Matrix<T, M, N> &a, std::size_t p, std::size_t q, T c, T s) noexcept {
-            for (std::size_t i = 0; i < M; ++i) {
-                const T ap = a(i, p);
-                const T aq = a(i, q);
-                a(i, p) = c * ap - s * aq;
-                a(i, q) = s * ap + c * aq;
+            // Rotate columns: a[:,p] and a[:,q] are contiguous in column-major layout
+            if constexpr (M >= 8) {
+                alignas(32) T temp_p[M];
+                alignas(32) T temp_q[M];
+                alignas(32) T scaled_p[M];
+                alignas(32) T scaled_q[M];
+
+                const T *col_p = a.data() + p * M;
+                const T *col_q = a.data() + q * M;
+
+                // temp_p = c * col_p - s * col_q
+                simd::backend::mul_scalar<T, M>(scaled_p, col_p, c);
+                simd::backend::mul_scalar<T, M>(scaled_q, col_q, s);
+                simd::backend::sub<T, M>(temp_p, scaled_p, scaled_q);
+
+                // temp_q = s * col_p + c * col_q
+                simd::backend::mul_scalar<T, M>(scaled_p, col_p, s);
+                simd::backend::mul_scalar<T, M>(scaled_q, col_q, c);
+                simd::backend::add<T, M>(temp_q, scaled_p, scaled_q);
+
+                // Store back
+                for (std::size_t i = 0; i < M; ++i) {
+                    a(i, p) = temp_p[i];
+                    a(i, q) = temp_q[i];
+                }
+            } else {
+                // Scalar fallback for small M
+                for (std::size_t i = 0; i < M; ++i) {
+                    const T ap = a(i, p);
+                    const T aq = a(i, q);
+                    a(i, p) = c * ap - s * aq;
+                    a(i, q) = s * ap + c * aq;
+                }
             }
         }
 
         template <typename T, std::size_t N>
         OPTINUM_INLINE void rotate_cols(simd::Matrix<T, N, N> &a, std::size_t p, std::size_t q, T c, T s) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                const T ap = a(i, p);
-                const T aq = a(i, q);
-                a(i, p) = c * ap - s * aq;
-                a(i, q) = s * ap + c * aq;
+            // Same as above but for square matrices
+            if constexpr (N >= 8) {
+                alignas(32) T temp_p[N];
+                alignas(32) T temp_q[N];
+                alignas(32) T scaled_p[N];
+                alignas(32) T scaled_q[N];
+
+                const T *col_p = a.data() + p * N;
+                const T *col_q = a.data() + q * N;
+
+                // temp_p = c * col_p - s * col_q
+                simd::backend::mul_scalar<T, N>(scaled_p, col_p, c);
+                simd::backend::mul_scalar<T, N>(scaled_q, col_q, s);
+                simd::backend::sub<T, N>(temp_p, scaled_p, scaled_q);
+
+                // temp_q = s * col_p + c * col_q
+                simd::backend::mul_scalar<T, N>(scaled_p, col_p, s);
+                simd::backend::mul_scalar<T, N>(scaled_q, col_q, c);
+                simd::backend::add<T, N>(temp_q, scaled_p, scaled_q);
+
+                // Store back
+                for (std::size_t i = 0; i < N; ++i) {
+                    a(i, p) = temp_p[i];
+                    a(i, q) = temp_q[i];
+                }
+            } else {
+                // Scalar fallback for small N
+                for (std::size_t i = 0; i < N; ++i) {
+                    const T ap = a(i, p);
+                    const T aq = a(i, q);
+                    a(i, p) = c * ap - s * aq;
+                    a(i, q) = s * ap + c * aq;
+                }
             }
         }
 
@@ -126,13 +183,28 @@ namespace optinum::lina {
             for (std::size_t j = 0; j < K; ++j) {
                 const T norm_col = std::sqrt(svd_detail::col_dot<T, M, N>(b, j, j));
                 out.s[j] = norm_col;
+
+                // Normalize column j: u[:,j] = b[:,j] / norm_col (or zero if norm is zero)
+                // Columns are contiguous in column-major layout
+                T *u_col = u.data() + j * M;
+                const T *b_col = b.data() + j * M;
+
                 if (norm_col > T{}) {
-                    for (std::size_t i = 0; i < M; ++i) {
-                        u(i, j) = b(i, j) / norm_col;
+                    if constexpr (M >= 8) {
+                        const T inv_norm = T{1} / norm_col;
+                        simd::backend::mul_scalar<T, M>(u_col, b_col, inv_norm);
+                    } else {
+                        for (std::size_t i = 0; i < M; ++i) {
+                            u_col[i] = b_col[i] / norm_col;
+                        }
                     }
                 } else {
-                    for (std::size_t i = 0; i < M; ++i) {
-                        u(i, j) = T{};
+                    if constexpr (M >= 8) {
+                        simd::backend::fill<T, M>(u_col, T{});
+                    } else {
+                        for (std::size_t i = 0; i < M; ++i) {
+                            u_col[i] = T{};
+                        }
                     }
                 }
             }
@@ -141,8 +213,14 @@ namespace optinum::lina {
             // but good enough for reconstruction tests on small matrices)
             if constexpr (M > N) {
                 for (std::size_t j = K; j < M; ++j) {
-                    for (std::size_t i = 0; i < M; ++i) {
-                        u(i, j) = (i == j) ? T{1} : T{};
+                    T *u_col = u.data() + j * M;
+                    if constexpr (M >= 8) {
+                        simd::backend::fill<T, M>(u_col, T{});
+                        u_col[j] = T{1}; // Diagonal element
+                    } else {
+                        for (std::size_t i = 0; i < M; ++i) {
+                            u_col[i] = (i == j) ? T{1} : T{};
+                        }
                     }
                 }
             }

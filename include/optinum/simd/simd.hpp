@@ -7,6 +7,7 @@
 // pack<T,W> - SIMD register abstraction
 #include <optinum/simd/pack/avx.hpp>
 #include <optinum/simd/pack/avx512.hpp>
+#include <optinum/simd/pack/complex.hpp>
 #include <optinum/simd/pack/neon.hpp>
 #include <optinum/simd/pack/pack.hpp>
 #include <optinum/simd/pack/sse.hpp>
@@ -38,6 +39,7 @@
 #include <optinum/simd/backend/transpose.hpp>
 
 // User-facing types (legacy, wrapping datapod)
+#include <optinum/simd/complex.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/scalar.hpp>
 #include <optinum/simd/tensor.hpp>
