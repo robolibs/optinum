@@ -188,7 +188,60 @@ namespace optinum::simd {
         OPTINUM_INLINE float dot(const pack &other) const noexcept {
             return detail::hsum_ps256(_mm256_mul_ps(data_, other.data_));
         }
+
+        // ==========================================================================
+        // Utility Functions
+        // ==========================================================================
+
+        // set() - Static factory
+        OPTINUM_INLINE static pack set(float a, float b, float c, float d, float e, float f, float g,
+                                       float h) noexcept {
+            return pack(_mm256_setr_ps(a, b, c, d, e, f, g, h));
+        }
+
+        // set_sequential() - Fill with sequential values
+        OPTINUM_INLINE static pack set_sequential(float start, float step = 1.0f) noexcept {
+            return pack(_mm256_setr_ps(start, start + step, start + 2.0f * step, start + 3.0f * step,
+                                       start + 4.0f * step, start + 5.0f * step, start + 6.0f * step,
+                                       start + 7.0f * step));
+        }
+
+        // reverse() - Reverse lane order
+        OPTINUM_INLINE pack reverse() const noexcept {
+            // Reverse 8 elements: [0,1,2,3,4,5,6,7] -> [7,6,5,4,3,2,1,0]
+            // Step 1: Swap 128-bit lanes: [0,1,2,3,4,5,6,7] -> [4,5,6,7,0,1,2,3]
+            __m256 swapped = _mm256_permute2f128_ps(data_, data_, 0x01);
+            // Step 2: Reverse within each 128-bit lane: [4,5,6,7,0,1,2,3] -> [7,6,5,4,3,2,1,0]
+            return pack(_mm256_shuffle_ps(swapped, swapped, _MM_SHUFFLE(0, 1, 2, 3)));
+        }
     };
+
+    // get<I>() - Compile-time lane extraction for pack<float, 8>
+    template <std::size_t I> OPTINUM_INLINE float get(const pack<float, 8> &p) noexcept {
+        static_assert(I < 8, "Index out of bounds for pack<float, 8>");
+        // Extract the appropriate 128-bit lane first
+        if constexpr (I < 4) {
+            __m128 lo = _mm256_castps256_ps128(p.data_);
+            if constexpr (I == 0)
+                return _mm_cvtss_f32(lo);
+            else if constexpr (I == 1)
+                return _mm_cvtss_f32(_mm_shuffle_ps(lo, lo, _MM_SHUFFLE(1, 1, 1, 1)));
+            else if constexpr (I == 2)
+                return _mm_cvtss_f32(_mm_shuffle_ps(lo, lo, _MM_SHUFFLE(2, 2, 2, 2)));
+            else
+                return _mm_cvtss_f32(_mm_shuffle_ps(lo, lo, _MM_SHUFFLE(3, 3, 3, 3)));
+        } else {
+            __m128 hi = _mm256_extractf128_ps(p.data_, 1);
+            if constexpr (I == 4)
+                return _mm_cvtss_f32(hi);
+            else if constexpr (I == 5)
+                return _mm_cvtss_f32(_mm_shuffle_ps(hi, hi, _MM_SHUFFLE(1, 1, 1, 1)));
+            else if constexpr (I == 6)
+                return _mm_cvtss_f32(_mm_shuffle_ps(hi, hi, _MM_SHUFFLE(2, 2, 2, 2)));
+            else
+                return _mm_cvtss_f32(_mm_shuffle_ps(hi, hi, _MM_SHUFFLE(3, 3, 3, 3)));
+        }
+    }
 
     // =============================================================================
     // pack<double, 4> - AVX (4 x 64-bit double)
@@ -312,7 +365,49 @@ namespace optinum::simd {
         OPTINUM_INLINE double dot(const pack &other) const noexcept {
             return detail::hsum_pd256(_mm256_mul_pd(data_, other.data_));
         }
+
+        // ==========================================================================
+        // Utility Functions
+        // ==========================================================================
+
+        // set() - Static factory
+        OPTINUM_INLINE static pack set(double a, double b, double c, double d) noexcept {
+            return pack(_mm256_setr_pd(a, b, c, d));
+        }
+
+        // set_sequential() - Fill with sequential values
+        OPTINUM_INLINE static pack set_sequential(double start, double step = 1.0) noexcept {
+            return pack(_mm256_setr_pd(start, start + step, start + 2.0 * step, start + 3.0 * step));
+        }
+
+        // reverse() - Reverse lane order
+        OPTINUM_INLINE pack reverse() const noexcept {
+            // Reverse 4 elements: [0,1,2,3] -> [3,2,1,0]
+            // Step 1: Swap 128-bit lanes: [0,1,2,3] -> [2,3,0,1]
+            __m256d swapped = _mm256_permute2f128_pd(data_, data_, 0x01);
+            // Step 2: Reverse within each 128-bit lane: [2,3,0,1] -> [3,2,1,0]
+            return pack(_mm256_shuffle_pd(swapped, swapped, 0x5)); // 0x5 = 0101 binary = swap each pair
+        }
     };
+
+    // get<I>() - Compile-time lane extraction for pack<double, 4>
+    template <std::size_t I> OPTINUM_INLINE double get(const pack<double, 4> &p) noexcept {
+        static_assert(I < 4, "Index out of bounds for pack<double, 4>");
+        // Extract the appropriate 128-bit lane first
+        if constexpr (I < 2) {
+            __m128d lo = _mm256_castpd256_pd128(p.data_);
+            if constexpr (I == 0)
+                return _mm_cvtsd_f64(lo);
+            else
+                return _mm_cvtsd_f64(_mm_shuffle_pd(lo, lo, _MM_SHUFFLE2(1, 1)));
+        } else {
+            __m128d hi = _mm256_extractf128_pd(p.data_, 1);
+            if constexpr (I == 2)
+                return _mm_cvtsd_f64(hi);
+            else
+                return _mm_cvtsd_f64(_mm_shuffle_pd(hi, hi, _MM_SHUFFLE2(1, 1)));
+        }
+    }
 
     // =============================================================================
     // mask<float, 8> - AVX comparison mask

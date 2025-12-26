@@ -467,3 +467,146 @@ TEST_CASE("pack<int64_t, 4> - AVX2") {
 }
 
 #endif // OPTINUM_HAS_AVX2
+
+// =============================================================================
+// Pack Utility Functions Tests
+// =============================================================================
+
+TEST_CASE("pack utilities - get<I>(), set(), set_sequential(), reverse()") {
+    using namespace on::simd;
+
+    SUBCASE("pack<float, 4> - SSE utilities") {
+        // Test set()
+        auto p1 = pack<float, 4>::set(1.0f, 2.0f, 3.0f, 4.0f);
+        CHECK(p1[0] == doctest::Approx(1.0f));
+        CHECK(p1[1] == doctest::Approx(2.0f));
+        CHECK(p1[2] == doctest::Approx(3.0f));
+        CHECK(p1[3] == doctest::Approx(4.0f));
+
+        // Test get<I>() - compile-time lane extraction
+        CHECK(get<0>(p1) == doctest::Approx(1.0f));
+        CHECK(get<1>(p1) == doctest::Approx(2.0f));
+        CHECK(get<2>(p1) == doctest::Approx(3.0f));
+        CHECK(get<3>(p1) == doctest::Approx(4.0f));
+
+        // Test set_sequential()
+        auto p2 = pack<float, 4>::set_sequential(0.0f);
+        CHECK(p2[0] == doctest::Approx(0.0f));
+        CHECK(p2[1] == doctest::Approx(1.0f));
+        CHECK(p2[2] == doctest::Approx(2.0f));
+        CHECK(p2[3] == doctest::Approx(3.0f));
+
+        // Test set_sequential() with custom step
+        auto p3 = pack<float, 4>::set_sequential(10.0f, 5.0f);
+        CHECK(p3[0] == doctest::Approx(10.0f));
+        CHECK(p3[1] == doctest::Approx(15.0f));
+        CHECK(p3[2] == doctest::Approx(20.0f));
+        CHECK(p3[3] == doctest::Approx(25.0f));
+
+        // Test reverse()
+        auto p4 = p1.reverse();
+        CHECK(p4[0] == doctest::Approx(4.0f));
+        CHECK(p4[1] == doctest::Approx(3.0f));
+        CHECK(p4[2] == doctest::Approx(2.0f));
+        CHECK(p4[3] == doctest::Approx(1.0f));
+    }
+
+    SUBCASE("pack<double, 2> - SSE utilities") {
+        // Test set()
+        auto p1 = pack<double, 2>::set(1.5, 2.5);
+        CHECK(p1[0] == doctest::Approx(1.5));
+        CHECK(p1[1] == doctest::Approx(2.5));
+
+        // Test get<I>()
+        CHECK(get<0>(p1) == doctest::Approx(1.5));
+        CHECK(get<1>(p1) == doctest::Approx(2.5));
+
+        // Test set_sequential()
+        auto p2 = pack<double, 2>::set_sequential(0.0);
+        CHECK(p2[0] == doctest::Approx(0.0));
+        CHECK(p2[1] == doctest::Approx(1.0));
+
+        // Test set_sequential() with step
+        auto p3 = pack<double, 2>::set_sequential(100.0, 50.0);
+        CHECK(p3[0] == doctest::Approx(100.0));
+        CHECK(p3[1] == doctest::Approx(150.0));
+
+        // Test reverse()
+        auto p4 = p1.reverse();
+        CHECK(p4[0] == doctest::Approx(2.5));
+        CHECK(p4[1] == doctest::Approx(1.5));
+    }
+
+#ifdef OPTINUM_HAS_AVX
+    SUBCASE("pack<float, 8> - AVX utilities") {
+        // Test set()
+        auto p1 = pack<float, 8>::set(1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f);
+        for (int i = 0; i < 8; ++i) {
+            CHECK(p1[i] == doctest::Approx(static_cast<float>(i + 1)));
+        }
+
+        // Test get<I>()
+        CHECK(get<0>(p1) == doctest::Approx(1.0f));
+        CHECK(get<1>(p1) == doctest::Approx(2.0f));
+        CHECK(get<2>(p1) == doctest::Approx(3.0f));
+        CHECK(get<3>(p1) == doctest::Approx(4.0f));
+        CHECK(get<4>(p1) == doctest::Approx(5.0f));
+        CHECK(get<5>(p1) == doctest::Approx(6.0f));
+        CHECK(get<6>(p1) == doctest::Approx(7.0f));
+        CHECK(get<7>(p1) == doctest::Approx(8.0f));
+
+        // Test set_sequential()
+        auto p2 = pack<float, 8>::set_sequential(0.0f);
+        for (int i = 0; i < 8; ++i) {
+            CHECK(p2[i] == doctest::Approx(static_cast<float>(i)));
+        }
+
+        // Test set_sequential() with step
+        auto p3 = pack<float, 8>::set_sequential(10.0f, 10.0f);
+        for (int i = 0; i < 8; ++i) {
+            CHECK(p3[i] == doctest::Approx(10.0f + 10.0f * i));
+        }
+
+        // Test reverse()
+        auto p4 = p1.reverse();
+        for (int i = 0; i < 8; ++i) {
+            CHECK(p4[i] == doctest::Approx(static_cast<float>(8 - i)));
+        }
+    }
+
+    SUBCASE("pack<double, 4> - AVX utilities") {
+        // Test set()
+        auto p1 = pack<double, 4>::set(1.5, 2.5, 3.5, 4.5);
+        CHECK(p1[0] == doctest::Approx(1.5));
+        CHECK(p1[1] == doctest::Approx(2.5));
+        CHECK(p1[2] == doctest::Approx(3.5));
+        CHECK(p1[3] == doctest::Approx(4.5));
+
+        // Test get<I>()
+        CHECK(get<0>(p1) == doctest::Approx(1.5));
+        CHECK(get<1>(p1) == doctest::Approx(2.5));
+        CHECK(get<2>(p1) == doctest::Approx(3.5));
+        CHECK(get<3>(p1) == doctest::Approx(4.5));
+
+        // Test set_sequential()
+        auto p2 = pack<double, 4>::set_sequential(0.0);
+        for (int i = 0; i < 4; ++i) {
+            CHECK(p2[i] == doctest::Approx(static_cast<double>(i)));
+        }
+
+        // Test set_sequential() with step
+        auto p3 = pack<double, 4>::set_sequential(100.0, 25.0);
+        CHECK(p3[0] == doctest::Approx(100.0));
+        CHECK(p3[1] == doctest::Approx(125.0));
+        CHECK(p3[2] == doctest::Approx(150.0));
+        CHECK(p3[3] == doctest::Approx(175.0));
+
+        // Test reverse()
+        auto p4 = p1.reverse();
+        CHECK(p4[0] == doctest::Approx(4.5));
+        CHECK(p4[1] == doctest::Approx(3.5));
+        CHECK(p4[2] == doctest::Approx(2.5));
+        CHECK(p4[3] == doctest::Approx(1.5));
+    }
+#endif // OPTINUM_HAS_AVX
+}

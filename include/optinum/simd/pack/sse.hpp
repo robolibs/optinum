@@ -164,7 +164,38 @@ namespace optinum::simd {
             return detail::hsum_ps(_mm_mul_ps(data_, other.data_));
 #endif
         }
+
+        // ==========================================================================
+        // Utility Functions
+        // ==========================================================================
+
+        // set() - Already covered by constructor pack(a, b, c, d)
+        // Just adding a static factory for consistency
+        OPTINUM_INLINE static pack set(float a, float b, float c, float d) noexcept { return pack(a, b, c, d); }
+
+        // set_sequential() - Fill with sequential values starting from 'start' with step 'step'
+        OPTINUM_INLINE static pack set_sequential(float start, float step = 1.0f) noexcept {
+            return pack(start, start + step, start + 2.0f * step, start + 3.0f * step);
+        }
+
+        // reverse() - Reverse lane order
+        OPTINUM_INLINE pack reverse() const noexcept {
+            return pack(_mm_shuffle_ps(data_, data_, _MM_SHUFFLE(0, 1, 2, 3)));
+        }
     };
+
+    // get<I>() - Compile-time lane extraction for pack<float, 4>
+    template <std::size_t I> OPTINUM_INLINE float get(const pack<float, 4> &p) noexcept {
+        static_assert(I < 4, "Index out of bounds for pack<float, 4>");
+        if constexpr (I == 0)
+            return _mm_cvtss_f32(p.data_);
+        else if constexpr (I == 1)
+            return _mm_cvtss_f32(_mm_shuffle_ps(p.data_, p.data_, _MM_SHUFFLE(1, 1, 1, 1)));
+        else if constexpr (I == 2)
+            return _mm_cvtss_f32(_mm_shuffle_ps(p.data_, p.data_, _MM_SHUFFLE(2, 2, 2, 2)));
+        else
+            return _mm_cvtss_f32(_mm_shuffle_ps(p.data_, p.data_, _MM_SHUFFLE(3, 3, 3, 3)));
+    }
 
     // =============================================================================
     // pack<double, 2> - SSE2 (2 x 64-bit double)
@@ -286,7 +317,31 @@ namespace optinum::simd {
             return detail::hsum_pd(_mm_mul_pd(data_, other.data_));
 #endif
         }
+
+        // ==========================================================================
+        // Utility Functions
+        // ==========================================================================
+
+        // set() - Static factory for consistency
+        OPTINUM_INLINE static pack set(double a, double b) noexcept { return pack(a, b); }
+
+        // set_sequential() - Fill with sequential values
+        OPTINUM_INLINE static pack set_sequential(double start, double step = 1.0) noexcept {
+            return pack(start, start + step);
+        }
+
+        // reverse() - Reverse lane order
+        OPTINUM_INLINE pack reverse() const noexcept { return pack(_mm_shuffle_pd(data_, data_, _MM_SHUFFLE2(0, 1))); }
     };
+
+    // get<I>() - Compile-time lane extraction for pack<double, 2>
+    template <std::size_t I> OPTINUM_INLINE double get(const pack<double, 2> &p) noexcept {
+        static_assert(I < 2, "Index out of bounds for pack<double, 2>");
+        if constexpr (I == 0)
+            return _mm_cvtsd_f64(p.data_);
+        else
+            return _mm_cvtsd_f64(_mm_shuffle_pd(p.data_, p.data_, _MM_SHUFFLE2(1, 1)));
+    }
 
     // =============================================================================
     // pack<int32_t, 4> - SSE2 (4 x 32-bit signed integer)
