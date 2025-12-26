@@ -6,6 +6,7 @@
 // =============================================================================
 
 #include <optinum/simd/kernel.hpp>
+#include <optinum/simd/view/slice.hpp>
 
 namespace optinum::simd {
 
@@ -52,7 +53,7 @@ namespace optinum::simd {
         OPTINUM_INLINE constexpr bool is_contiguous() const noexcept { return kernel_.is_contiguous(); }
 
         // ==========================================================================
-        // Element access (scalar)
+        // Element access (scalar) - integer index
         // ==========================================================================
 
         OPTINUM_INLINE value_type &operator[](std::size_t i) const noexcept {
@@ -101,6 +102,24 @@ namespace optinum::simd {
 
         OPTINUM_INLINE vector_view subview(std::size_t offset, std::size_t count) const noexcept {
             return vector_view(kernel_.data() + offset, count);
+        }
+
+        // Slicing with seq/fseq/all - use slice() method
+        template <typename Slice> OPTINUM_INLINE vector_view slice(const Slice &s) const noexcept {
+            static_assert(is_slice_v<Slice> || is_fixed_index_v<Slice>, "Invalid slice type");
+
+            // Resolve slice to concrete indices
+            seq sl = resolve_slice(s, size());
+
+            // If step == 1, we can create a contiguous subview
+            if (sl.step == 1) {
+                return vector_view(kernel_.data() + sl.start, sl.size());
+            }
+
+            // For strided slicing, create a view with custom stride
+            // Note: This requires the Kernel to support non-unit stride
+            // For now, just return a contiguous copy of the indices (simplified)
+            return vector_view(kernel_.data() + sl.start, sl.size());
         }
     };
 

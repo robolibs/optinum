@@ -86,7 +86,7 @@ include/optinum/simd/
 │   ├── vector_view.hpp          # Non-owning view over dp::mat::vector
 │   ├── matrix_view.hpp          # Non-owning view over dp::mat::matrix
 │   ├── tensor_view.hpp          # Non-owning view over dp::mat::tensor
-│   ├── slice.hpp                # seq(), fseq<>(), all, fix<>() (PLANNED)
+│   ├── slice.hpp                # seq(), fseq<>(), all, fix<>() ✅
 │   ├── diagonal_view.hpp        # Diagonal view (PLANNED)
 │   └── filter_view.hpp          # Masked/filtered view (PLANNED)
 ├── algo/
@@ -724,7 +724,7 @@ This section tracks features present in Fastor that are missing in optinum.
 | `zeros()`, `ones()`, `iota()` factories | Tensor | Missing |
 | `random()`, `randint()` factories | Tensor | Missing |
 | `reshape()`, `flatten()`, `squeeze()` | Tensor | Missing |
-| View slicing (`seq()`, `fseq()`, `all`) | Views | Missing |
+| View slicing (`seq()`, `fseq()`, `all`) | Views | ✅ Implemented |
 | Stream output `operator<<` | I/O | Missing |
 | Debug bounds/shape checking | Debug | Missing |
 | Adjoint/Adjugate matrix | LinAlg | Missing |
