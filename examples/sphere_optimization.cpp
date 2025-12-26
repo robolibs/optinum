@@ -8,13 +8,13 @@ int main() {
     optinum::opti::Sphere<double, 3> sphere;
 
     // Starting point
-    optinum::simd::Vector<double, 3> x;
+    optinum::Vector<double, 3> x;
     x[0] = 5.0;
     x[1] = -3.0;
     x[2] = 7.0;
 
     // Gradient storage
-    optinum::simd::Vector<double, 3> g;
+    optinum::Vector<double, 3> g;
 
     // Simple gradient descent
     double lr = 0.1; // learning rate

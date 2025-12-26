@@ -8,9 +8,10 @@
 #include <iostream>
 
 #include <datapod/matrix.hpp>
-#include <optinum/simd/algo/elementwise.hpp>
-#include <optinum/simd/algo/transform.hpp>
-#include <optinum/simd/bridge.hpp>
+#include <optinum/optinum.hpp>
+
+
+
 
 namespace dp = datapod;
 namespace on = optinum;

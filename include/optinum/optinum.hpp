@@ -49,6 +49,11 @@ namespace optinum {
     using lina::norm;
     using lina::norm_fro;
 
+    // Also expose from simd:: (same functions, different namespace)
+    using simd::frobenius_norm;
+    using simd::normalized;
+    using simd::trace;
+
     // BLAS-like operations
     using lina::axpy;
     using lina::scale;
@@ -168,6 +173,22 @@ namespace optinum {
 
     // Optimization hints
     using simd::noalias;
+
+    // =========================================================================
+    // Slicing & Indexing (from simd::)
+    // =========================================================================
+
+    // Slice types
+    using simd::all;
+    using simd::fix;
+    using simd::fseq;
+    using simd::seq;
+
+    // View types (non-owning)
+    using simd::matrix_view;
+    using simd::scalar_view;
+    using simd::tensor_view;
+    using simd::vector_view;
 
     // =========================================================================
     // Expression Templates (from lina::)

@@ -4,10 +4,10 @@
 // =============================================================================
 
 #include <iostream>
-#include <optinum/simd/simd.hpp>
+#include <optinum/optinum.hpp>
 #include <vector>
 
-using namespace optinum::simd;
+using namespace optinum;
 
 int main() {
     // Create test data

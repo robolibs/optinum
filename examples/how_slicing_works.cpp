@@ -5,10 +5,10 @@
 
 #include <datapod/datapod.hpp>
 #include <iostream>
-#include <optinum/simd/simd.hpp>
+#include <optinum/optinum.hpp>
 #include <vector>
 
-using namespace optinum::simd;
+using namespace optinum;
 namespace dp = datapod;
 
 void print_separator() { std::cout << "\n" << std::string(70, '=') << "\n\n"; }

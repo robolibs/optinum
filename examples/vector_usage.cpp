@@ -3,12 +3,12 @@
 
 int main() {
     // Create tensors
-    optinum::simd::Vector<float, 3> a;
+    optinum::Vector<float, 3> a;
     a[0] = 1.0f;
     a[1] = 2.0f;
     a[2] = 3.0f;
 
-    optinum::simd::Vector<float, 3> b;
+    optinum::Vector<float, 3> b;
     b.fill(2.0f);
 
     // Element-wise operations
@@ -25,14 +25,14 @@ int main() {
     std::cout << "a * 3 = [" << scaled[0] << ", " << scaled[1] << ", " << scaled[2] << "]\n";
 
     // Dot product and norm
-    std::cout << "dot(a, b) = " << optinum::simd::dot(a, b) << "\n";
-    std::cout << "sum(a) = " << optinum::simd::sum(a) << "\n";
-    std::cout << "norm(a) = " << optinum::simd::norm(a) << "\n";
+    std::cout << "dot(a, b) = " << optinum::dot(a, b) << "\n";
+    std::cout << "sum(a) = " << optinum::sum(a) << "\n";
+    std::cout << "norm(a) = " << optinum::norm(a) << "\n";
 
     // Normalized
-    auto n = optinum::simd::normalized(a);
+    auto n = optinum::normalized(a);
     std::cout << "normalized(a) = [" << n[0] << ", " << n[1] << ", " << n[2] << "]\n";
-    std::cout << "norm(normalized(a)) = " << optinum::simd::norm(n) << "\n";
+    std::cout << "norm(normalized(a)) = " << optinum::norm(n) << "\n";
 
     // Access underlying datapod type
     datapod::mat::vector<float, 3> &pod = a.pod();
@@ -40,7 +40,7 @@ int main() {
 
     // Create from datapod
     datapod::mat::vector<double, 4> raw{1.0, 2.0, 3.0, 4.0};
-    optinum::simd::Vector<double, 4> wrapped(raw);
+    optinum::Vector<double, 4> wrapped(raw);
     std::cout << "wrapped = [" << wrapped[0] << ", " << wrapped[1] << ", " << wrapped[2] << ", " << wrapped[3] << "]\n";
 
     // Iteration
@@ -52,11 +52,11 @@ int main() {
 
 #if defined(SHORT_NAMESPACE)
     // Short namespace
-    on::simd::Vector3f v;
+    on::Vector<float, 3> v;
     v[0] = 1.0f;
     v[1] = 0.0f;
     v[2] = 0.0f;
-    std::cout << "on::simd::Vector3f norm = " << on::simd::norm(v) << "\n";
+    std::cout << "on::Vector<float, 3> norm = " << on::norm(v) << "\n";
 #endif
 
     return 0;

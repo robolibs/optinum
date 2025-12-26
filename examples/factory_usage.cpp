@@ -5,9 +5,9 @@
 
 #include <iomanip>
 #include <iostream>
-#include <optinum/simd/simd.hpp>
+#include <optinum/optinum.hpp>
 
-using namespace optinum::simd;
+using namespace optinum;
 
 void print_vector(const char *label, auto &v) {
     std::cout << label << ": [";
