@@ -2,6 +2,39 @@
 
 > **HEADER-ONLY LIBRARY** - No compilation required, just `#include <optinum/optinum.hpp>`
 
+## **CRITICAL IMPLEMENTATION RULE**
+
+⚠️ **ALL operations in this library MUST be implemented with SIMD in mind.**
+
+**Requirements:**
+1. **SIMD-First Design**: Every algorithm, operation, and function must be designed to leverage SIMD instructions (SSE, AVX, AVX-512, NEON)
+2. **No Shortcuts**: Do NOT implement naive scalar loops unless it's:
+   - Inside a `constexpr` evaluation context
+   - In the **tail loop** (remainder elements after SIMD main loop)
+   - In the **scalar fallback** `pack<T,W>` template (last resort)
+3. **Proper Pattern**: All operations follow this structure:
+   ```cpp
+   constexpr std::size_t W = preferred_simd_lanes<T, N>();
+   constexpr std::size_t main = main_loop_count<N, W>();
+   
+   // SIMD main loop - process W elements at once
+   for (std::size_t i = 0; i < main; i += W) {
+       auto p = pack<T, W>::loadu(data + i);
+       // ... SIMD operations ...
+       p.storeu(result + i);
+   }
+   
+   // Scalar tail loop - handle remainder
+   for (std::size_t i = main; i < N; ++i) {
+       result[i] = scalar_operation(data[i]);
+   }
+   ```
+4. **Backend First**: Implement in `backend/` with SIMD, then expose in higher-level APIs
+5. **Fallback Chain**: AVX-512 → AVX → SSE → NEON → `pack<T,W>` scalar fallback
+6. **No Exceptions**: If SIMD isn't applicable (random number generation, I/O), explicitly document why
+
+**Verification**: Before marking any feature as "done", ensure it uses `pack<T,W>` operations or has documented justification for scalar implementation.
+
 ---
 
 ## Quick Status
@@ -231,16 +264,16 @@ include/optinum/simd/
 - [x] `random()` - Fill with random values [0, 1) ✅
 - [x] `randint(lo, hi)` - Fill with random integers ✅
 - [x] `reverse()` - Reverse element order ✅
-- [ ] `cast<U>()` - Type conversion
+- [x] `cast<U>()` - Type conversion (Vector, Matrix, Tensor) ✅
+- [x] `flatten()` - Flatten Matrix to 1D Vector ✅
 - [ ] `noalias()` - Hint for no aliasing (optimization)
 - [ ] `squeeze()` - Remove dimensions of size 1
 - [ ] `reshape<Dims...>()` - Reshape tensor
-- [ ] `flatten()` - Flatten to 1D vector
 - [ ] `tocolumnmajor()` / `torowmajor()` - Layout conversion
 - [ ] Voigt notation conversion for mechanics
 
-#### I/O and Debugging - Missing
-- [ ] `operator<<` - Stream output for all types
+#### I/O and Debugging
+- [x] `operator<<` - Stream output for Vector, Matrix, Tensor ✅ (column-major display)
 - [ ] `print()` - Formatted printing
 - [ ] `write(filename)` - Write to file
 - [ ] Timing utilities for benchmarking

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <datapod/matrix/tensor.hpp>
+#include <iostream>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/reduce.hpp>
 
@@ -276,6 +277,46 @@ namespace optinum::simd {
             return result;
         }
         return backend::reduce_sum<T, N>(t.data());
+    }
+
+    // =============================================================================
+    // I/O - Stream output operator
+    // =============================================================================
+
+    template <typename T, std::size_t... Dims> std::ostream &operator<<(std::ostream &os, const Tensor<T, Dims...> &t) {
+        constexpr auto N = Tensor<T, Dims...>::total_size;
+        constexpr auto rank = Tensor<T, Dims...>::rank;
+        auto shape = Tensor<T, Dims...>::shape();
+
+        os << "Tensor<";
+        for (std::size_t i = 0; i < rank; ++i) {
+            os << shape[i];
+            if (i < rank - 1)
+                os << "x";
+        }
+        os << ">[";
+
+        for (std::size_t i = 0; i < N; ++i) {
+            os << t[i];
+            if (i < N - 1)
+                os << ", ";
+        }
+        os << "]";
+        return os;
+    }
+
+    // =============================================================================
+    // Type conversion - cast<U>()
+    // =============================================================================
+
+    template <typename U, typename T, std::size_t... Dims>
+    Tensor<U, Dims...> cast(const Tensor<T, Dims...> &t) noexcept {
+        Tensor<U, Dims...> result;
+        constexpr auto N = Tensor<T, Dims...>::total_size;
+        for (std::size_t i = 0; i < N; ++i) {
+            result[i] = static_cast<U>(t[i]);
+        }
+        return result;
     }
 
     // Common type aliases

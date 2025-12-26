@@ -6,6 +6,7 @@
 #include <optinum/simd/backend/norm.hpp>
 #include <optinum/simd/backend/reduce.hpp>
 
+#include <iostream>
 #include <random>
 #include <type_traits>
 
@@ -66,38 +67,58 @@ namespace optinum::simd {
         constexpr const_iterator cend() const noexcept { return pod_.cend(); }
 
         constexpr Vector &fill(const T &value) noexcept {
-            pod_.fill(value);
+            if (std::is_constant_evaluated()) {
+                pod_.fill(value);
+            } else {
+                backend::fill<T, N>(data(), value);
+            }
             return *this;
         }
 
         // Fill with sequential values: 0, 1, 2, ...
         constexpr Vector &iota() noexcept {
-            for (size_type i = 0; i < N; ++i) {
-                pod_[i] = static_cast<T>(i);
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i) {
+                    pod_[i] = static_cast<T>(i);
+                }
+            } else {
+                backend::iota<T, N>(data(), T{0}, T{1});
             }
             return *this;
         }
 
         // Fill with sequential values starting from 'start'
         constexpr Vector &iota(T start) noexcept {
-            for (size_type i = 0; i < N; ++i) {
-                pod_[i] = start + static_cast<T>(i);
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i) {
+                    pod_[i] = start + static_cast<T>(i);
+                }
+            } else {
+                backend::iota<T, N>(data(), start, T{1});
             }
             return *this;
         }
 
         // Fill with sequential values with custom start and step
         constexpr Vector &iota(T start, T step) noexcept {
-            for (size_type i = 0; i < N; ++i) {
-                pod_[i] = start + static_cast<T>(i) * step;
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N; ++i) {
+                    pod_[i] = start + static_cast<T>(i) * step;
+                }
+            } else {
+                backend::iota<T, N>(data(), start, step);
             }
             return *this;
         }
 
         // Reverse elements in-place
         constexpr Vector &reverse() noexcept {
-            for (size_type i = 0; i < N / 2; ++i) {
-                std::swap(pod_[i], pod_[N - 1 - i]);
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < N / 2; ++i) {
+                    std::swap(pod_[i], pod_[N - 1 - i]);
+                }
+            } else {
+                backend::reverse<T, N>(data());
             }
             return *this;
         }
@@ -362,6 +383,33 @@ namespace optinum::simd {
     template <typename T, std::size_t N> Vector<T, N> normalized(const Vector<T, N> &v) noexcept {
         Vector<T, N> result;
         backend::normalize<T, N>(result.data(), v.data());
+        return result;
+    }
+
+    // =============================================================================
+    // I/O - Stream output operator
+    // =============================================================================
+
+    template <typename T, std::size_t N> std::ostream &operator<<(std::ostream &os, const Vector<T, N> &v) {
+        os << "[";
+        for (std::size_t i = 0; i < N; ++i) {
+            os << v[i];
+            if (i < N - 1)
+                os << ", ";
+        }
+        os << "]";
+        return os;
+    }
+
+    // =============================================================================
+    // Type conversion - cast<U>()
+    // =============================================================================
+
+    template <typename U, typename T, std::size_t N> Vector<U, N> cast(const Vector<T, N> &v) noexcept {
+        Vector<U, N> result;
+        for (std::size_t i = 0; i < N; ++i) {
+            result[i] = static_cast<U>(v[i]);
+        }
         return result;
     }
 

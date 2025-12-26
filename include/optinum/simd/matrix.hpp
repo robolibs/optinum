@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <datapod/matrix/matrix.hpp>
+#include <iostream>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/matmul.hpp>
@@ -68,40 +69,69 @@ namespace optinum::simd {
         constexpr const_iterator cend() const noexcept { return pod_.cend(); }
 
         constexpr Matrix &fill(const T &value) noexcept {
-            pod_.fill(value);
+            if (std::is_constant_evaluated()) {
+                pod_.fill(value);
+            } else {
+                backend::fill<T, R * C>(data(), value);
+            }
             return *this;
         }
 
         // Fill with sequential values (row-major order): 0, 1, 2, ...
         constexpr Matrix &iota() noexcept {
-            for (size_type i = 0; i < R * C; ++i) {
-                pod_[i] = static_cast<T>(i);
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < R * C; ++i) {
+                    pod_[i] = static_cast<T>(i);
+                }
+            } else {
+                backend::iota<T, R * C>(data(), T{0}, T{1});
             }
             return *this;
         }
 
         // Fill with sequential values starting from 'start'
         constexpr Matrix &iota(T start) noexcept {
-            for (size_type i = 0; i < R * C; ++i) {
-                pod_[i] = start + static_cast<T>(i);
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < R * C; ++i) {
+                    pod_[i] = start + static_cast<T>(i);
+                }
+            } else {
+                backend::iota<T, R * C>(data(), start, T{1});
             }
             return *this;
         }
 
         // Fill with sequential values with custom start and step
         constexpr Matrix &iota(T start, T step) noexcept {
-            for (size_type i = 0; i < R * C; ++i) {
-                pod_[i] = start + static_cast<T>(i) * step;
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < R * C; ++i) {
+                    pod_[i] = start + static_cast<T>(i) * step;
+                }
+            } else {
+                backend::iota<T, R * C>(data(), start, step);
             }
             return *this;
         }
 
         // Reverse elements in-place (linear order)
         constexpr Matrix &reverse() noexcept {
-            for (size_type i = 0; i < (R * C) / 2; ++i) {
-                std::swap(pod_[i], pod_[R * C - 1 - i]);
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < (R * C) / 2; ++i) {
+                    std::swap(pod_[i], pod_[R * C - 1 - i]);
+                }
+            } else {
+                backend::reverse<T, R * C>(data());
             }
             return *this;
+        }
+
+        // Flatten matrix to vector (row-major order)
+        constexpr Vector<T, R * C> flatten() const noexcept {
+            Vector<T, R * C> result;
+            for (size_type i = 0; i < R * C; ++i) {
+                result[i] = pod_[i];
+            }
+            return result;
         }
 
         // Static factory: create matrix filled with zeros
@@ -375,6 +405,43 @@ namespace optinum::simd {
         result.fill(T{});
         for (std::size_t i = 0; i < N; ++i)
             result(i, i) = T{1};
+        return result;
+    }
+
+    // =============================================================================
+    // I/O - Stream output operator (column-major display)
+    // =============================================================================
+
+    template <typename T, std::size_t R, std::size_t C>
+    std::ostream &operator<<(std::ostream &os, const Matrix<T, R, C> &m) {
+        os << "[";
+        for (std::size_t c = 0; c < C; ++c) {
+            if (c > 0)
+                os << " ";
+            os << "[";
+            for (std::size_t r = 0; r < R; ++r) {
+                os << m(r, c);
+                if (r < R - 1)
+                    os << ", ";
+            }
+            os << "]";
+            if (c < C - 1)
+                os << "\n";
+        }
+        os << "]";
+        return os;
+    }
+
+    // =============================================================================
+    // Type conversion - cast<U>()
+    // =============================================================================
+
+    template <typename U, typename T, std::size_t R, std::size_t C>
+    Matrix<U, R, C> cast(const Matrix<T, R, C> &m) noexcept {
+        Matrix<U, R, C> result;
+        for (std::size_t i = 0; i < R * C; ++i) {
+            result[i] = static_cast<U>(m[i]);
+        }
         return result;
     }
 

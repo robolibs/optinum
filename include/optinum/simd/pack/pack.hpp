@@ -357,6 +357,17 @@ namespace optinum::simd {
                 result += data_[i] * other.data_[i];
             return result;
         }
+
+        // ==========================================================================
+        // Utility - Reverse lane order
+        // ==========================================================================
+
+        OPTINUM_INLINE pack reverse() const noexcept {
+            pack result;
+            for (std::size_t i = 0; i < width; ++i)
+                result.data_[i] = data_[width - 1 - i];
+            return result;
+        }
     };
 
     // =============================================================================
