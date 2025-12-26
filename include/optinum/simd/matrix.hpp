@@ -7,6 +7,7 @@
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/matmul.hpp>
 #include <optinum/simd/backend/transpose.hpp>
+#include <optinum/simd/debug.hpp>
 #include <optinum/simd/vector.hpp>
 #include <random>
 
@@ -45,15 +46,27 @@ namespace optinum::simd {
         constexpr const_pointer data() const noexcept { return pod_.data(); }
 
         // 2D indexing (row, col)
-        constexpr reference operator()(size_type row, size_type col) noexcept { return pod_(row, col); }
-        constexpr const_reference operator()(size_type row, size_type col) const noexcept { return pod_(row, col); }
+        constexpr reference operator()(size_type row, size_type col) noexcept {
+            OPTINUM_ASSERT_BOUNDS_2D(row, col, R, C);
+            return pod_(row, col);
+        }
+        constexpr const_reference operator()(size_type row, size_type col) const noexcept {
+            OPTINUM_ASSERT_BOUNDS_2D(row, col, R, C);
+            return pod_(row, col);
+        }
 
         constexpr reference at(size_type row, size_type col) { return pod_.at(row, col); }
         constexpr const_reference at(size_type row, size_type col) const { return pod_.at(row, col); }
 
         // 1D indexing (linear)
-        constexpr reference operator[](size_type i) noexcept { return pod_[i]; }
-        constexpr const_reference operator[](size_type i) const noexcept { return pod_[i]; }
+        constexpr reference operator[](size_type i) noexcept {
+            OPTINUM_ASSERT_BOUNDS(i, R * C);
+            return pod_[i];
+        }
+        constexpr const_reference operator[](size_type i) const noexcept {
+            OPTINUM_ASSERT_BOUNDS(i, R * C);
+            return pod_[i];
+        }
 
         static constexpr size_type rows() noexcept { return R; }
         static constexpr size_type cols() noexcept { return C; }

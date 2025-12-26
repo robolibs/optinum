@@ -5,6 +5,7 @@
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/norm.hpp>
 #include <optinum/simd/backend/reduce.hpp>
+#include <optinum/simd/debug.hpp>
 
 #include <iostream>
 #include <random>
@@ -43,8 +44,14 @@ namespace optinum::simd {
         constexpr pointer data() noexcept { return pod_.data(); }
         constexpr const_pointer data() const noexcept { return pod_.data(); }
 
-        constexpr reference operator[](size_type i) noexcept { return pod_[i]; }
-        constexpr const_reference operator[](size_type i) const noexcept { return pod_[i]; }
+        constexpr reference operator[](size_type i) noexcept {
+            OPTINUM_ASSERT_BOUNDS(i, N);
+            return pod_[i];
+        }
+        constexpr const_reference operator[](size_type i) const noexcept {
+            OPTINUM_ASSERT_BOUNDS(i, N);
+            return pod_[i];
+        }
 
         constexpr reference at(size_type i) { return pod_.at(i); }
         constexpr const_reference at(size_type i) const { return pod_.at(i); }

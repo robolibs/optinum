@@ -120,8 +120,8 @@ include/optinum/simd/
 │   ├── matrix_view.hpp          # Non-owning view over dp::mat::matrix
 │   ├── tensor_view.hpp          # Non-owning view over dp::mat::tensor
 │   ├── slice.hpp                # seq(), fseq<>(), all, fix<>() ✅
-│   ├── diagonal_view.hpp        # Diagonal view (PLANNED)
-│   └── filter_view.hpp          # Masked/filtered view (PLANNED)
+│   ├── diagonal_view.hpp        # Diagonal view ✅ (Session 2024-12-26)
+│   └── filter_view.hpp          # Masked/filtered view ✅ (Session 2024-12-26)
 ├── algo/
 │   ├── traits.hpp               # is_packable_view, view_value_t, etc.
 │   ├── elementwise.hpp          # axpy, scale, add, sub, mul, div, fill, copy
@@ -178,7 +178,7 @@ include/optinum/simd/
 ├── kernel.hpp                   # Kernel<T,W,Rank> - memory layout descriptor
 ├── mask.hpp                     # mask<T,W> - comparison results
 ├── io.hpp                       # operator<<, print(), write() (PLANNED)
-├── debug.hpp                    # Bounds/shape checking (PLANNED)
+├── debug.hpp                    # Bounds/shape checking ✅ (Session 2024-12-26)
 ├── scalar.hpp                   # Scalar<T> wrapper (uses dp internally)
 ├── vector.hpp                   # Vector<T,N> wrapper (uses dp internally)
 ├── matrix.hpp                   # Matrix<T,R,C> wrapper (uses dp internally)
@@ -212,8 +212,8 @@ include/optinum/simd/
 - [x] `all` - Select all elements in dimension ✅
 - [x] `fix<I>()` - Fixed index (reduce dimension) ✅
 - [x] Dimensionality reduction (tensor→matrix, matrix→vector) ✅
-- [ ] Diagonal view - View over matrix diagonal
-- [ ] Filter view - Masked/conditional view
+- [x] Diagonal view - View over matrix diagonal ✅ (Session 2024-12-26)
+- [x] Filter view - Masked/conditional view ✅ (Session 2024-12-26)
 - [ ] Random access view - Non-contiguous element access
 
 #### Algorithms - DONE (Core)
@@ -278,11 +278,13 @@ include/optinum/simd/
 - [ ] `write(filename)` - Write to file
 - [ ] Timing utilities for benchmarking
 
-#### Debug Mode Features - Missing
-- [ ] `OPTINUM_BOUNDS_CHECK` - Enable bounds checking
-- [ ] `OPTINUM_SHAPE_CHECK` - Enable shape compatibility checking
-- [ ] `OPTINUM_ENABLE_RUNTIME_CHECKS` - Master switch for all checks
-- [ ] Assertion macros with informative messages
+#### Debug Mode Features - DONE ✅ (Session 2024-12-26)
+- [x] `OPTINUM_BOUNDS_CHECK` - Enable bounds checking ✅
+- [x] `OPTINUM_SHAPE_CHECK` - Enable shape compatibility checking ✅
+- [x] `OPTINUM_ENABLE_RUNTIME_CHECKS` - Master switch for all checks ✅
+- [x] Assertion macros with informative messages ✅
+- [x] Integration into Vector, Matrix, Tensor element access ✅
+- [x] Zero runtime overhead when disabled ✅
 
 ### Missing SIMD Features (High Priority)
 
@@ -579,7 +581,11 @@ test/simd/
 │   ├── pack_test.cpp            # pack<T,W> operations
 │   ├── mask_test.cpp            # mask<T,W> operations
 │   └── neon_test.cpp            # ARM NEON pack tests ✅ (70+ test cases)
-├── view/view_test.cpp           # All view types
+├── view/
+│   ├── view_test.cpp            # All view types
+│   ├── diagonal_view_test.cpp  # Diagonal view tests ✅ (Session 2024-12-26)
+│   └── filter_view_test.cpp    # Filter view tests ✅ (Session 2024-12-26)
+├── debug_test.cpp               # Debug mode tests ✅ (Session 2024-12-26)
 ├── algo/
 │   ├── algo_elementwise_test.cpp # axpy, scale, add, etc.
 │   └── transform_test.cpp       # exp, log, sin, cos, tanh, sqrt
@@ -622,7 +628,7 @@ test/opti/
 └── problem/sphere_test.cpp      # Sphere function
 ```
 
-**Current test count: 41 tests, all passing** (33 original + 1 neon_test + 1 det_inverse_small_test + 6 new examples)
+**Current test count: 44 tests, all passing** (41 original + 1 diagonal_view_test + 1 filter_view_test + 1 debug_test)
 
 ---
 
@@ -800,7 +806,9 @@ This section tracks features present in Fastor that are missing in optinum.
 | View slicing (`seq()`, `fseq()`, `all`) | Views | **DONE** ✅ |
 | Tensor dimensionality reduction slicing | Views | **DONE** ✅ |
 | Stream output `operator<<` | I/O | **DONE** ✅ (Vector, Matrix, Tensor) |
-| Debug bounds/shape checking | Debug | Missing |
+| Debug bounds/shape checking | Debug | **DONE** ✅ (Session 2024-12-26) |
+| Diagonal view | Views | **DONE** ✅ (Session 2024-12-26) |
+| Filter view | Views | **DONE** ✅ (Session 2024-12-26) |
 | Adjoint/Adjugate matrix | LinAlg | Missing |
 | Cofactor matrix | LinAlg | Missing |
 
@@ -817,8 +825,8 @@ This section tracks features present in Fastor that are missing in optinum.
 | Pack `reverse()`, `shift()`, `rotate()` | SIMD | **DONE** ✅ |
 | Pack `cast<U>()`, `get<I>()` | SIMD | **DONE** ✅ |
 | Pack `gather()`, `scatter()` | SIMD | **DONE** ✅ |
-| Diagonal view | Views | Missing |
-| Filter view | Views | Missing |
+| Diagonal view | Views | **DONE** ✅ (Session 2024-12-26) |
+| Filter view | Views | **DONE** ✅ (Session 2024-12-26) |
 | Network einsum | Tensor | Missing |
 | More expression template ops | Expr | Missing |
 | Double contraction | LinAlg | Missing |
