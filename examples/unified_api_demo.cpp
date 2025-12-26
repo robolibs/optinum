@@ -1,6 +1,6 @@
 // =============================================================================
 // Unified API Demo - Using optinum:: namespace
-// This demonstrates the clean, Armadillo-style API
+// This demonstrates the clean, unified API
 // =============================================================================
 
 #include <iostream>
@@ -68,7 +68,7 @@ int main() {
     std::cout << "All operations used the optinum:: namespace!\n";
     std::cout << "Types: Matrix, Vector, Tensor, Scalar, Complex\n";
     std::cout << "Functions: solve, determinant, inverse, lu, qr, svd, etc.\n";
-    std::cout << "\nClean, Armadillo-style API! ✓\n";
+    std::cout << "\nClean, unified API! ✓\n";
 
     return 0;
 }

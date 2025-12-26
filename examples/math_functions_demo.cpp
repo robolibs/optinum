@@ -78,7 +78,7 @@ int main() {
     std::cout << "- 40+ SIMD math functions\n";
     std::cout << "- 10+ algorithm functions\n";
     std::cout << "- 5+ utility functions\n";
-    std::cout << "\nClean, unified, Armadillo-style API! ✓\n";
+    std::cout << "\nClean, unified API! ✓\n";
     std::cout << "\nOr use SHORT_NAMESPACE: on::Matrix, on::solve, etc.\n";
 
     return 0;
