@@ -11,7 +11,7 @@ using namespace optinum::simd;
 
 constexpr std::size_t NUM_ITERATIONS = 10000;
 
-class Timer {
+class LocalTimer {
   public:
     void start() { start_ = std::chrono::high_resolution_clock::now(); }
     double elapsed_ms() const {
@@ -30,7 +30,7 @@ class Timer {
 
 template <std::size_t N> double benchmark_vector_fill() {
     Vector<float, N> v;
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         v.fill(3.14f);
@@ -40,7 +40,7 @@ template <std::size_t N> double benchmark_vector_fill() {
 
 template <std::size_t N> double benchmark_vector_iota() {
     Vector<float, N> v;
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         v.iota();
@@ -50,7 +50,7 @@ template <std::size_t N> double benchmark_vector_iota() {
 
 template <std::size_t N> double benchmark_vector_iota_start_step() {
     Vector<float, N> v;
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         v.iota(10.0f, 2.0f);
@@ -61,7 +61,7 @@ template <std::size_t N> double benchmark_vector_iota_start_step() {
 template <std::size_t N> double benchmark_vector_reverse() {
     Vector<float, N> v;
     v.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         v.reverse();
@@ -70,7 +70,7 @@ template <std::size_t N> double benchmark_vector_reverse() {
 }
 
 template <std::size_t N> double benchmark_vector_zeros() {
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto v = Vector<float, N>::zeros();
@@ -80,7 +80,7 @@ template <std::size_t N> double benchmark_vector_zeros() {
 }
 
 template <std::size_t N> double benchmark_vector_ones() {
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto v = Vector<float, N>::ones();
@@ -90,7 +90,7 @@ template <std::size_t N> double benchmark_vector_ones() {
 }
 
 template <std::size_t N> double benchmark_vector_arange() {
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto v = Vector<float, N>::arange();
@@ -102,7 +102,7 @@ template <std::size_t N> double benchmark_vector_arange() {
 template <std::size_t N> double benchmark_vector_cast_int_to_float() {
     Vector<int, N> vi;
     vi.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto vf = cast<float>(vi);
@@ -114,7 +114,7 @@ template <std::size_t N> double benchmark_vector_cast_int_to_float() {
 template <std::size_t N> double benchmark_vector_cast_float_to_double() {
     Vector<float, N> vf;
     vf.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto vd = cast<double>(vf);
@@ -127,7 +127,7 @@ template <std::size_t N> double benchmark_vector_add() {
     Vector<float, N> v1, v2;
     v1.iota();
     v2.iota(10.0f);
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto v3 = v1 + v2;
@@ -139,7 +139,7 @@ template <std::size_t N> double benchmark_vector_add() {
 template <std::size_t N> double benchmark_vector_mul_scalar() {
     Vector<float, N> v;
     v.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto v2 = v * 2.5f;
@@ -154,7 +154,7 @@ template <std::size_t N> double benchmark_vector_mul_scalar() {
 
 template <std::size_t R, std::size_t C> double benchmark_matrix_fill() {
     Matrix<float, R, C> m;
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         m.fill(3.14f);
@@ -164,7 +164,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_fill() {
 
 template <std::size_t R, std::size_t C> double benchmark_matrix_iota() {
     Matrix<float, R, C> m;
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         m.iota();
@@ -175,7 +175,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_iota() {
 template <std::size_t R, std::size_t C> double benchmark_matrix_reverse() {
     Matrix<float, R, C> m;
     m.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         m.reverse();
@@ -186,7 +186,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_reverse() {
 template <std::size_t R, std::size_t C> double benchmark_matrix_flatten() {
     Matrix<float, R, C> m;
     m.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto v = m.flatten();
@@ -196,7 +196,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_flatten() {
 }
 
 template <std::size_t R, std::size_t C> double benchmark_matrix_zeros() {
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto m = Matrix<float, R, C>::zeros();
@@ -206,7 +206,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_zeros() {
 }
 
 template <std::size_t R, std::size_t C> double benchmark_matrix_ones() {
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto m = Matrix<float, R, C>::ones();
@@ -218,7 +218,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_ones() {
 template <std::size_t R, std::size_t C> double benchmark_matrix_cast_int_to_float() {
     Matrix<int, R, C> mi;
     mi.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto mf = cast<float>(mi);
@@ -231,7 +231,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_add() {
     Matrix<float, R, C> m1, m2;
     m1.iota();
     m2.iota(10.0f);
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto m3 = m1 + m2;
@@ -243,7 +243,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_add() {
 template <std::size_t R, std::size_t C> double benchmark_matrix_mul_scalar() {
     Matrix<float, R, C> m;
     m.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto m2 = m * 2.5f;
@@ -257,7 +257,7 @@ template <std::size_t R, std::size_t K, std::size_t C> double benchmark_matrix_m
     Matrix<float, K, C> m2;
     m1.iota();
     m2.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto m3 = m1 * m2;
@@ -269,7 +269,7 @@ template <std::size_t R, std::size_t K, std::size_t C> double benchmark_matrix_m
 template <std::size_t R, std::size_t C> double benchmark_matrix_transpose() {
     Matrix<float, R, C> m;
     m.iota();
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto mt = transpose(m);
@@ -284,7 +284,7 @@ template <std::size_t R, std::size_t C> double benchmark_matrix_transpose() {
 
 template <std::size_t D1, std::size_t D2, std::size_t D3> double benchmark_tensor_fill() {
     Tensor<float, D1, D2, D3> t;
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         t.fill(3.14f);
@@ -295,7 +295,7 @@ template <std::size_t D1, std::size_t D2, std::size_t D3> double benchmark_tenso
 template <std::size_t D1, std::size_t D2, std::size_t D3> double benchmark_tensor_cast_int_to_float() {
     Tensor<int, D1, D2, D3> ti;
     ti.fill(42);
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto tf = cast<float>(ti);
@@ -308,7 +308,7 @@ template <std::size_t D1, std::size_t D2, std::size_t D3> double benchmark_tenso
     Tensor<float, D1, D2, D3> t1, t2;
     t1.fill(1.0f);
     t2.fill(2.0f);
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto t3 = t1 + t2;
@@ -320,7 +320,7 @@ template <std::size_t D1, std::size_t D2, std::size_t D3> double benchmark_tenso
 template <std::size_t D1, std::size_t D2, std::size_t D3> double benchmark_tensor_mul_scalar() {
     Tensor<float, D1, D2, D3> t;
     t.fill(1.0f);
-    Timer timer;
+    LocalTimer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         auto t2 = t * 2.5f;

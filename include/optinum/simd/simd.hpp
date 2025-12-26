@@ -48,4 +48,7 @@
 // I/O utilities
 #include <optinum/simd/io.hpp>
 
+// Timing utilities
+#include <optinum/simd/timing.hpp>
+
 namespace optinum::simd {} // namespace optinum::simd
