@@ -8,6 +8,8 @@
 #include <optinum/lina/algebra/contraction.hpp>
 #include <optinum/lina/algebra/einsum.hpp>
 
+#include <optinum/lina/basic/adjoint.hpp>
+#include <optinum/lina/basic/cofactor.hpp>
 #include <optinum/lina/basic/determinant.hpp>
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/matmul.hpp>
