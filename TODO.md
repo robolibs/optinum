@@ -127,9 +127,9 @@ include/optinum/simd/
 │   ├── floor.hpp                # floor() (PLANNED)
 │   ├── round.hpp                # round() (PLANNED)
 │   ├── trunc.hpp                # trunc() (PLANNED)
-│   ├── erf.hpp                  # erf() (PLANNED)
-│   ├── tgamma.hpp               # tgamma() (PLANNED)
-│   └── lgamma.hpp               # lgamma() (PLANNED)
+│   ├── erf.hpp                  # erf() ✅
+│   ├── tgamma.hpp               # tgamma() ✅  
+│   └── lgamma.hpp               # lgamma() ✅
 ├── backend/
 │   ├── backend.hpp              # Module header
 │   ├── elementwise.hpp          # Low-level SIMD elementwise ops
@@ -256,16 +256,17 @@ include/optinum/simd/
   - [ ] `pack<int64_t,2>` - 2x64-bit int (int64x2_t)
   - [ ] All arithmetic, comparison, reduction operations
 
-#### Pack Operations - Missing
-- [ ] `set(values...)` - Set individual lane values
-- [ ] `set_sequential(start)` - Fill with sequential values (start, start+1, ...)
-- [ ] `reverse()` - Reverse lane order
-- [ ] `shift(i)` - Shift lanes left/right
-- [ ] `cast<U>()` - Type conversion between pack types
-- [ ] `rotate(i)` - Rotate lanes
-- [ ] Gather/Scatter operations
-  - [ ] `gather(base_ptr, index_pack)` - Gather from non-contiguous memory
-  - [ ] `scatter(base_ptr, index_pack, values)` - Scatter to non-contiguous memory
+#### Pack Operations - DONE ✅
+- [x] `set(values...)` - Set individual lane values ✅
+- [x] `set_sequential(start, step)` - Fill with sequential values ✅
+- [x] `reverse()` - Reverse lane order ✅
+- [x] `shift<N>()` - Shift lanes left/right, fill with zero ✅
+- [x] `rotate<N>()` - Rotate lanes (circular shift) ✅
+- [x] `cast_to_int()` - Type conversion to int32/int64 ✅
+- [x] `get<I>(pack)` - Compile-time lane extraction ✅
+- [x] Gather/Scatter operations ✅
+  - [x] `gather(base_ptr, indices)` - Gather from non-contiguous memory (AVX2 hardware) ✅
+  - [x] `scatter(base_ptr, indices)` - Scatter to non-contiguous memory (scalar fallback) ✅
 
 #### Complex Number Support
 - [ ] `pack<std::complex<float>, W>` - Complex float SIMD
@@ -312,9 +313,9 @@ include/optinum/simd/
 - [x] `trunc.hpp` - Truncate toward zero - 3.7x speedup ✅
 
 #### Special Functions
-- [ ] `erf.hpp` - Error function
-- [ ] `tgamma.hpp` - Gamma function
-- [ ] `lgamma.hpp` - Log gamma function
+- [x] `erf.hpp` - Error function (using Abramowitz & Stegun approximation + existing exp())
+- [x] `tgamma.hpp` - Gamma function (via exp(lgamma(x)))
+- [x] `lgamma.hpp` - Log gamma function (Lanczos approximation + existing log())
 
 #### Boolean/Status Functions - DONE ✅
 - [x] `isinf(pack)` - Test for infinity - 0.9x simple, **9.6x in physics sim** ✅
@@ -736,11 +737,12 @@ This section tracks features present in Fastor that are missing in optinum.
 | Complex number support | SIMD | Missing |
 | `cbrt()` cube root | SIMD Math | Missing |
 | `hypot()` | SIMD Math | Missing |
-| `erf()` error function | SIMD Math | Missing |
-| `tgamma()`, `lgamma()` | SIMD Math | Missing |
-| Pack `set()`, `set_sequential()` | SIMD | Missing |
-| Pack `reverse()`, `shift()`, `rotate()` | SIMD | Missing |
-| Pack `cast<U>()` | SIMD | Missing |
+| `erf()` error function | SIMD Math | ✅ Implemented |
+| `tgamma()`, `lgamma()` | SIMD Math | ✅ Implemented |
+| Pack `set()`, `set_sequential()` | SIMD | **DONE** ✅ |
+| Pack `reverse()`, `shift()`, `rotate()` | SIMD | **DONE** ✅ |
+| Pack `cast<U>()`, `get<I>()` | SIMD | **DONE** ✅ |
+| Pack `gather()`, `scatter()` | SIMD | **DONE** ✅ |
 | Diagonal view | Views | Missing |
 | Filter view | Views | Missing |
 | Network einsum | Tensor | Missing |

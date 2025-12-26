@@ -38,6 +38,9 @@
 //   simd::isinf(pack<T,W>)  - test for infinity (returns mask<T,W>)
 //   simd::isnan(pack<T,W>)  - test for NaN (returns mask<T,W>)
 //   simd::isfinite(pack<T,W>) - test for finite values (returns mask<T,W>)
+//   simd::erf(pack<T,W>)   - error function
+//   simd::tgamma(pack<T,W>) - gamma function (Γ)
+//   simd::lgamma(pack<T,W>) - log gamma function (log Γ)
 //
 // All functions are optimized for speed (~3-5 ULP accuracy).
 //
@@ -85,4 +88,9 @@
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/math/tan.hpp>
 #include <optinum/simd/math/tanh.hpp>
+#include <optinum/simd/math/tgamma.hpp>
 #include <optinum/simd/math/trunc.hpp>
+
+// Special functions
+#include <optinum/simd/math/erf.hpp>
+#include <optinum/simd/math/lgamma.hpp>
