@@ -5,6 +5,7 @@
 // Minimal expression templates for rank-1/2 elementwise + scalar ops
 // =============================================================================
 
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -68,6 +69,48 @@ namespace optinum::lina::expr {
         return VecScale<E>(e, s);
     }
 
+    // Specialized eval() for VecAdd - use SIMD backend
+    template <typename L, typename R>
+    [[nodiscard]] constexpr simd::Vector<typename L::value_type, L::size> eval(const VecAdd<L, R> &e) noexcept {
+        auto lhs = eval(e.l);
+        auto rhs = eval(e.r);
+        simd::Vector<typename L::value_type, L::size> out;
+
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < L::size; ++i) {
+                out[i] = lhs[i] + rhs[i];
+            }
+        } else {
+            // Use SIMD backend for addition
+            simd::backend::add<typename L::value_type, L::size>(out.data(), lhs.data(), rhs.data());
+        }
+        return out;
+    }
+
+    // Specialized eval() for VecScale - use SIMD backend
+    template <typename E>
+    [[nodiscard]] constexpr simd::Vector<typename E::value_type, E::size> eval(const VecScale<E> &e) noexcept {
+        auto src = eval(e.e);
+        simd::Vector<typename E::value_type, E::size> out;
+
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < E::size; ++i) {
+                out[i] = src[i] * e.s;
+            }
+        } else {
+            // Use SIMD backend for scalar multiplication
+            simd::backend::mul_scalar<typename E::value_type, E::size>(out.data(), src.data(), e.s);
+        }
+        return out;
+    }
+
+    // Specialized eval() for VecRef - just return the vector
+    template <typename T, std::size_t N>
+    [[nodiscard]] constexpr const simd::Vector<T, N> &eval(const VecRef<T, N> &e) noexcept {
+        return *e.ptr;
+    }
+
+    // Generic fallback for other expression types - scalar loop
     template <typename E>
     requires requires { E::size; }
     [[nodiscard]] constexpr simd::Vector<typename E::value_type, E::size> eval(const E &e) noexcept {
@@ -141,6 +184,51 @@ namespace optinum::lina::expr {
         return MatScale<E>(e, s);
     }
 
+    // Specialized eval() for MatAdd - use SIMD backend
+    template <typename L, typename R>
+    [[nodiscard]] constexpr simd::Matrix<typename L::value_type, L::rows, L::cols>
+    eval(const MatAdd<L, R> &e) noexcept {
+        auto lhs = eval(e.l);
+        auto rhs = eval(e.r);
+        simd::Matrix<typename L::value_type, L::rows, L::cols> out;
+
+        constexpr std::size_t N = L::rows * L::cols;
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i) {
+                out[i] = lhs[i] + rhs[i];
+            }
+        } else {
+            // Use SIMD backend for addition (operate on flattened matrix)
+            simd::backend::add<typename L::value_type, N>(out.data(), lhs.data(), rhs.data());
+        }
+        return out;
+    }
+
+    // Specialized eval() for MatScale - use SIMD backend
+    template <typename E>
+    [[nodiscard]] constexpr simd::Matrix<typename E::value_type, E::rows, E::cols> eval(const MatScale<E> &e) noexcept {
+        auto src = eval(e.e);
+        simd::Matrix<typename E::value_type, E::rows, E::cols> out;
+
+        constexpr std::size_t N = E::rows * E::cols;
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < N; ++i) {
+                out[i] = src[i] * e.s;
+            }
+        } else {
+            // Use SIMD backend for scalar multiplication
+            simd::backend::mul_scalar<typename E::value_type, N>(out.data(), src.data(), e.s);
+        }
+        return out;
+    }
+
+    // Specialized eval() for MatRef - just return the matrix
+    template <typename T, std::size_t R, std::size_t C>
+    [[nodiscard]] constexpr const simd::Matrix<T, R, C> &eval(const MatRef<T, R, C> &e) noexcept {
+        return *e.ptr;
+    }
+
+    // Generic fallback for other expression types - scalar loop
     template <typename E>
     requires requires {
         E::rows;

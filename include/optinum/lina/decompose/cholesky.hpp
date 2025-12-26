@@ -5,6 +5,7 @@
 // Cholesky factorization for symmetric positive definite matrices
 // =============================================================================
 
+#include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 
 #include <cmath>
@@ -28,8 +29,34 @@ namespace optinum::lina {
         for (std::size_t i = 0; i < N; ++i) {
             for (std::size_t j = 0; j <= i; ++j) {
                 T sum = a(i, j);
-                for (std::size_t k = 0; k < j; ++k) {
-                    sum -= out.l(i, k) * out.l(j, k);
+
+                // Inner product: sum -= L[i, :j] · L[j, :j]
+                // Note: Rows are strided in column-major layout (stride = N)
+                // SIMD optimization requires contiguous data, so we extract to temp arrays
+                // This is only beneficial for larger j (overhead of copy vs SIMD speedup)
+                if (j >= 8) {
+                    // For longer rows, use SIMD via temporary contiguous arrays
+                    alignas(32) T row_i[N];
+                    alignas(32) T row_j[N];
+
+                    // Extract partial rows (columns 0..j-1)
+                    for (std::size_t k = 0; k < j; ++k) {
+                        row_i[k] = out.l(i, k);
+                        row_j[k] = out.l(j, k);
+                    }
+                    // Pad remaining elements with zeros for SIMD safety
+                    for (std::size_t k = j; k < N; ++k) {
+                        row_i[k] = T{};
+                        row_j[k] = T{};
+                    }
+
+                    // Use SIMD dot product on full arrays (zeros don't affect result)
+                    sum -= simd::backend::dot<T, N>(row_i, row_j);
+                } else {
+                    // For short rows, scalar loop is more efficient
+                    for (std::size_t k = 0; k < j; ++k) {
+                        sum -= out.l(i, k) * out.l(j, k);
+                    }
                 }
 
                 if (i == j) {

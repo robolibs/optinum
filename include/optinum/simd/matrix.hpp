@@ -6,6 +6,7 @@
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/matmul.hpp>
+#include <optinum/simd/backend/reduce.hpp>
 #include <optinum/simd/backend/transpose.hpp>
 #include <optinum/simd/debug.hpp>
 #include <optinum/simd/vector.hpp>
@@ -399,12 +400,26 @@ namespace optinum::simd {
         return result;
     }
 
-    // Trace (square matrices only)
-    template <typename T, std::size_t N> constexpr T trace(const Matrix<T, N, N> &mat) noexcept {
-        T result{};
-        for (std::size_t i = 0; i < N; ++i)
-            result += mat(i, i);
-        return result;
+    // Trace (square matrices only) - SIMD optimized for N > 4
+    template <typename T, std::size_t N> T trace(const Matrix<T, N, N> &mat) noexcept {
+        if constexpr (N == 1) {
+            // Trivial case: 1x1 matrix
+            return mat(0, 0);
+        } else if constexpr (N <= 4) {
+            // For small matrices, scalar loop is efficient
+            T result{};
+            for (std::size_t i = 0; i < N; ++i)
+                result += mat(i, i);
+            return result;
+        } else {
+            // For larger matrices, extract diagonal to contiguous array and use SIMD reduction
+            alignas(32) T diag[N];
+            for (std::size_t i = 0; i < N; ++i) {
+                diag[i] = mat(i, i);
+            }
+            // Use SIMD backend to sum the diagonal elements
+            return backend::reduce_sum<T, N>(diag);
+        }
     }
 
     // Frobenius norm

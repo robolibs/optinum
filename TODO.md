@@ -438,20 +438,31 @@ include/optinum/lina/
 #### Expression Templates
 - [x] `expr.hpp` - Lazy evaluation with CRTP
 
-### SIMD Integration - DONE
+### SIMD Integration - DONE & IN PROGRESS
 
 The following operations now use SIMD backend for acceleration:
 
-| Operation | File | SIMD Usage |
-|-----------|------|------------|
-| `inner` (Frobenius) | `contraction.hpp` | `backend::dot` for flattened matrix |
-| `hadamard` | `contraction.hpp` | `backend::mul` for elementwise |
-| `outer` | `contraction.hpp` | `backend::mul_scalar` per column |
-| LU solve | `lu.hpp` | SIMD dot for forward/back substitution |
-| QR decomposition | `qr.hpp` | SIMD dot/axpy for Householder ops |
+| Operation | File | SIMD Usage | Status |
+|-----------|------|------------|--------|
+| `inner` (Frobenius) | `contraction.hpp` | `backend::dot` for flattened matrix | ✅ DONE |
+| `hadamard` | `contraction.hpp` | `backend::mul` for elementwise | ✅ DONE |
+| `outer` | `contraction.hpp` | `backend::mul_scalar` per column | ✅ DONE |
+| LU solve | `lu.hpp` | SIMD dot for forward/back substitution | ✅ DONE |
+| QR decomposition | `qr.hpp` | SIMD dot/axpy for Householder ops | ✅ DONE |
+| **Expression templates** | `expr/expr.hpp` | `backend::add`, `backend::mul_scalar` | ✅ **NEW (2024-12-26)** |
+| **Cholesky decomposition** | `decompose/cholesky.hpp` | `backend::dot` with temporary arrays | ✅ **NEW (2024-12-26)** |
+| **Least squares (lstsq)** | `solve/lstsq.hpp` | `backend::dot` for Q^T multiply | ✅ **NEW (2024-12-26)** |
+| **Matrix trace** | `simd/matrix.hpp` | `backend::reduce_sum` for N > 4 | ✅ **NEW (2024-12-26)** |
+
+**Recent Optimizations (Session 2024-12-26):**
+- Expression templates: All `VecAdd`, `VecScale`, `MatAdd`, `MatScale` now use SIMD backend (4-8x speedup expected)
+- Cholesky: Inner product loop uses SIMD dot product with temporary arrays for j >= 8
+- Lstsq: Q^T multiply uses SIMD dot product (column-major layout allows contiguous access)
+- Trace: For N > 4, extract diagonal to contiguous array and use SIMD reduction
 
 Note: Some operations remain scalar due to strided memory access patterns:
 - Row operations in column-major matrices (LU elimination, QR right-multiply)
+- Cholesky inner products for j < 8 (overhead > benefit)
 - These would require gather/scatter which may not be faster for small matrices
 
 ### Missing lina/ Features
@@ -461,9 +472,12 @@ Note: Some operations remain scalar due to strided memory access patterns:
   - **32x faster** for 2x2, **140x faster** for 3x3, **243x faster** for 4x4 vs LU
 - [x] Specialized 2x2, 3x3, 4x4 kernels for inverse (direct formulas) ✅ (Session 2024-12-26)
   - Near-instant performance (< 0.001ms for 1M operations)
+- [x] **SIMD-optimized trace function** ✅ (Session 2024-12-26)
+  - Implemented directly in `simd/matrix.hpp`
+  - Uses `backend::reduce_sum` for matrices with N > 4
+  - Scalar loop for small matrices (N ≤ 4) where overhead > benefit
 - [ ] `adjoint.hpp` - Adjoint/Adjugate matrix (transpose of cofactor matrix)
 - [ ] `cofactor.hpp` - Cofactor matrix
-- [ ] `trace.hpp` - Dedicated trace function (SIMD optimized)
 - [ ] Double contraction A:B (Frobenius inner product for tensors)
 - [ ] Tensor cross product
 

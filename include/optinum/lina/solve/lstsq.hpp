@@ -8,6 +8,7 @@
 #include <datapod/adapters/error.hpp>
 #include <datapod/adapters/result.hpp>
 #include <optinum/lina/decompose/qr.hpp>
+#include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -24,13 +25,12 @@ namespace optinum::lina {
         const auto f = qr<T, M, N>(a);
 
         // y = Q^T b
+        // Each y[i] = dot(Q[:,i], b), where Q[:,i] is the i-th column of Q (contiguous in column-major layout)
+        // Use SIMD backend for dot products
         simd::Vector<T, M> y;
         for (std::size_t i = 0; i < M; ++i) {
-            T sum{};
-            for (std::size_t j = 0; j < M; ++j) {
-                sum += f.q(j, i) * b[j];
-            }
-            y[i] = sum;
+            // Q[:,i] starts at f.q.data() + i*M (column-major layout)
+            y[i] = simd::backend::dot<T, M>(f.q.data() + i * M, b.data());
         }
 
         // Solve R(0:N-1,0:N-1) x = y(0:N-1) (upper triangular)
