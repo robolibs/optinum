@@ -214,7 +214,7 @@ include/optinum/simd/
 - [x] Dimensionality reduction (tensor→matrix, matrix→vector) ✅
 - [x] Diagonal view - View over matrix diagonal ✅ (Session 2024-12-26)
 - [x] Filter view - Masked/conditional view ✅ (Session 2024-12-26)
-- [ ] Random access view - Non-contiguous element access
+- [x] Random access view - Non-contiguous element access ✅ (Session 2024-12-26)
 
 #### Algorithms - DONE (Core)
 - [x] `algo/elementwise.hpp` - axpy, scale, add, sub, mul, div, fill, copy
@@ -266,17 +266,17 @@ include/optinum/simd/
 - [x] `reverse()` - Reverse element order ✅
 - [x] `cast<U>()` - Type conversion (Vector, Matrix, Tensor) ✅
 - [x] `flatten()` - Flatten Matrix to 1D Vector ✅
-- [ ] `noalias()` - Hint for no aliasing (optimization)
+- [x] `noalias()` - Hint for no aliasing (optimization) ✅ (Session 2024-12-26)
 - [x] `squeeze()` - Remove dimensions of size 1 ✅ (Session 2024-12-26)
 - [x] `reshape<Dims...>()` - Reshape tensor ✅ (Session 2024-12-26)
-- [ ] `tocolumnmajor()` / `torowmajor()` - Layout conversion
-- [ ] Voigt notation conversion for mechanics
+- [x] `tocolumnmajor()` / `torowmajor()` - Layout conversion ✅ (Session 2024-12-26)
+- [x] Voigt notation conversion for mechanics ✅ (Session 2024-12-26)
 
 #### I/O and Debugging
 - [x] `operator<<` - Stream output for Vector, Matrix, Tensor ✅ (column-major display)
 - [ ] `print()` - Formatted printing
 - [ ] `write(filename)` - Write to file
-- [ ] Timing utilities for benchmarking
+- [x] Timing utilities for benchmarking ✅ (Session 2024-12-26)
 
 #### Debug Mode Features - DONE ✅ (Session 2024-12-26)
 - [x] `OPTINUM_BOUNDS_CHECK` - Enable bounds checking ✅

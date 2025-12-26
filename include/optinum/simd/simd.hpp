@@ -51,4 +51,13 @@
 // Timing utilities
 #include <optinum/simd/timing.hpp>
 
+// Optimization hints
+#include <optinum/simd/noalias.hpp>
+
+// Layout conversion utilities
+#include <optinum/simd/layout.hpp>
+
+// Voigt notation for mechanics
+#include <optinum/simd/voigt.hpp>
+
 namespace optinum::simd {} // namespace optinum::simd
