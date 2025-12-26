@@ -13,7 +13,10 @@
 #include <optinum/lina/basic/cofactor.hpp>
 #include <optinum/lina/basic/cond.hpp>
 #include <optinum/lina/basic/determinant.hpp>
+#include <optinum/lina/basic/expmat.hpp>
 #include <optinum/lina/basic/inverse.hpp>
+#include <optinum/lina/basic/is_finite.hpp>
+#include <optinum/lina/basic/log_det.hpp>
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/lina/basic/norm.hpp>
 #include <optinum/lina/basic/null.hpp>
@@ -33,5 +36,6 @@
 
 #include <optinum/lina/solve/lstsq.hpp>
 #include <optinum/lina/solve/solve.hpp>
+#include <optinum/lina/solve/triangular_solve.hpp>
 
 namespace optinum::lina {}

@@ -51,13 +51,17 @@ namespace optinum {
 
     // Matrix properties
     using lina::cond;
+    using lina::is_finite;
     using lina::is_hermitian;
     using lina::is_positive_definite;
     using lina::is_symmetric;
+    using lina::log_det;
     using lina::rank;
     using lina::rcond;
+    using lina::slogdet;
 
     // Advanced operations
+    using lina::expmat;
     using lina::null;
     using lina::orth;
     using lina::pinv;
@@ -87,6 +91,9 @@ namespace optinum {
 
     using lina::lstsq;
     using lina::solve;
+    using lina::solve_lower_triangular;
+    using lina::solve_upper_triangular;
+    using lina::triangular_solve;
 
     // =========================================================================
     // Tensor Algebra (from lina::)
