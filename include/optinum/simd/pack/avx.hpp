@@ -214,6 +214,84 @@ namespace optinum::simd {
             // Step 2: Reverse within each 128-bit lane: [4,5,6,7,0,1,2,3] -> [7,6,5,4,3,2,1,0]
             return pack(_mm256_shuffle_ps(swapped, swapped, _MM_SHUFFLE(0, 1, 2, 3)));
         }
+
+        // rotate<N>() - Rotate lanes by N positions
+        template <int N> OPTINUM_INLINE pack rotate() const noexcept {
+            constexpr int shift = ((N % 8) + 8) % 8;
+            if constexpr (shift == 0)
+                return *this;
+            // Use AVX2 _mm256_permutevar8x32_ps if available, else fallback
+#ifdef OPTINUM_HAS_AVX2
+            if constexpr (shift == 1) {
+                __m256i indices = _mm256_setr_epi32(1, 2, 3, 4, 5, 6, 7, 0);
+                return pack(_mm256_permutevar8x32_ps(data_, indices));
+            } else if constexpr (shift == 2) {
+                __m256i indices = _mm256_setr_epi32(2, 3, 4, 5, 6, 7, 0, 1);
+                return pack(_mm256_permutevar8x32_ps(data_, indices));
+            } else if constexpr (shift == 4) {
+                return pack(_mm256_permute2f128_ps(data_, data_, 0x01)); // Swap 128-bit lanes
+            } else {
+                // General case
+                __m256i indices = _mm256_setr_epi32((shift + 0) % 8, (shift + 1) % 8, (shift + 2) % 8, (shift + 3) % 8,
+                                                    (shift + 4) % 8, (shift + 5) % 8, (shift + 6) % 8, (shift + 7) % 8);
+                return pack(_mm256_permutevar8x32_ps(data_, indices));
+            }
+#else
+            // Scalar fallback
+            alignas(32) float tmp[8];
+            _mm256_store_ps(tmp, data_);
+            alignas(32) float result[8];
+            for (int i = 0; i < 8; ++i) {
+                result[i] = tmp[(i + shift) % 8];
+            }
+            return pack(_mm256_load_ps(result));
+#endif
+        }
+
+        // shift<N>() - Shift lanes, fill with zero
+        template <int N> OPTINUM_INLINE pack shift() const noexcept {
+            if constexpr (N == 0)
+                return *this;
+            else if constexpr (N >= 8 || N <= -8)
+                return pack(_mm256_setzero_ps());
+            // Use scalar fallback for simplicity
+            alignas(32) float tmp[8];
+            _mm256_store_ps(tmp, data_);
+            alignas(32) float result[8] = {0};
+            if constexpr (N > 0) {
+                for (int i = 0; i < 8 - N; ++i) {
+                    result[i] = tmp[i + N];
+                }
+            } else {
+                for (int i = -N; i < 8; ++i) {
+                    result[i] = tmp[i + N];
+                }
+            }
+            return pack(_mm256_load_ps(result));
+        }
+
+        // cast_to_int() - Convert float to int32
+        OPTINUM_INLINE __m256i cast_to_int() const noexcept { return _mm256_cvtps_epi32(data_); }
+
+        // gather() - Load from non-contiguous memory (AVX2)
+        OPTINUM_INLINE static pack gather(const float *base, const int32_t *indices) noexcept {
+#ifdef OPTINUM_HAS_AVX2
+            __m256i idx = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(indices));
+            return pack(_mm256_i32gather_ps(base, idx, 4)); // Scale=4 for float
+#else
+            return pack(base[indices[0]], base[indices[1]], base[indices[2]], base[indices[3]], base[indices[4]],
+                        base[indices[5]], base[indices[6]], base[indices[7]]);
+#endif
+        }
+
+        // scatter() - Store to non-contiguous memory
+        OPTINUM_INLINE void scatter(float *base, const int32_t *indices) const noexcept {
+            alignas(32) float values[8];
+            _mm256_store_ps(values, data_);
+            for (int i = 0; i < 8; ++i) {
+                base[indices[i]] = values[i];
+            }
+        }
     };
 
     // get<I>() - Compile-time lane extraction for pack<float, 8>
@@ -387,6 +465,70 @@ namespace optinum::simd {
             __m256d swapped = _mm256_permute2f128_pd(data_, data_, 0x01);
             // Step 2: Reverse within each 128-bit lane: [2,3,0,1] -> [3,2,1,0]
             return pack(_mm256_shuffle_pd(swapped, swapped, 0x5)); // 0x5 = 0101 binary = swap each pair
+        }
+
+        // rotate<N>() - Rotate lanes
+        template <int N> OPTINUM_INLINE pack rotate() const noexcept {
+            constexpr int shift = ((N % 4) + 4) % 4;
+            if constexpr (shift == 0)
+                return *this;
+            else if constexpr (shift == 2) {
+                return pack(_mm256_permute2f128_pd(data_, data_, 0x01)); // Swap 128-bit lanes
+            } else {
+                // Scalar fallback for rotate 1 or 3
+                alignas(32) double tmp[4];
+                _mm256_store_pd(tmp, data_);
+                alignas(32) double result[4];
+                for (int i = 0; i < 4; ++i) {
+                    result[i] = tmp[(i + shift) % 4];
+                }
+                return pack(_mm256_load_pd(result));
+            }
+        }
+
+        // shift<N>() - Shift lanes, fill with zero
+        template <int N> OPTINUM_INLINE pack shift() const noexcept {
+            if constexpr (N == 0)
+                return *this;
+            else if constexpr (N >= 4 || N <= -4)
+                return pack(_mm256_setzero_pd());
+            // Scalar fallback
+            alignas(32) double tmp[4];
+            _mm256_store_pd(tmp, data_);
+            alignas(32) double result[4] = {0};
+            if constexpr (N > 0) {
+                for (int i = 0; i < 4 - N; ++i) {
+                    result[i] = tmp[i + N];
+                }
+            } else {
+                for (int i = -N; i < 4; ++i) {
+                    result[i] = tmp[i + N];
+                }
+            }
+            return pack(_mm256_load_pd(result));
+        }
+
+        // cast_to_int() - Convert double to int32
+        OPTINUM_INLINE __m128i cast_to_int() const noexcept { return _mm256_cvtpd_epi32(data_); }
+
+        // gather() - Load from non-contiguous memory (AVX2)
+        OPTINUM_INLINE static pack gather(const double *base, const int64_t *indices) noexcept {
+#ifdef OPTINUM_HAS_AVX2
+            // AVX2 has _mm256_i64gather_pd
+            __m256i idx = _mm256_loadu_si256(reinterpret_cast<const __m256i *>(indices));
+            return pack(_mm256_i64gather_pd(base, idx, 8)); // Scale=8 for double
+#else
+            return pack(base[indices[0]], base[indices[1]], base[indices[2]], base[indices[3]]);
+#endif
+        }
+
+        // scatter() - Store to non-contiguous memory
+        OPTINUM_INLINE void scatter(double *base, const int64_t *indices) const noexcept {
+            alignas(32) double values[4];
+            _mm256_store_pd(values, data_);
+            for (int i = 0; i < 4; ++i) {
+                base[indices[i]] = values[i];
+            }
         }
     };
 

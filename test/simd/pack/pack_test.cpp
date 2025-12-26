@@ -610,3 +610,149 @@ TEST_CASE("pack utilities - get<I>(), set(), set_sequential(), reverse()") {
     }
 #endif // OPTINUM_HAS_AVX
 }
+
+// =============================================================================
+// Pack Advanced Utilities Tests (Tier 2, 3, 4)
+// =============================================================================
+
+TEST_CASE("pack advanced utilities - rotate, shift, cast, gather, scatter") {
+    using namespace on::simd;
+
+    SUBCASE("pack<float, 4> - rotate/shift") {
+        auto p = pack<float, 4>::set(1.0f, 2.0f, 3.0f, 4.0f);
+
+        // Test rotate
+        auto r1 = p.template rotate<1>();
+        CHECK(r1[0] == doctest::Approx(2.0f));
+        CHECK(r1[1] == doctest::Approx(3.0f));
+        CHECK(r1[2] == doctest::Approx(4.0f));
+        CHECK(r1[3] == doctest::Approx(1.0f));
+
+        auto r2 = p.template rotate<2>();
+        CHECK(r2[0] == doctest::Approx(3.0f));
+        CHECK(r2[3] == doctest::Approx(2.0f));
+
+        auto r_1 = p.template rotate<-1>(); // Same as rotate<3>
+        CHECK(r_1[0] == doctest::Approx(4.0f));
+        CHECK(r_1[3] == doctest::Approx(3.0f));
+
+        // Test shift
+        auto s1 = p.template shift<1>();
+        CHECK(s1[0] == doctest::Approx(2.0f));
+        CHECK(s1[1] == doctest::Approx(3.0f));
+        CHECK(s1[2] == doctest::Approx(4.0f));
+        CHECK(s1[3] == doctest::Approx(0.0f)); // Filled with zero
+
+        auto s_1 = p.template shift<-1>();
+        CHECK(s_1[0] == doctest::Approx(0.0f)); // Filled with zero
+        CHECK(s_1[1] == doctest::Approx(1.0f));
+    }
+
+    SUBCASE("pack<float, 4> - gather/scatter") {
+        alignas(16) float data[10] = {10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f};
+        alignas(16) int32_t indices[4] = {1, 3, 5, 7};
+
+        // Test gather
+        auto p = pack<float, 4>::gather(data, indices);
+        CHECK(p[0] == doctest::Approx(20.0f)); // data[1]
+        CHECK(p[1] == doctest::Approx(40.0f)); // data[3]
+        CHECK(p[2] == doctest::Approx(60.0f)); // data[5]
+        CHECK(p[3] == doctest::Approx(80.0f)); // data[7]
+
+        // Test scatter
+        alignas(16) float output[10] = {0};
+        auto values = pack<float, 4>::set(111.0f, 222.0f, 333.0f, 444.0f);
+        values.scatter(output, indices);
+        CHECK(output[1] == doctest::Approx(111.0f));
+        CHECK(output[3] == doctest::Approx(222.0f));
+        CHECK(output[5] == doctest::Approx(333.0f));
+        CHECK(output[7] == doctest::Approx(444.0f));
+        CHECK(output[0] == doctest::Approx(0.0f)); // Untouched
+    }
+
+#ifdef OPTINUM_HAS_AVX
+    SUBCASE("pack<float, 8> - rotate/shift") {
+        auto p = pack<float, 8>::set_sequential(0.0f); // {0,1,2,3,4,5,6,7}
+
+        // Test rotate
+        auto r1 = p.template rotate<1>();
+        for (int i = 0; i < 8; ++i) {
+            CHECK(r1[i] == doctest::Approx(static_cast<float>((i + 1) % 8)));
+        }
+
+        auto r2 = p.template rotate<2>();
+        for (int i = 0; i < 8; ++i) {
+            CHECK(r2[i] == doctest::Approx(static_cast<float>((i + 2) % 8)));
+        }
+
+        auto r4 = p.template rotate<4>();
+        CHECK(r4[0] == doctest::Approx(4.0f));
+        CHECK(r4[4] == doctest::Approx(0.0f));
+
+        // Test shift
+        auto s1 = p.template shift<1>();
+        CHECK(s1[0] == doctest::Approx(1.0f));
+        CHECK(s1[6] == doctest::Approx(7.0f));
+        CHECK(s1[7] == doctest::Approx(0.0f)); // Zero
+
+        auto s_2 = p.template shift<-2>();
+        CHECK(s_2[0] == doctest::Approx(0.0f)); // Zero
+        CHECK(s_2[1] == doctest::Approx(0.0f)); // Zero
+        CHECK(s_2[2] == doctest::Approx(0.0f));
+    }
+
+    SUBCASE("pack<float, 8> - gather/scatter") {
+        alignas(32) float data[20];
+        for (int i = 0; i < 20; ++i)
+            data[i] = static_cast<float>(i * 10);
+
+        alignas(32) int32_t indices[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+
+        // Test gather
+        auto p = pack<float, 8>::gather(data, indices);
+        for (int i = 0; i < 8; ++i) {
+            CHECK(p[i] == doctest::Approx(static_cast<float>(indices[i] * 10)));
+        }
+
+        // Test scatter
+        alignas(32) float output[20] = {0};
+        auto values = pack<float, 8>::set_sequential(100.0f, 100.0f);
+        values.scatter(output, indices);
+        CHECK(output[1] == doctest::Approx(100.0f));
+        CHECK(output[15] == doctest::Approx(800.0f));
+        CHECK(output[0] == doctest::Approx(0.0f)); // Untouched
+    }
+
+    SUBCASE("pack<double, 4> - rotate/shift/gather/scatter") {
+        auto p = pack<double, 4>::set(1.5, 2.5, 3.5, 4.5);
+
+        // Test rotate
+        auto r2 = p.template rotate<2>();
+        CHECK(r2[0] == doctest::Approx(3.5));
+        CHECK(r2[1] == doctest::Approx(4.5));
+        CHECK(r2[2] == doctest::Approx(1.5));
+        CHECK(r2[3] == doctest::Approx(2.5));
+
+        // Test shift
+        auto s1 = p.template shift<1>();
+        CHECK(s1[0] == doctest::Approx(2.5));
+        CHECK(s1[3] == doctest::Approx(0.0));
+
+        // Test gather
+        alignas(32) double data[10];
+        for (int i = 0; i < 10; ++i)
+            data[i] = static_cast<double>(i * 100);
+        alignas(32) int64_t indices[4] = {2, 4, 6, 8};
+
+        auto gathered = pack<double, 4>::gather(data, indices);
+        CHECK(gathered[0] == doctest::Approx(200.0));
+        CHECK(gathered[3] == doctest::Approx(800.0));
+
+        // Test scatter
+        alignas(32) double output[10] = {0};
+        gathered.scatter(output, indices);
+        CHECK(output[2] == doctest::Approx(200.0));
+        CHECK(output[8] == doctest::Approx(800.0));
+    }
+#endif // OPTINUM_HAS_AVX
+}

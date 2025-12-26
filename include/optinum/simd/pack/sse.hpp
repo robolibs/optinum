@@ -182,6 +182,64 @@ namespace optinum::simd {
         OPTINUM_INLINE pack reverse() const noexcept {
             return pack(_mm_shuffle_ps(data_, data_, _MM_SHUFFLE(0, 1, 2, 3)));
         }
+
+        // rotate<N>() - Rotate lanes by N positions (positive = left, negative = right)
+        template <int N> OPTINUM_INLINE pack rotate() const noexcept {
+            constexpr int shift = ((N % 4) + 4) % 4; // Normalize to [0, 3]
+            if constexpr (shift == 0)
+                return *this;
+            else if constexpr (shift == 1)
+                return pack(_mm_shuffle_ps(data_, data_, _MM_SHUFFLE(0, 3, 2, 1))); // [1,2,3,0]
+            else if constexpr (shift == 2)
+                return pack(_mm_shuffle_ps(data_, data_, _MM_SHUFFLE(1, 0, 3, 2))); // [2,3,0,1]
+            else                                                                    // shift == 3
+                return pack(_mm_shuffle_ps(data_, data_, _MM_SHUFFLE(2, 1, 0, 3))); // [3,0,1,2]
+        }
+
+        // shift<N>() - Shift lanes by N (positive = left, negative = right), fill with zero
+        template <int N> OPTINUM_INLINE pack shift() const noexcept {
+            constexpr int shift = N; // Keep sign for direction
+            if constexpr (shift == 0)
+                return *this;
+            else if constexpr (shift == 1) {
+                // Shift left 1: [1,2,3,0]
+                __m128 tmp = _mm_shuffle_ps(data_, data_, _MM_SHUFFLE(0, 3, 2, 1));
+                return pack(_mm_and_ps(tmp, _mm_castsi128_ps(_mm_setr_epi32(-1, -1, -1, 0))));
+            } else if constexpr (shift == -1) {
+                // Shift right 1: [0,0,1,2]
+                __m128 tmp = _mm_shuffle_ps(data_, data_, _MM_SHUFFLE(2, 1, 0, 3));
+                return pack(_mm_and_ps(tmp, _mm_castsi128_ps(_mm_setr_epi32(0, -1, -1, -1))));
+            } else if constexpr (shift == 2) {
+                // Shift left 2: [2,3,0,0]
+                __m128 tmp = _mm_shuffle_ps(data_, data_, _MM_SHUFFLE(1, 0, 3, 2));
+                return pack(_mm_and_ps(tmp, _mm_castsi128_ps(_mm_setr_epi32(-1, -1, 0, 0))));
+            } else if constexpr (shift == -2) {
+                // Shift right 2: [0,0,0,1]
+                __m128 tmp = _mm_shuffle_ps(data_, data_, _MM_SHUFFLE(1, 0, 3, 2));
+                return pack(_mm_and_ps(tmp, _mm_castsi128_ps(_mm_setr_epi32(0, 0, -1, -1))));
+            } else if constexpr (shift >= 3 || shift <= -3)
+                return pack(_mm_setzero_ps());
+            else
+                return *this;
+        }
+
+        // cast_to_int() - Convert float to int32 (truncate toward zero)
+        OPTINUM_INLINE __m128i cast_to_int() const noexcept { return _mm_cvtps_epi32(data_); }
+
+        // gather() - Load from non-contiguous memory using index array
+        OPTINUM_INLINE static pack gather(const float *base, const int32_t *indices) noexcept {
+            // Scalar fallback - no SSE gather instruction
+            return pack(base[indices[0]], base[indices[1]], base[indices[2]], base[indices[3]]);
+        }
+
+        // scatter() - Store to non-contiguous memory using index array
+        OPTINUM_INLINE void scatter(float *base, const int32_t *indices) const noexcept {
+            alignas(16) float values[4];
+            store(values);
+            for (int i = 0; i < 4; ++i) {
+                base[indices[i]] = values[i];
+            }
+        }
     };
 
     // get<I>() - Compile-time lane extraction for pack<float, 4>
@@ -332,6 +390,47 @@ namespace optinum::simd {
 
         // reverse() - Reverse lane order
         OPTINUM_INLINE pack reverse() const noexcept { return pack(_mm_shuffle_pd(data_, data_, _MM_SHUFFLE2(0, 1))); }
+
+        // rotate<N>() - Rotate lanes (for 2-wide, just swap or identity)
+        template <int N> OPTINUM_INLINE pack rotate() const noexcept {
+            constexpr int shift = ((N % 2) + 2) % 2;
+            if constexpr (shift == 0)
+                return *this;
+            else
+                return reverse();
+        }
+
+        // shift<N>() - Shift lanes, fill with zero
+        template <int N> OPTINUM_INLINE pack shift() const noexcept {
+            if constexpr (N == 0)
+                return *this;
+            else if constexpr (N == 1) {
+                // Shift left 1: [1, 0]
+                __m128d tmp = _mm_shuffle_pd(data_, data_, _MM_SHUFFLE2(0, 1));
+                __m128d zero = _mm_setzero_pd();
+                return pack(_mm_move_sd(zero, tmp)); // Move low double, keep high zero
+            } else if constexpr (N == -1) {
+                // Shift right 1: [0, 0]
+                return pack(_mm_setzero_pd());
+            } else
+                return pack(_mm_setzero_pd());
+        }
+
+        // cast_to_int32() - Convert double to int32 (truncate toward zero)
+        OPTINUM_INLINE __m128i cast_to_int32() const noexcept { return _mm_cvttpd_epi32(data_); }
+
+        // gather() - Load from non-contiguous memory
+        OPTINUM_INLINE static pack gather(const double *base, const int64_t *indices) noexcept {
+            return pack(base[indices[0]], base[indices[1]]);
+        }
+
+        // scatter() - Store to non-contiguous memory
+        OPTINUM_INLINE void scatter(double *base, const int64_t *indices) const noexcept {
+            alignas(16) double values[2];
+            store(values);
+            base[indices[0]] = values[0];
+            base[indices[1]] = values[1];
+        }
     };
 
     // get<I>() - Compile-time lane extraction for pack<double, 2>
