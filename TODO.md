@@ -267,8 +267,8 @@ include/optinum/simd/
 - [x] `cast<U>()` - Type conversion (Vector, Matrix, Tensor) ✅
 - [x] `flatten()` - Flatten Matrix to 1D Vector ✅
 - [ ] `noalias()` - Hint for no aliasing (optimization)
-- [ ] `squeeze()` - Remove dimensions of size 1
-- [ ] `reshape<Dims...>()` - Reshape tensor
+- [x] `squeeze()` - Remove dimensions of size 1 ✅ (Session 2024-12-26)
+- [x] `reshape<Dims...>()` - Reshape tensor ✅ (Session 2024-12-26)
 - [ ] `tocolumnmajor()` / `torowmajor()` - Layout conversion
 - [ ] Voigt notation conversion for mechanics
 
@@ -624,11 +624,13 @@ test/lina/
 │   └── contraction_test.cpp     # Tensor contraction
 └── expr/expr_test.cpp           # Expression templates
 
+test/simd/tensor_reshape_test.cpp # Tensor reshape() and squeeze() tests ✅ (Session 2024-12-26)
+
 test/opti/
 └── problem/sphere_test.cpp      # Sphere function
 ```
 
-**Current test count: 44 tests, all passing** (41 original + 1 diagonal_view_test + 1 filter_view_test + 1 debug_test)
+**Current test count: 45 tests, all passing** (44 original + 1 tensor_reshape_test)
 
 ---
 
@@ -802,7 +804,7 @@ This section tracks features present in Fastor that are missing in optinum.
 | `isinf()`, `isnan()`, `isfinite()` | SIMD Math | **DONE** ✅ |
 | `zeros()`, `ones()`, `iota()` factories | Tensor | **DONE** ✅ |
 | `random()`, `randint()` factories | Tensor | **DONE** ✅ |
-| `reshape()`, `flatten()`, `squeeze()` | Tensor | flatten **DONE** ✅, reshape/squeeze Missing |
+| `reshape()`, `flatten()`, `squeeze()` | Tensor | **DONE** ✅ (Session 2024-12-26) |
 | View slicing (`seq()`, `fseq()`, `all`) | Views | **DONE** ✅ |
 | Tensor dimensionality reduction slicing | Views | **DONE** ✅ |
 | Stream output `operator<<` | I/O | **DONE** ✅ (Vector, Matrix, Tensor) |

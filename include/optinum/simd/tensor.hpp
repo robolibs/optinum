@@ -162,6 +162,25 @@ namespace optinum::simd {
 
         constexpr Tensor operator+() const noexcept { return *this; }
 
+        // ==========================================================================
+        // Shape Manipulation
+        // ==========================================================================
+
+        // Reshape to new dimensions (must have same total size)
+        // Example: Tensor<float, 2, 3, 4>.reshape<3, 8>() -> Tensor<float, 3, 8>
+        template <std::size_t... NewDims> constexpr Tensor<T, NewDims...> reshape() const noexcept {
+            static_assert((NewDims * ...) == total_size,
+                          "reshape(): new dimensions must have same total size as original");
+            static_assert(sizeof...(NewDims) >= 3, "reshape() for Tensor must result in rank >= 3");
+
+            Tensor<T, NewDims...> result;
+            // Copy data linearly (tensors are stored in row-major order)
+            for (size_type i = 0; i < total_size; ++i) {
+                result[i] = pod_[i];
+            }
+            return result;
+        }
+
       private:
         pod_type pod_{};
     };
@@ -317,6 +336,80 @@ namespace optinum::simd {
             result[i] = static_cast<U>(t[i]);
         }
         return result;
+    }
+
+    // =============================================================================
+    // squeeze() - Remove dimensions of size 1
+    // =============================================================================
+
+    // squeeze() removes all dimensions of size 1
+    // Note: If result would have rank < 3, this function won't compile (use reshape() instead)
+    // Common patterns:
+    //   Tensor<T, 1, N, M> -> Tensor<T, N, M, 1> (add dummy dimension to keep rank >= 3)
+    //   Tensor<T, N, 1, M> -> Tensor<T, N, M, 1> (add dummy dimension to keep rank >= 3)
+    //   Tensor<T, N, M, 1> -> Tensor<T, N, M, 1> (already rank 3, keep as is or remove)
+
+    // Specific squeeze implementations for common cases
+    // squeeze<1, N, M>() -> Would need rank 2, so pad with 1: <N, M, 1>
+    template <typename T, std::size_t N, std::size_t M>
+    constexpr Tensor<T, N, M, 1> squeeze(const Tensor<T, 1, N, M> &t) noexcept {
+        return t.template reshape<N, M, 1>();
+    }
+
+    // squeeze<N, 1, M>() -> Would need rank 2, so pad with 1: <N, M, 1>
+    template <typename T, std::size_t N, std::size_t M>
+    constexpr Tensor<T, N, M, 1> squeeze(const Tensor<T, N, 1, M> &t) noexcept {
+        return t.template reshape<N, M, 1>();
+    }
+
+    // squeeze<N, M, 1>() -> Would need rank 2, keep as rank 3: <N, M, 1> (no-op)
+    template <typename T, std::size_t N, std::size_t M>
+    constexpr Tensor<T, N, M, 1> squeeze(const Tensor<T, N, M, 1> &t) noexcept {
+        return t;
+    }
+
+    // squeeze<1, 1, N, M>() -> Tensor<N, M, 1>
+    template <typename T, std::size_t N, std::size_t M>
+    constexpr Tensor<T, N, M, 1> squeeze(const Tensor<T, 1, 1, N, M> &t) noexcept {
+        return t.template reshape<N, M, 1>();
+    }
+
+    // squeeze<N, 1, M, 1>() -> Tensor<N, M, 1>
+    template <typename T, std::size_t N, std::size_t M>
+    constexpr Tensor<T, N, M, 1> squeeze(const Tensor<T, N, 1, M, 1> &t) noexcept {
+        return t.template reshape<N, M, 1>();
+    }
+
+    // squeeze<N, M, P> with all > 1 -> no-op (no dimensions to squeeze)
+    template <typename T, std::size_t N, std::size_t M, std::size_t P>
+    constexpr Tensor<T, N, M, P> squeeze(const Tensor<T, N, M, P> &t) noexcept
+    requires(N > 1 && M > 1 && P > 1)
+    {
+        return t;
+    }
+
+    // squeeze<1, N, M, P>() -> Tensor<N, M, P>
+    template <typename T, std::size_t N, std::size_t M, std::size_t P>
+    constexpr Tensor<T, N, M, P> squeeze(const Tensor<T, 1, N, M, P> &t) noexcept {
+        return t.template reshape<N, M, P>();
+    }
+
+    // squeeze<N, 1, M, P>() -> Tensor<N, M, P>
+    template <typename T, std::size_t N, std::size_t M, std::size_t P>
+    constexpr Tensor<T, N, M, P> squeeze(const Tensor<T, N, 1, M, P> &t) noexcept {
+        return t.template reshape<N, M, P>();
+    }
+
+    // squeeze<N, M, 1, P>() -> Tensor<N, M, P>
+    template <typename T, std::size_t N, std::size_t M, std::size_t P>
+    constexpr Tensor<T, N, M, P> squeeze(const Tensor<T, N, M, 1, P> &t) noexcept {
+        return t.template reshape<N, M, P>();
+    }
+
+    // squeeze<N, M, P, 1>() -> Tensor<N, M, P>
+    template <typename T, std::size_t N, std::size_t M, std::size_t P>
+    constexpr Tensor<T, N, M, P> squeeze(const Tensor<T, N, M, P, 1> &t) noexcept {
+        return t.template reshape<N, M, P>();
     }
 
     // Common type aliases
