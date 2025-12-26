@@ -623,15 +623,34 @@ test/opti/
 
 ```
 examples/
-├── scalar_usage.cpp             # Scalar<T> usage
-├── vector_usage.cpp             # Vector<T,N> usage
-├── matrix_usage.cpp             # Matrix<T,R,C> usage
-├── simd_views_usage.cpp         # Vector/Matrix/Tensor views + algorithms
-├── simd_math_benchmark.cpp      # SIMD math performance
-├── math_benchmark_all.cpp       # Comprehensive math benchmarks
-├── fast_math_benchmark_new.cpp  # Fast math benchmarks
-└── sphere_optimization.cpp      # Optimization example
+├── scalar_usage.cpp                        # Scalar<T> usage
+├── vector_usage.cpp                        # Vector<T,N> usage
+├── matrix_usage.cpp                        # Matrix<T,R,C> usage
+├── factory_usage.cpp                       # Factory functions (fill, iota, zeros, etc.)
+├── simd_views_usage.cpp                    # Vector/Matrix/Tensor views + algorithms
+├── slicing_usage.cpp                       # View slicing operations
+├── how_slicing_works.cpp                   # Slicing internals
+└── sphere_optimization.cpp                 # Optimization example
+
+# Benchmarks (all operations)
+├── math_functions_complete_benchmark.cpp   # ALL 33 SIMD math functions ✅
+├── backend_operations_benchmark.cpp        # 15 backend ops (fill, reduce, matmul) ✅
+├── wrapper_operations_benchmark.cpp        # 26 Vector/Matrix/Tensor ops ✅
+├── lina_operations_benchmark.cpp           # 37 linear algebra ops ✅
+├── simd_math_benchmark.cpp                 # Original SIMD math (6 functions)
+├── math_benchmark_all.cpp                  # Legacy comprehensive math
+├── fast_math_benchmark_new.cpp             # Legacy fast math
+├── boolean_benchmark.cpp                   # Boolean function benchmarks
+├── boolean_real_world_benchmark.cpp        # Real-world boolean usage
+├── double_precision_benchmark.cpp          # Double precision math
+└── float_precision_benchmark.cpp           # Float precision math
 ```
+
+**Benchmark Coverage:** 111 operations across 4 comprehensive new benchmarks covering:
+- 27 missing SIMD math functions (tan, inverse trig, hyperbolic, rounding, special)
+- 15 backend operations (elementwise, reductions, matrix ops)
+- 26 wrapper type operations (Vector, Matrix, Tensor factories and ops)
+- 37 linear algebra operations (matmul, decompositions, solvers, tensor algebra)
 
 ---
 
@@ -766,12 +785,12 @@ This section tracks features present in Fastor that are missing in optinum.
 | `expm1()`, `log1p()` | SIMD Math | **DONE** ✅ |
 | `abs()`, `cbrt()`, `clamp()`, `hypot()` | SIMD Math | **DONE** ✅ |
 | `isinf()`, `isnan()`, `isfinite()` | SIMD Math | **DONE** ✅ |
-| `zeros()`, `ones()`, `iota()` factories | Tensor | Missing |
-| `random()`, `randint()` factories | Tensor | Missing |
-| `reshape()`, `flatten()`, `squeeze()` | Tensor | Missing |
+| `zeros()`, `ones()`, `iota()` factories | Tensor | **DONE** ✅ |
+| `random()`, `randint()` factories | Tensor | **DONE** ✅ |
+| `reshape()`, `flatten()`, `squeeze()` | Tensor | flatten **DONE** ✅, reshape/squeeze Missing |
 | View slicing (`seq()`, `fseq()`, `all`) | Views | **DONE** ✅ |
 | Tensor dimensionality reduction slicing | Views | **DONE** ✅ |
-| Stream output `operator<<` | I/O | Missing |
+| Stream output `operator<<` | I/O | **DONE** ✅ (Vector, Matrix, Tensor) |
 | Debug bounds/shape checking | Debug | Missing |
 | Adjoint/Adjugate matrix | LinAlg | Missing |
 | Cofactor matrix | LinAlg | Missing |
