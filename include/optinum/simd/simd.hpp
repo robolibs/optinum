@@ -45,4 +45,7 @@
 #include <optinum/simd/tensor.hpp>
 #include <optinum/simd/vector.hpp>
 
+// I/O utilities
+#include <optinum/simd/io.hpp>
+
 namespace optinum::simd {} // namespace optinum::simd
