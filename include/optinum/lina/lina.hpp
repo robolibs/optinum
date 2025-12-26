@@ -7,13 +7,20 @@
 
 #include <optinum/lina/algebra/contraction.hpp>
 #include <optinum/lina/algebra/einsum.hpp>
+#include <optinum/lina/algebra/kron.hpp>
 
 #include <optinum/lina/basic/adjoint.hpp>
 #include <optinum/lina/basic/cofactor.hpp>
+#include <optinum/lina/basic/cond.hpp>
 #include <optinum/lina/basic/determinant.hpp>
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/lina/basic/norm.hpp>
+#include <optinum/lina/basic/null.hpp>
+#include <optinum/lina/basic/orth.hpp>
+#include <optinum/lina/basic/pinv.hpp>
+#include <optinum/lina/basic/properties.hpp>
+#include <optinum/lina/basic/rank.hpp>
 #include <optinum/lina/basic/transpose.hpp>
 
 #include <optinum/lina/decompose/cholesky.hpp>

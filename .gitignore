@@ -2,3 +2,4 @@ build
 .xmake
 compile_commands.json
 REORGANIZATION_SUMMARY.md
+PARITY.md

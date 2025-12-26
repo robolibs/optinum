@@ -49,6 +49,19 @@ namespace optinum {
     using lina::norm;
     using lina::norm_fro;
 
+    // Matrix properties
+    using lina::cond;
+    using lina::is_hermitian;
+    using lina::is_positive_definite;
+    using lina::is_symmetric;
+    using lina::rank;
+    using lina::rcond;
+
+    // Advanced operations
+    using lina::null;
+    using lina::orth;
+    using lina::pinv;
+
     // Also expose from simd:: (same functions, different namespace)
     using simd::frobenius_norm;
     using simd::normalized;
@@ -82,6 +95,7 @@ namespace optinum {
     using lina::einsum;
     using lina::hadamard;
     using lina::inner;
+    using lina::kron;
     using lina::outer;
 
     // =========================================================================
@@ -170,6 +184,10 @@ namespace optinum {
     // Voigt notation (mechanics)
     using simd::from_voigt;
     using simd::to_voigt;
+
+    // Tensor permutations
+    using simd::permute_012_to_201;
+    using simd::transpose_3d;
 
     // Optimization hints
     using simd::noalias;

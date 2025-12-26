@@ -60,4 +60,7 @@
 // Voigt notation for mechanics
 #include <optinum/simd/voigt.hpp>
 
+// Tensor permutation utilities
+#include <optinum/simd/permute.hpp>
+
 namespace optinum::simd {} // namespace optinum::simd
