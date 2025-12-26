@@ -171,16 +171,17 @@ include/optinum/simd/
 - [x] `tensor_view<T,W,Rank>` - View over dp::mat::tensor
 - [x] `view<W>(dp_obj)` - Factory functions in bridge.hpp
 
-#### Views - Missing Slicing/Indexing Features
-- [ ] `seq(start, end)` - Runtime slicing
-- [ ] `fseq<start, end>()` - Compile-time fixed slicing
-- [ ] `fseq<start, end, step>()` - Compile-time strided slicing
-- [ ] `all` - Select all elements in dimension
-- [ ] `fix<I>()` - Fixed index (reduce dimension)
+#### Views - Slicing/Indexing Features
+- [x] `seq(start, end)` - Runtime slicing ✅
+- [x] `seq(start, end, step)` - Runtime strided slicing ✅
+- [x] `fseq<start, end>()` - Compile-time fixed slicing ✅
+- [x] `fseq<start, end, step>()` - Compile-time strided slicing ✅
+- [x] `all` - Select all elements in dimension ✅
+- [x] `fix<I>()` - Fixed index (reduce dimension) ✅
+- [x] Dimensionality reduction (tensor→matrix, matrix→vector) ✅
 - [ ] Diagonal view - View over matrix diagonal
 - [ ] Filter view - Masked/conditional view
 - [ ] Random access view - Non-contiguous element access
-- [ ] Block/submatrix views with arbitrary strides
 
 #### Algorithms - DONE (Core)
 - [x] `algo/elementwise.hpp` - axpy, scale, add, sub, mul, div, fill, copy
@@ -210,15 +211,26 @@ include/optinum/simd/
 - [x] `tan.hpp` - 4.8x speedup vs scalar (double) ✅
 - [x] `tanh.hpp` - 27.55x speedup vs scalar (float), 7.0x (double)
 - [x] `sqrt.hpp` - 4.03x speedup vs scalar (float), 2.0x (double)
+- [x] `asin.hpp`, `acos.hpp`, `atan.hpp`, `atan2.hpp` - Inverse trig ✅
+- [x] `sinh.hpp`, `cosh.hpp` - Hyperbolic ✅
+- [x] `asinh.hpp`, `acosh.hpp`, `atanh.hpp` - Inverse hyperbolic ✅
+- [x] `pow.hpp` - Power function ✅
+- [x] `ceil.hpp`, `floor.hpp`, `round.hpp`, `trunc.hpp` - Rounding ✅
+- [x] `exp2.hpp`, `log2.hpp`, `log10.hpp` - Alternative bases ✅
+- [x] `expm1.hpp`, `log1p.hpp` - Numerical stability ✅
+- [x] `abs.hpp`, `cbrt.hpp`, `clamp.hpp`, `hypot.hpp` - Utility math ✅
+- [x] `isnan.hpp`, `isinf.hpp`, `isfinite.hpp` - Floating point tests ✅
+- [x] `erf.hpp`, `tgamma.hpp`, `lgamma.hpp` - Special functions ✅
 
-#### Wrapper Types (Scalar, Vector, Matrix, Tensor) - Missing Features
-- [ ] `fill(value)` - Fill all elements with value
-- [ ] `iota(start)` / `arange(start)` - Fill with sequential values
-- [ ] `zeros()` - Fill with zeros (static factory)
-- [ ] `ones()` - Fill with ones (static factory)
-- [ ] `random()` - Fill with random values [0, 1)
-- [ ] `randint(lo, hi)` - Fill with random integers
-- [ ] `reverse()` - Reverse element order
+#### Wrapper Types (Scalar, Vector, Matrix, Tensor) - Features
+- [x] `fill(value)` - Fill all elements with value ✅
+- [x] `iota(start)` / `arange(start)` - Fill with sequential values ✅
+- [x] `iota(start, step)` / `arange(start, step)` - Fill with custom step ✅
+- [x] `zeros()` - Fill with zeros (static factory) ✅
+- [x] `ones()` - Fill with ones (static factory) ✅
+- [x] `random()` - Fill with random values [0, 1) ✅
+- [x] `randint(lo, hi)` - Fill with random integers ✅
+- [x] `reverse()` - Reverse element order ✅
 - [ ] `cast<U>()` - Type conversion
 - [ ] `noalias()` - Hint for no aliasing (optimization)
 - [ ] `squeeze()` - Remove dimensions of size 1
@@ -724,7 +736,8 @@ This section tracks features present in Fastor that are missing in optinum.
 | `zeros()`, `ones()`, `iota()` factories | Tensor | Missing |
 | `random()`, `randint()` factories | Tensor | Missing |
 | `reshape()`, `flatten()`, `squeeze()` | Tensor | Missing |
-| View slicing (`seq()`, `fseq()`, `all`) | Views | ✅ Implemented |
+| View slicing (`seq()`, `fseq()`, `all`) | Views | **DONE** ✅ |
+| Tensor dimensionality reduction slicing | Views | **DONE** ✅ |
 | Stream output `operator<<` | I/O | Missing |
 | Debug bounds/shape checking | Debug | Missing |
 | Adjoint/Adjugate matrix | LinAlg | Missing |

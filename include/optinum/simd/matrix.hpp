@@ -7,6 +7,7 @@
 #include <optinum/simd/backend/matmul.hpp>
 #include <optinum/simd/backend/transpose.hpp>
 #include <optinum/simd/vector.hpp>
+#include <random>
 
 namespace optinum::simd {
 
@@ -68,6 +69,104 @@ namespace optinum::simd {
 
         constexpr Matrix &fill(const T &value) noexcept {
             pod_.fill(value);
+            return *this;
+        }
+
+        // Fill with sequential values (row-major order): 0, 1, 2, ...
+        constexpr Matrix &iota() noexcept {
+            for (size_type i = 0; i < R * C; ++i) {
+                pod_[i] = static_cast<T>(i);
+            }
+            return *this;
+        }
+
+        // Fill with sequential values starting from 'start'
+        constexpr Matrix &iota(T start) noexcept {
+            for (size_type i = 0; i < R * C; ++i) {
+                pod_[i] = start + static_cast<T>(i);
+            }
+            return *this;
+        }
+
+        // Fill with sequential values with custom start and step
+        constexpr Matrix &iota(T start, T step) noexcept {
+            for (size_type i = 0; i < R * C; ++i) {
+                pod_[i] = start + static_cast<T>(i) * step;
+            }
+            return *this;
+        }
+
+        // Reverse elements in-place (linear order)
+        constexpr Matrix &reverse() noexcept {
+            for (size_type i = 0; i < (R * C) / 2; ++i) {
+                std::swap(pod_[i], pod_[R * C - 1 - i]);
+            }
+            return *this;
+        }
+
+        // Static factory: create matrix filled with zeros
+        static constexpr Matrix zeros() noexcept {
+            Matrix m;
+            m.fill(T{0});
+            return m;
+        }
+
+        // Static factory: create matrix filled with ones
+        static constexpr Matrix ones() noexcept {
+            Matrix m;
+            m.fill(T{1});
+            return m;
+        }
+
+        // Static factory: create matrix with sequential values
+        static constexpr Matrix arange() noexcept {
+            Matrix m;
+            m.iota();
+            return m;
+        }
+
+        // Static factory: create matrix with sequential values from start
+        static constexpr Matrix arange(T start) noexcept {
+            Matrix m;
+            m.iota(start);
+            return m;
+        }
+
+        // Static factory: create matrix with sequential values with custom start and step
+        static constexpr Matrix arange(T start, T step) noexcept {
+            Matrix m;
+            m.iota(start, step);
+            return m;
+        }
+
+        // Fill with uniform random values in [0, 1) for floating point, [0, max) for integers
+        Matrix &random() {
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+
+            if constexpr (std::is_floating_point_v<T>) {
+                std::uniform_real_distribution<T> dis(T{0}, T{1});
+                for (size_type i = 0; i < R * C; ++i) {
+                    pod_[i] = dis(gen);
+                }
+            } else {
+                std::uniform_int_distribution<T> dis(T{0}, std::numeric_limits<T>::max());
+                for (size_type i = 0; i < R * C; ++i) {
+                    pod_[i] = dis(gen);
+                }
+            }
+            return *this;
+        }
+
+        // Fill with random integers in [low, high]
+        template <typename U = T> std::enable_if_t<std::is_integral_v<U>, Matrix &> randint(T low, T high) {
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_int_distribution<T> dis(low, high);
+
+            for (size_type i = 0; i < R * C; ++i) {
+                pod_[i] = dis(gen);
+            }
             return *this;
         }
 

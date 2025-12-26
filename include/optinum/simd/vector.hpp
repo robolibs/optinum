@@ -6,6 +6,7 @@
 #include <optinum/simd/backend/norm.hpp>
 #include <optinum/simd/backend/reduce.hpp>
 
+#include <random>
 #include <type_traits>
 
 namespace optinum::simd {
@@ -66,6 +67,104 @@ namespace optinum::simd {
 
         constexpr Vector &fill(const T &value) noexcept {
             pod_.fill(value);
+            return *this;
+        }
+
+        // Fill with sequential values: 0, 1, 2, ...
+        constexpr Vector &iota() noexcept {
+            for (size_type i = 0; i < N; ++i) {
+                pod_[i] = static_cast<T>(i);
+            }
+            return *this;
+        }
+
+        // Fill with sequential values starting from 'start'
+        constexpr Vector &iota(T start) noexcept {
+            for (size_type i = 0; i < N; ++i) {
+                pod_[i] = start + static_cast<T>(i);
+            }
+            return *this;
+        }
+
+        // Fill with sequential values with custom start and step
+        constexpr Vector &iota(T start, T step) noexcept {
+            for (size_type i = 0; i < N; ++i) {
+                pod_[i] = start + static_cast<T>(i) * step;
+            }
+            return *this;
+        }
+
+        // Reverse elements in-place
+        constexpr Vector &reverse() noexcept {
+            for (size_type i = 0; i < N / 2; ++i) {
+                std::swap(pod_[i], pod_[N - 1 - i]);
+            }
+            return *this;
+        }
+
+        // Static factory: create vector filled with zeros
+        static constexpr Vector zeros() noexcept {
+            Vector v;
+            v.fill(T{0});
+            return v;
+        }
+
+        // Static factory: create vector filled with ones
+        static constexpr Vector ones() noexcept {
+            Vector v;
+            v.fill(T{1});
+            return v;
+        }
+
+        // Static factory: create vector with sequential values
+        static constexpr Vector arange() noexcept {
+            Vector v;
+            v.iota();
+            return v;
+        }
+
+        // Static factory: create vector with sequential values from start
+        static constexpr Vector arange(T start) noexcept {
+            Vector v;
+            v.iota(start);
+            return v;
+        }
+
+        // Static factory: create vector with sequential values with custom start and step
+        static constexpr Vector arange(T start, T step) noexcept {
+            Vector v;
+            v.iota(start, step);
+            return v;
+        }
+
+        // Fill with uniform random values in [0, 1) for floating point, [0, max) for integers
+        Vector &random() {
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+
+            if constexpr (std::is_floating_point_v<T>) {
+                std::uniform_real_distribution<T> dis(T{0}, T{1});
+                for (size_type i = 0; i < N; ++i) {
+                    pod_[i] = dis(gen);
+                }
+            } else {
+                std::uniform_int_distribution<T> dis(T{0}, std::numeric_limits<T>::max());
+                for (size_type i = 0; i < N; ++i) {
+                    pod_[i] = dis(gen);
+                }
+            }
+            return *this;
+        }
+
+        // Fill with random integers in [low, high]
+        template <typename U = T> std::enable_if_t<std::is_integral_v<U>, Vector &> randint(T low, T high) {
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_int_distribution<T> dis(low, high);
+
+            for (size_type i = 0; i < N; ++i) {
+                pod_[i] = dis(gen);
+            }
             return *this;
         }
 
