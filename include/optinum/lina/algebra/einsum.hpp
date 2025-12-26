@@ -7,6 +7,7 @@
 
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/lina/basic/transpose.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -96,10 +97,10 @@ namespace optinum::lina {
             constexpr std::size_t M = A::extent;
             constexpr std::size_t N = B::extent;
             simd::Matrix<T, M, N> out;
+            // Outer product: each column j is a[i] * b[j] for all i
+            // Use SIMD scalar multiplication for each column
             for (std::size_t j = 0; j < N; ++j) {
-                for (std::size_t i = 0; i < M; ++i) {
-                    out(i, j) = a[i] * b[j];
-                }
+                simd::backend::mul_scalar<T, M>(out.data() + j * M, a.data(), b[j]);
             }
             return out;
         } else {

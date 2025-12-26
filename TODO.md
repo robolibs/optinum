@@ -455,14 +455,19 @@ The following operations now use SIMD backend for acceleration:
 | **Matrix trace** | `simd/matrix.hpp` | `backend::reduce_sum` for N > 4 | ✅ **NEW (2024-12-26)** |
 
 **Recent Optimizations (Session 2024-12-26):**
-- Expression templates: All `VecAdd`, `VecScale`, `MatAdd`, `MatScale` now use SIMD backend (4-8x speedup expected)
-- Cholesky: Inner product loop uses SIMD dot product with temporary arrays for j >= 8
-- Lstsq: Q^T multiply uses SIMD dot product (column-major layout allows contiguous access)
-- Trace: For N > 4, extract diagonal to contiguous array and use SIMD reduction
+- ✅ Expression templates: All `VecAdd`, `VecScale`, `MatAdd`, `MatScale` now use SIMD backend (4-8x speedup expected)
+- ✅ Cholesky: Inner product loop uses SIMD dot product with temporary arrays for j >= 8
+- ✅ Lstsq: Q^T multiply uses SIMD dot product (column-major layout allows contiguous access)
+- ✅ Trace: For N > 4, extract diagonal to contiguous array and use SIMD reduction
+- ✅ Einsum outer product: Now uses `backend::mul_scalar` for each column (SIMD vectorized)
+- ✅ Eigen rotation: Eigenvector updates use SIMD for N >= 8 (column operations are contiguous)
+- ✅ Solve column extraction: Optimized pointer access for contiguous column data
 
 Note: Some operations remain scalar due to strided memory access patterns:
-- Row operations in column-major matrices (LU elimination, QR right-multiply)
+- Row operations in column-major matrices (LU elimination, QR right-multiply, Eigen matrix updates)
 - Cholesky inner products for j < 8 (overhead > benefit)
+- Cross product (only 3 scalar operations, already optimal)
+- Eigen rotation for N < 8 (overhead > benefit)
 - These would require gather/scatter which may not be faster for small matrices
 
 ### Missing lina/ Features

@@ -47,13 +47,19 @@ namespace optinum::lina {
 
         simd::Matrix<T, N, M> x;
         for (std::size_t col = 0; col < M; ++col) {
+            // Extract column from b (columns are contiguous in column-major)
             simd::Vector<T, N> rhs;
+            const T *b_col = b.data() + col * N;
             for (std::size_t i = 0; i < N; ++i) {
-                rhs[i] = b(i, col);
+                rhs[i] = b_col[i];
             }
+
             const auto sol = lu_solve(f, rhs);
+
+            // Store solution column (contiguous in column-major)
+            T *x_col = x.data() + col * N;
             for (std::size_t i = 0; i < N; ++i) {
-                x(i, col) = sol[i];
+                x_col[i] = sol[i];
             }
         }
 

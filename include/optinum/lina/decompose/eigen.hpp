@@ -5,6 +5,7 @@
 // Symmetric eigen decomposition via Jacobi rotations (fixed-size)
 // =============================================================================
 
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -50,11 +51,41 @@ namespace optinum::lina {
             a(p, q) = T{};
             a(q, p) = T{};
 
-            for (std::size_t i = 0; i < N; ++i) {
-                const T vip = v(i, p);
-                const T viq = v(i, q);
-                v(i, p) = c * vip - s * viq;
-                v(i, q) = s * vip + c * viq;
+            // Update eigenvector columns: V[:,p] and V[:,q]
+            // Columns are contiguous in column-major layout, use SIMD
+            if constexpr (N >= 8) {
+                alignas(32) T temp_p[N];
+                alignas(32) T temp_q[N];
+                alignas(32) T scaled_p[N];
+                alignas(32) T scaled_q[N];
+
+                // Load columns
+                const T *col_p = v.data() + p * N;
+                const T *col_q = v.data() + q * N;
+
+                // temp_p = c * col_p - s * col_q
+                simd::backend::mul_scalar<T, N>(scaled_p, col_p, c);
+                simd::backend::mul_scalar<T, N>(scaled_q, col_q, s);
+                simd::backend::sub<T, N>(temp_p, scaled_p, scaled_q);
+
+                // temp_q = s * col_p + c * col_q
+                simd::backend::mul_scalar<T, N>(scaled_p, col_p, s);
+                simd::backend::mul_scalar<T, N>(scaled_q, col_q, c);
+                simd::backend::add<T, N>(temp_q, scaled_p, scaled_q);
+
+                // Store back (direct pointer copy)
+                for (std::size_t i = 0; i < N; ++i) {
+                    v(i, p) = temp_p[i];
+                    v(i, q) = temp_q[i];
+                }
+            } else {
+                // Scalar fallback for small N
+                for (std::size_t i = 0; i < N; ++i) {
+                    const T vip = v(i, p);
+                    const T viq = v(i, q);
+                    v(i, p) = c * vip - s * viq;
+                    v(i, q) = s * vip + c * viq;
+                }
             }
         }
 
