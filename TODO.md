@@ -1,692 +1,400 @@
 # OPTINUM - Optimization & Numerics Library
 
-> **HEADER-ONLY LIBRARY** - No compilation required, just `#include <optinum/optinum.hpp>`
-
-## **CRITICAL IMPLEMENTATION RULE**
-
-⚠️ **ALL operations in this library MUST be implemented with SIMD in mind.**
-
-**Requirements:**
-1. **SIMD-First Design**: Every algorithm, operation, and function must be designed to leverage SIMD instructions (SSE, AVX, AVX-512, NEON)
-2. **No Shortcuts**: Do NOT implement naive scalar loops unless it's:
-   - Inside a `constexpr` evaluation context
-   - In the **tail loop** (remainder elements after SIMD main loop)
-   - In the **scalar fallback** `pack<T,W>` template (last resort)
-3. **Proper Pattern**: All operations follow this structure:
-   ```cpp
-   constexpr std::size_t W = preferred_simd_lanes<T, N>();
-   constexpr std::size_t main = main_loop_count<N, W>();
-   
-   // SIMD main loop - process W elements at once
-   for (std::size_t i = 0; i < main; i += W) {
-       auto p = pack<T, W>::loadu(data + i);
-       // ... SIMD operations ...
-       p.storeu(result + i);
-   }
-   
-   // Scalar tail loop - handle remainder
-   for (std::size_t i = main; i < N; ++i) {
-       result[i] = scalar_operation(data[i]);
-   }
-   ```
-4. **Backend First**: Implement in `backend/` with SIMD, then expose in higher-level APIs
-5. **Fallback Chain**: AVX-512 → AVX → SSE → NEON → `pack<T,W>` scalar fallback
-6. **No Exceptions**: If SIMD isn't applicable (random number generation, I/O), explicitly document why
-
-**Verification**: Before marking any feature as "done", ensure it uses `pack<T,W>` operations or has documented justification for scalar implementation.
+> **HEADER-ONLY C++20 LIBRARY** - No compilation required, just `#include <optinum/optinum.hpp>`
 
 ---
 
-## Quick Status
+## Module Status
 
 | Module | Status | Description |
 |--------|--------|-------------|
-| `simd/` | **IN PROGRESS** | Non-owning views, pack<T,W>, SIMD math, algorithms |
-| `lina/` | **IN PROGRESS** | Linear algebra (matmul, decompose, solve, einsum) |
-| `opti/` | **PLANNED** | Numerical optimization (GD, Adam, CMA-ES, etc.) |
+| `simd/` | **✅ COMPLETE** | SIMD operations, views, pack<T,W>, math functions |
+| `lina/` | **✅ COMPLETE** | Linear algebra (matmul, decompose, solve, einsum) |
+| `opti/` | **📋 PLANNED** | Numerical optimization (not started) |
+| **API** | **📋 PLANNED** | Unified optinum:: namespace (expose all modules) |
 
 ---
 
-## Architecture Overview
+## 🎯 PLAN: API UNIFICATION
+
+### Goal: Clean Armadillo-Style Public API
+
+**Current state:** Users must mix `simd::` and `lina::` namespaces
+```cpp
+auto A = simd::Matrix<double, 3, 3>::random();  // simd namespace
+auto x = lina::solve(A, b);                      // lina namespace
+```
+
+**Target state:** Single `optinum::` namespace (like Armadillo's `arma::`)
+```cpp
+auto A = optinum::Matrix<double, 3, 3>::random();
+auto x = optinum::solve(A, b);
+// Or with SHORT_NAMESPACE: on::Matrix, on::solve
+```
+
+---
+
+### Implementation Tasks
+
+**Phase 1: Create Unified Namespace** ⚠️ **HIGH PRIORITY**
+- [ ] Update `include/optinum/optinum.hpp` with namespace aliases
+- [ ] Expose types: `optinum::Matrix`, `optinum::Vector`, `optinum::Tensor`, `optinum::Scalar`
+- [ ] Expose all lina:: functions: `optinum::solve`, `optinum::determinant`, etc.
+- [ ] Keep simd:: and lina:: accessible for power users
+- [ ] Update examples to use `optinum::` API
+- [ ] Update README with new recommended usage
+
+**Phase 2: Documentation**
+- [ ] Document that `optinum::` is the recommended public API
+- [ ] Document that `simd::`/`lina::` are implementation details (still accessible)
+- [ ] Create migration guide for existing code
+
+---
+
+### Future Module Integration Rules
+
+**⚠️ CRITICAL:** When adding new features to ANY module:
+
+1. **For simd:: additions:**
+   - Implement in `simd/` (infrastructure layer)
+   - Add type alias or `using` declaration in `optinum.hpp`
+   - Example: New `simd::Complex` → Add `using Complex = simd::Complex;` to optinum::
+
+2. **For lina:: additions:**
+   - Implement in `lina/` (algorithm layer)
+   - Add `using` declaration in `optinum.hpp`
+   - Example: New `lina::pinv()` → Add `using lina::pinv;` to optinum::
+
+3. **For opti:: additions (future):**
+   - Implement in `opti/` (optimization layer)
+   - Add types and functions to `optinum::` namespace
+   - Example: `opti::Adam` → Add `using Adam = opti::Adam;` to optinum::
+   - Example: `opti::minimize()` → Add `using opti::minimize;` to optinum::
+
+**Rule of thumb:** Any public-facing feature MUST be exposed in `optinum::` namespace.
+
+---
+
+### Design Principles for API Exposure
+
+✅ **DO expose in optinum::**
+- All types users create (Matrix, Vector, Tensor, optimizers)
+- All functions users call (solve, determinant, minimize)
+- Public-facing utilities (factory functions, conversions)
+
+❌ **DON'T expose in optinum::**
+- Internal implementation details (backend kernels, pack<T,W> details)
+- Advanced/power-user features (view manipulation internals)
+- Debug/development utilities
+
+**When in doubt:** If a user would reasonably want to call it, expose it in `optinum::`.
+
+---
+
+---
+
+## Architecture
 
 ```
-datapod (dp::)                       # DATA OWNERSHIP (external library)
+datapod (dp::)                       # DATA OWNERSHIP (external library v0.0.9)
 ├── mat::scalar<T>                   # rank-0 (single value)
 ├── mat::vector<T, N>                # rank-1 (1D array, aligned)
-├── mat::matrix<T, R, C>             # rank-2 (2D, column-major, aligned)
+├── mat::matrix<T, R, C>             # rank-2 (column-major)
 └── mat::tensor<T, Dims...>          # rank-N (N-D array)
 
 optinum (on::)                       # SIMD OPERATIONS (this library)
-├── simd/        # Non-owning SIMD views + algorithms
-│   ├── pack<T, W>                   # SIMD register abstraction (W lanes)
-│   ├── mask<T, W>                   # comparison results, blend/select
-│   ├── Kernel<T, W, Rank>           # ptr + extents + strides + load/store
-│   ├── scalar_view<T, W>            # view over dp::mat::scalar
-│   ├── vector_view<T, W>            # view over dp::mat::vector
-│   ├── matrix_view<T, W>            # view over dp::mat::matrix
-│   ├── tensor_view<T, W, Rank>      # view over dp::mat::tensor
-│   ├── view<W>(dp_obj)              # factory: dp type -> simd view
-│   ├── algo::axpy, dot, norm, ...   # BLAS-like algorithms on views
-│   ├── algo::exp, sin, cos, ...     # math transforms on views
-│   └── math::exp, sin, cos, ...     # vectorized math on pack<T,W>
+├── simd/                            # Non-owning SIMD views + algorithms
+│   ├── pack<T, W>                   # SIMD register (SSE/AVX/AVX-512/NEON)
+│   ├── view<W>(dp_obj)              # Factory: dp type → simd view
+│   ├── algo::                       # BLAS-like + math transforms
+│   └── math::                       # Vectorized math (40+ functions)
 │
-├── lina/        # Linear algebra operations
-│   ├── matmul, transpose, inverse   # matrix operations
-│   ├── lu, qr, svd, cholesky, eigen # decompositions
-│   ├── solve, lstsq                 # linear solvers
-│   ├── einsum, contraction          # tensor algebra
-│   └── expr/                        # expression templates
+├── lina/                            # Linear algebra
+│   ├── basic/                       # matmul, transpose, inverse, det, adj, cof
+│   ├── decompose/                   # LU, QR, SVD, Cholesky, Eigen
+│   ├── solve/                       # solve, lstsq
+│   └── algebra/                     # einsum, contraction
 │
-└── opti/        # Numerical optimization (PLANNED)
-    ├── GradientDescent, SGD, Adam...
-    ├── LBFGS, CMA-ES, PSO...
-    └── callbacks, schedulers...
+└── opti/                            # Optimization (PLANNED)
+    ├── gradient/                    # GD, SGD
+    ├── adaptive/                    # Adam, AdaGrad, RMSProp
+    ├── quasi_newton/                # L-BFGS
+    └── evolutionary/                # CMA-ES, PSO, DE
 ```
 
 **Data Flow:**
 ```
-dp::mat::vector<float, N>   (owns memory)
+dp::mat::vector<float, N>     (owns memory)
          ↓
-simd::view<W>(dp_vector)    (non-owning view)
+simd::view<W>(dp_vector)      (non-owning SIMD view)
          ↓
-simd::exp(view)             (algorithm layer)
+simd::exp(view)               (algorithm layer)
          ↓
-simd::exp(pack<float,8>)    (intrinsic layer - AVX/SSE)
+simd::exp(pack<float,8>)      (intrinsic layer - AVX)
 ```
 
 ---
 
-## Module 1: SIMD (`on::simd`) - COMPLETE
+## CRITICAL IMPLEMENTATION RULE
 
-### Folder Structure
+⚠️ **ALL operations MUST use SIMD** (except constexpr contexts, tail loops, or scalar fallbacks)
 
-```
-include/optinum/simd/
-├── simd.hpp                     # Module header
-├── arch/
-│   ├── arch.hpp                 # SSE/AVX/AVX512/NEON detection
-│   └── macros.hpp               # OPTINUM_INLINE, alignment, etc.
-├── pack/
-│   ├── pack.hpp                 # pack<T,W> primary template + scalar fallback
-│   ├── sse.hpp                  # SSE: pack<float,4>, pack<double,2>
-│   ├── avx.hpp                  # AVX: pack<float,8>, pack<double,4>
-│   ├── avx512.hpp               # AVX-512 (PLANNED - currently stub)
-│   ├── neon.hpp                 # ARM NEON (PLANNED - currently stub)
-│   └── complex.hpp              # Complex number packs (PLANNED)
-├── view/
-│   ├── view.hpp                 # Module header
-│   ├── scalar_view.hpp          # Non-owning view over dp::mat::scalar
-│   ├── vector_view.hpp          # Non-owning view over dp::mat::vector
-│   ├── matrix_view.hpp          # Non-owning view over dp::mat::matrix
-│   ├── tensor_view.hpp          # Non-owning view over dp::mat::tensor
-│   ├── slice.hpp                # seq(), fseq<>(), all, fix<>() ✅
-│   ├── diagonal_view.hpp        # Diagonal view ✅ (Session 2024-12-26)
-│   └── filter_view.hpp          # Masked/filtered view ✅ (Session 2024-12-26)
-├── algo/
-│   ├── traits.hpp               # is_packable_view, view_value_t, etc.
-│   ├── elementwise.hpp          # axpy, scale, add, sub, mul, div, fill, copy
-│   ├── reduce.hpp               # sum, min, max, dot, norm
-│   └── transform.hpp            # exp, log, sin, cos, tanh, sqrt (+ more PLANNED)
-├── math/
-│   ├── simd_math.hpp            # Module header
-│   ├── detail/constants.hpp     # Math constants (LN2, PI, coefficients)
-│   ├── exp.hpp                  # exp() for pack<float,W> (double PLANNED)
-│   ├── log.hpp                  # log() for pack<float,W> (double PLANNED)
-│   ├── sin.hpp                  # sin() for pack<float,W> (double PLANNED)
-│   ├── cos.hpp                  # cos() for pack<float,W> (double PLANNED)
-│   ├── tan.hpp                  # tan() (PLANNED)
-│   ├── tanh.hpp                 # tanh() for pack<float,W> (double PLANNED)
-│   ├── sqrt.hpp                 # sqrt() for pack<float,W>
-│   ├── pow.hpp                  # pow() (PLANNED)
-│   ├── asin.hpp                 # asin() (PLANNED)
-│   ├── acos.hpp                 # acos() (PLANNED)
-│   ├── atan.hpp                 # atan() (PLANNED)
-│   ├── atan2.hpp                # atan2() (PLANNED)
-│   ├── sinh.hpp                 # sinh() (PLANNED)
-│   ├── cosh.hpp                 # cosh() (PLANNED)
-│   ├── asinh.hpp                # asinh() (PLANNED)
-│   ├── acosh.hpp                # acosh() (PLANNED)
-│   ├── atanh.hpp                # atanh() (PLANNED)
-│   ├── abs.hpp                  # abs() ✅
-│   ├── exp2.hpp                 # exp2() ✅
-│   ├── expm1.hpp                # expm1() ✅
-│   ├── log2.hpp                 # log2() ✅
-│   ├── log10.hpp                # log10() ✅
-│   ├── log1p.hpp                # log1p() ✅
-│   ├── cbrt.hpp                 # cbrt() ✅
-│   ├── clamp.hpp                # clamp() ✅
-│   ├── hypot.hpp                # hypot() ✅
-│   ├── ceil.hpp                 # ceil() (PLANNED)
-│   ├── floor.hpp                # floor() (PLANNED)
-│   ├── round.hpp                # round() (PLANNED)
-│   ├── trunc.hpp                # trunc() (PLANNED)
-│   ├── erf.hpp                  # erf() ✅
-│   ├── tgamma.hpp               # tgamma() ✅  
-│   └── lgamma.hpp               # lgamma() ✅
-├── backend/
-│   ├── backend.hpp              # Module header
-│   ├── elementwise.hpp          # Low-level SIMD elementwise ops
-│   ├── reduce.hpp               # Low-level SIMD reductions
-│   ├── dot.hpp                  # Dot product kernel
-│   ├── norm.hpp                 # L2 norm kernel
-│   ├── matmul.hpp               # Matrix multiplication kernel
-│   ├── transpose.hpp            # Matrix transpose kernel
-│   ├── inverse_small.hpp        # Specialized 2x2, 3x3, 4x4 inverse ✅ (Session 2024-12-26)
-│   ├── det_small.hpp            # Specialized 2x2, 3x3, 4x4 determinant ✅ (Session 2024-12-26)
-│   └── gather_scatter.hpp       # Gather/scatter operations (PLANNED)
-├── bridge.hpp                   # view<W>(dp_obj) factory functions
-├── kernel.hpp                   # Kernel<T,W,Rank> - memory layout descriptor
-├── mask.hpp                     # mask<T,W> - comparison results
-├── io.hpp                       # operator<<, print(), write() (PLANNED)
-├── debug.hpp                    # Bounds/shape checking ✅ (Session 2024-12-26)
-├── scalar.hpp                   # Scalar<T> wrapper (uses dp internally)
-├── vector.hpp                   # Vector<T,N> wrapper (uses dp internally)
-├── matrix.hpp                   # Matrix<T,R,C> wrapper (uses dp internally)
-└── tensor.hpp                   # Tensor<T,Dims...> wrapper (uses dp internally)
+**Pattern:**
+```cpp
+constexpr std::size_t W = preferred_simd_lanes<T, N>();
+constexpr std::size_t main = main_loop_count<N, W>();
+
+// SIMD main loop
+for (std::size_t i = 0; i < main; i += W) {
+    auto p = pack<T, W>::loadu(data + i);
+    // ... SIMD operations ...
+    p.storeu(result + i);
+}
+
+// Scalar tail loop
+for (std::size_t i = main; i < N; ++i) {
+    result[i] = scalar_operation(data[i]);
+}
 ```
 
-### Implementation Status
-
-#### Core Types - DONE
-- [x] `pack<T,W>` - SIMD register abstraction
-  - [x] Scalar fallback (primary template)
-  - [x] SSE: `pack<float,4>`, `pack<double,2>`
-  - [x] AVX: `pack<float,8>`, `pack<double,4>`
-  - [x] AVX-512: `pack<float,16>`, `pack<double,8>`, `pack<int32_t,16>`, `pack<int64_t,8>` ✅ (Session 2024-12-26)
-  - [x] ARM NEON: `pack<float,4>`, `pack<double,2>` (ARM64), `pack<int32_t,4>`, `pack<int64_t,2>` (ARM64) ✅ (Session 2024-12-26)
-- [x] `mask<T,W>` - Comparison results, blend/select
-- [x] `Kernel<T,W,Rank>` - Memory layout descriptor
-
-#### Views - DONE (Core)
-- [x] `scalar_view<T,W>` - View over dp::mat::scalar
-- [x] `vector_view<T,W>` - View over dp::mat::vector
-- [x] `matrix_view<T,W>` - View over dp::mat::matrix
-- [x] `tensor_view<T,W,Rank>` - View over dp::mat::tensor
-- [x] `view<W>(dp_obj)` - Factory functions in bridge.hpp
-
-#### Views - Slicing/Indexing Features
-- [x] `seq(start, end)` - Runtime slicing ✅
-- [x] `seq(start, end, step)` - Runtime strided slicing ✅
-- [x] `fseq<start, end>()` - Compile-time fixed slicing ✅
-- [x] `fseq<start, end, step>()` - Compile-time strided slicing ✅
-- [x] `all` - Select all elements in dimension ✅
-- [x] `fix<I>()` - Fixed index (reduce dimension) ✅
-- [x] Dimensionality reduction (tensor→matrix, matrix→vector) ✅
-- [x] Diagonal view - View over matrix diagonal ✅ (Session 2024-12-26)
-- [x] Filter view - Masked/conditional view ✅ (Session 2024-12-26)
-- [x] Random access view - Non-contiguous element access ✅ (Session 2024-12-26)
-
-#### Algorithms - DONE (Core)
-- [x] `algo/elementwise.hpp` - axpy, scale, add, sub, mul, div, fill, copy
-- [x] `algo/reduce.hpp` - sum, min, max, dot, norm
-- [x] `algo/transform.hpp` - exp, log, sin, cos, tanh, sqrt (works with any packable view)
-- [x] `algo/traits.hpp` - is_packable_view, view_value_t, view_width_v
-
-#### Algorithms - Missing Transform Functions
-- [x] `tan(view)` - Tangent ✅
-- [x] `asin(view)`, `acos(view)`, `atan(view)`, `atan2(view)` - Inverse trig ✅
-- [x] `sinh(view)`, `cosh(view)` - Hyperbolic ✅
-- [x] `asinh(view)`, `acosh(view)`, `atanh(view)` - Inverse hyperbolic ✅
-- [x] `pow(view, exp)` - Power ✅
-- [x] `ceil(view)`, `floor(view)`, `round(view)`, `trunc(view)` - Rounding ✅
-- [x] `exp2(view)`, `log2(view)`, `log10(view)` - Alternative bases ✅
-- [x] `expm1(view)`, `log1p(view)` - Numerical stability functions ✅
-- [x] `abs(view)` - Absolute value ✅
-- [x] `cbrt(view)` - Cube root ✅
-- [x] `clamp(view, lo, hi)` - Clamp to range ✅
-- [x] `hypot(x, y)` - Hypotenuse ✅
-
-#### SIMD Math - DONE (float and double)
-- [x] `exp.hpp` - 7.94x speedup vs scalar (float), 5.4x (double)
-- [x] `log.hpp` - 4.80x speedup vs scalar (float), 3.0x (double)
-- [x] `sin.hpp` - 22.94x speedup vs scalar (float), 6.2x (double)
-- [x] `cos.hpp` - 22.02x speedup vs scalar (float), 6.2x (double)
-- [x] `tan.hpp` - 4.8x speedup vs scalar (double) ✅
-- [x] `tanh.hpp` - 27.55x speedup vs scalar (float), 7.0x (double)
-- [x] `sqrt.hpp` - 4.03x speedup vs scalar (float), 2.0x (double)
-- [x] `asin.hpp`, `acos.hpp`, `atan.hpp`, `atan2.hpp` - Inverse trig ✅
-- [x] `sinh.hpp`, `cosh.hpp` - Hyperbolic ✅
-- [x] `asinh.hpp`, `acosh.hpp`, `atanh.hpp` - Inverse hyperbolic ✅
-- [x] `pow.hpp` - Power function ✅
-- [x] `ceil.hpp`, `floor.hpp`, `round.hpp`, `trunc.hpp` - Rounding ✅
-- [x] `exp2.hpp`, `log2.hpp`, `log10.hpp` - Alternative bases ✅
-- [x] `expm1.hpp`, `log1p.hpp` - Numerical stability ✅
-- [x] `abs.hpp`, `cbrt.hpp`, `clamp.hpp`, `hypot.hpp` - Utility math ✅
-- [x] `isnan.hpp`, `isinf.hpp`, `isfinite.hpp` - Floating point tests ✅
-- [x] `erf.hpp`, `tgamma.hpp`, `lgamma.hpp` - Special functions ✅
-
-#### Wrapper Types (Scalar, Vector, Matrix, Tensor) - Features
-- [x] `fill(value)` - Fill all elements with value ✅
-- [x] `iota(start)` / `arange(start)` - Fill with sequential values ✅
-- [x] `iota(start, step)` / `arange(start, step)` - Fill with custom step ✅
-- [x] `zeros()` - Fill with zeros (static factory) ✅
-- [x] `ones()` - Fill with ones (static factory) ✅
-- [x] `random()` - Fill with random values [0, 1) ✅
-- [x] `randint(lo, hi)` - Fill with random integers ✅
-- [x] `reverse()` - Reverse element order ✅
-- [x] `cast<U>()` - Type conversion (Vector, Matrix, Tensor) ✅
-- [x] `flatten()` - Flatten Matrix to 1D Vector ✅
-- [x] `noalias()` - Hint for no aliasing (optimization) ✅ (Session 2024-12-26)
-- [x] `squeeze()` - Remove dimensions of size 1 ✅ (Session 2024-12-26)
-- [x] `reshape<Dims...>()` - Reshape tensor ✅ (Session 2024-12-26)
-- [x] `tocolumnmajor()` / `torowmajor()` - Layout conversion ✅ (Session 2024-12-26)
-- [x] Voigt notation conversion for mechanics ✅ (Session 2024-12-26)
-
-#### I/O and Debugging
-- [x] `operator<<` - Stream output for Vector, Matrix, Tensor ✅ (column-major display)
-- [ ] `print()` - Formatted printing
-- [ ] `write(filename)` - Write to file
-- [x] Timing utilities for benchmarking ✅ (Session 2024-12-26)
-
-#### Debug Mode Features - DONE ✅ (Session 2024-12-26)
-- [x] `OPTINUM_BOUNDS_CHECK` - Enable bounds checking ✅
-- [x] `OPTINUM_SHAPE_CHECK` - Enable shape compatibility checking ✅
-- [x] `OPTINUM_ENABLE_RUNTIME_CHECKS` - Master switch for all checks ✅
-- [x] Assertion macros with informative messages ✅
-- [x] Integration into Vector, Matrix, Tensor element access ✅
-- [x] Zero runtime overhead when disabled ✅
-
-### Missing SIMD Features (High Priority)
-
-#### Platform Extensions - DONE ✅
-- [x] AVX-512 full implementation ✅ (Session 2024-12-26)
-  - [x] `pack<float,16>` - 16x32-bit float ✅
-  - [x] `pack<double,8>` - 8x64-bit double ✅
-  - [x] `pack<int32_t,16>` - 16x32-bit int ✅
-  - [x] `pack<int64_t,8>` - 8x64-bit int ✅
-  - [x] All arithmetic, comparison, reduction operations ✅
-  - [x] Native gather/scatter operations ✅
-  - [ ] Mask operations with AVX-512 k-registers (FUTURE)
-- [x] ARM NEON full implementation ✅ (Session 2024-12-26)
-  - [x] `pack<float,4>` - 4x32-bit float (float32x4_t) ✅
-  - [x] `pack<double,2>` - 2x64-bit double (float64x2_t, ARM64 only) ✅
-  - [x] `pack<int32_t,4>` - 4x32-bit int (int32x4_t) ✅
-  - [x] `pack<int64_t,2>` - 2x64-bit int (int64x2_t, ARM64 only) ✅
-  - [x] All arithmetic, comparison, reduction operations ✅
-  - [x] ARMv7 vs ARMv8 detection and optimization ✅
-  - [x] Newton-Raphson refinement for reciprocal/rsqrt ✅
-
-#### Pack Operations - DONE ✅
-- [x] `set(values...)` - Set individual lane values ✅
-- [x] `set_sequential(start, step)` - Fill with sequential values ✅
-- [x] `reverse()` - Reverse lane order ✅
-- [x] `shift<N>()` - Shift lanes left/right, fill with zero ✅
-- [x] `rotate<N>()` - Rotate lanes (circular shift) ✅
-- [x] `cast_to_int()` - Type conversion to int32/int64 ✅
-- [x] `get<I>(pack)` - Compile-time lane extraction ✅
-- [x] Gather/Scatter operations ✅
-  - [x] `gather(base_ptr, indices)` - Gather from non-contiguous memory (AVX2 hardware) ✅
-  - [x] `scatter(base_ptr, indices)` - Scatter to non-contiguous memory (scalar fallback) ✅
-
-#### Complex Number Support
-- [ ] `pack<std::complex<float>, W>` - Complex float SIMD
-- [ ] `pack<std::complex<double>, W>` - Complex double SIMD
-- [ ] `real()`, `imag()` - Extract real/imaginary parts
-- [ ] `conj()` - Complex conjugate
-- [ ] `magnitude()`, `arg()` - Polar form operations
-
-#### Double Precision Math - DONE ✅
-- [x] `exp.hpp` - double precision (exp for pack<double,2/4>) - 5.4x speedup
-- [x] `log.hpp` - double precision - 3.0x speedup
-- [x] `sin.hpp` / `cos.hpp` - double precision - 6.1x / 6.2x speedup
-- [x] `tanh.hpp` - double precision - 7.3x speedup
-- [x] `sqrt.hpp` - double precision (hardware sqrt_pd) - 2.0x speedup
-
-#### Additional Math Functions - HIGH PRIORITY
-- [x] `tan.hpp` - Tangent (sin/cos based) - 4.8x speedup ✅
-- [x] `asin.hpp` - Arc sine - 5.5x (float), 4.0x (double) ✅
-- [x] `acos.hpp` - Arc cosine - 6.5x (float), 4.4x (double) ✅
-- [x] `atan.hpp` - Arc tangent - 11.4x (float), 4.7x (double) ✅
-- [x] `atan2.hpp` - Two-argument arc tangent - 9.2x (float), 5.0x (double) ✅
-- [x] `pow.hpp` - Power function pow(x, y) = exp(y * log(x)) - 4.0x speedup ✅
-- [x] `sinh.hpp` - Hyperbolic sine - 19.1x (float), 18.6x (double) ✅
-- [x] `cosh.hpp` - Hyperbolic cosine - 8.2x (float), 3.5x (double) ✅
-- [x] `asinh.hpp` - Inverse hyperbolic sine - 3.7x (float), 2.1x (double) ✅
-- [x] `acosh.hpp` - Inverse hyperbolic cosine - 3.9x (float), 2.0x (double) ✅
-- [x] `atanh.hpp` - Inverse hyperbolic tangent - 14.6x (float), 5.3x (double) ✅
-
-#### Additional Math Functions - MEDIUM PRIORITY
-- [x] `exp2.hpp` - Base-2 exponential - 6.7x (float), 3.5x (double) ✅
-- [x] `expm1.hpp` - exp(x) - 1 (accurate for small x) - 11.4x (float), 3.7x (double) ✅
-- [x] `log2.hpp` - Base-2 logarithm - 4.3x (float), 2.6x (double) ✅
-- [x] `log10.hpp` - Base-10 logarithm - 9.9x (float), 4.8x (double) ✅
-- [x] `log1p.hpp` - log(1 + x) (accurate for small x) - 7.9x (float), 3.0x (double) ✅
-- [x] `abs.hpp` - Absolute value - 0.9x (float), 1.1x (double) ✅
-- [x] `cbrt.hpp` - Cube root - 7.4x (float), 4.6x (double) ✅
-- [x] `clamp.hpp` - Clamp to range - 0.8x (float), 0.7x (double) ✅
-- [x] `hypot.hpp` - Hypotenuse sqrt(x² + y²) - 4.8x (float), 2.7x (double) ✅
-
-#### Rounding Functions - DONE ✅
-- [x] `ceil.hpp` - Ceiling (round up) - 3.7x speedup ✅
-- [x] `floor.hpp` - Floor (round down) - 3.9x speedup ✅
-- [x] `round.hpp` - Round to nearest - 18.5x speedup ✅
-- [x] `trunc.hpp` - Truncate toward zero - 3.7x speedup ✅
-
-#### Special Functions
-- [x] `erf.hpp` - Error function (using Abramowitz & Stegun approximation + existing exp())
-- [x] `tgamma.hpp` - Gamma function (via exp(lgamma(x)))
-- [x] `lgamma.hpp` - Log gamma function (Lanczos approximation + existing log())
-
-#### Boolean/Status Functions - DONE ✅
-- [x] `isinf(pack)` - Test for infinity - 0.9x simple, **9.6x in physics sim** ✅
-- [x] `isnan(pack)` - Test for NaN - 0.7x simple, **9.6x in physics sim** ✅
-- [x] `isfinite(pack)` - Test for finite values - 0.7x simple, **1.6x in filtering** ✅
-
-#### Extended Intrinsics / Helpers
-- [ ] Element extraction helpers - `get<I>(pack)` compile-time lane access
-- [ ] Register reverse intrinsics
-- [ ] Complex arrangement functions for interleaved data
+**Fallback chain:** AVX-512 → AVX → SSE → NEON → `pack<T,W>` scalar
 
 ---
 
-## Module 2: Linear Algebra (`on::lina`) - IN PROGRESS
+## Module 1: SIMD - ✅ COMPLETE
 
-### Folder Structure
+### Implementation Summary
 
-```
-include/optinum/lina/
-├── lina.hpp                     # Module header
-├── basic/
-│   ├── matmul.hpp               # Matrix multiplication
-│   ├── transpose.hpp            # Matrix transpose
-│   ├── inverse.hpp              # Matrix inverse
-│   ├── determinant.hpp          # Determinant
-│   ├── adjoint.hpp              # Adjoint/Adjugate matrix (PLANNED)
-│   ├── cofactor.hpp             # Cofactor matrix (PLANNED)
-│   ├── trace.hpp                # Matrix trace (PLANNED - currently inline)
-│   └── norm.hpp                 # Frobenius, L2, etc.
-├── decompose/
-│   ├── lu.hpp                   # LU factorization
-│   ├── qr.hpp                   # QR factorization (Householder)
-│   ├── svd.hpp                  # Singular Value Decomposition
-│   ├── cholesky.hpp             # Cholesky decomposition
-│   └── eigen.hpp                # Eigendecomposition (power iteration)
-├── solve/
-│   ├── solve.hpp                # Solve Ax = b (LU-based)
-│   └── lstsq.hpp                # Least squares (QR-based)
-├── algebra/
-│   ├── einsum.hpp               # Einstein summation (rank-1/2)
-│   └── contraction.hpp          # Tensor contraction
-└── expr/
-    └── expr.hpp                 # Expression templates (lazy evaluation)
-```
+**Core Types:**
+- ✅ `pack<T,W>` - SSE/AVX/AVX-512/NEON implementations
+- ✅ `mask<T,W>` - Comparison results, blend/select
+- ✅ `Kernel<T,W,Rank>` - Memory layout descriptor
+- ✅ Views: scalar, vector, matrix, tensor
+- ✅ Slicing: `seq()`, `fseq<>()`, `all`, `fix<>()`
+- ✅ Special views: diagonal, filter, random_access
 
-### Implementation Status - CORE DONE
+**SIMD Math (40+ functions, float & double):**
+- ✅ Basic: exp, log, sin, cos, tan, sqrt, tanh
+- ✅ Inverse trig: asin, acos, atan, atan2
+- ✅ Hyperbolic: sinh, cosh, asinh, acosh, atanh
+- ✅ Power: pow, exp2, expm1, log2, log10, log1p, cbrt
+- ✅ Rounding: ceil, floor, round, trunc
+- ✅ Utility: abs, clamp, hypot
+- ✅ Tests: isnan, isinf, isfinite
+- ✅ Special: erf, tgamma, lgamma
 
-#### Basic Operations
-- [x] `matmul.hpp` - Matrix multiplication (M×K × K×N → M×N)
-- [x] `transpose.hpp` - Matrix transpose
-- [x] `inverse.hpp` - Matrix inverse (LU-based)
-- [x] `determinant.hpp` - Determinant (LU-based)
-- [x] `norm.hpp` - Frobenius norm, L2 norm
+**Algorithms:**
+- ✅ Elementwise: axpy, scale, add, sub, mul, div, fill, copy
+- ✅ Reductions: sum, min, max, dot, norm
+- ✅ Transforms: exp, log, sin, cos, etc. (on views)
 
-#### Decompositions
-- [x] `lu.hpp` - LU factorization with partial pivoting
-- [x] `qr.hpp` - QR factorization (Householder reflections)
-- [x] `svd.hpp` - Singular Value Decomposition (one-sided Jacobi)
-- [x] `cholesky.hpp` - Cholesky decomposition (for SPD matrices)
-- [x] `eigen.hpp` - Eigendecomposition (power iteration for symmetric)
+**Wrapper Types (Vector, Matrix, Tensor):**
+- ✅ Factories: zeros, ones, iota, random, randint
+- ✅ Operations: fill, reverse, cast, flatten, reshape, squeeze
+- ✅ Layout: torowmajor, tocolumnmajor
+- ✅ Mechanics: Voigt notation conversion
+- ✅ Optimization: noalias() hints
 
-#### Solvers
-- [x] `solve.hpp` - Solve Ax = b using LU decomposition
-- [x] `lstsq.hpp` - Least squares using QR decomposition
+**Backend:**
+- ✅ Specialized 2x2/3x3/4x4 det/inverse (32-243x speedup)
+- ✅ SIMD matmul, transpose, dot, norm kernels
 
-#### Tensor Algebra
-- [x] `einsum.hpp` - Einstein summation for rank-1/2 tensors
-- [x] `contraction.hpp` - Tensor contraction
+**Platform Support:**
+- ✅ AVX-512: pack<float,16>, pack<double,8>, pack<int32_t,16>, pack<int64_t,8>
+- ✅ AVX: pack<float,8>, pack<double,4>
+- ✅ SSE: pack<float,4>, pack<double,2>
+- ✅ NEON: pack<float,4>, pack<double,2>, pack<int32_t,4>, pack<int64_t,2>
 
-#### Expression Templates
-- [x] `expr.hpp` - Lazy evaluation with CRTP
+**Debug:**
+- ✅ Bounds checking, shape checking (OPTINUM_ENABLE_RUNTIME_CHECKS)
+- ✅ Timing utilities
+- ✅ `pack<std::complex<T>, W>` SIMD
+- ✅ Complex math: real, imag, conj, magnitude, arg
 
-### SIMD Integration - DONE & IN PROGRESS
-
-The following operations now use SIMD backend for acceleration:
-
-| Operation | File | SIMD Usage | Status |
-|-----------|------|------------|--------|
-| `inner` (Frobenius) | `contraction.hpp` | `backend::dot` for flattened matrix | ✅ DONE |
-| `hadamard` | `contraction.hpp` | `backend::mul` for elementwise | ✅ DONE |
-| `outer` | `contraction.hpp` | `backend::mul_scalar` per column | ✅ DONE |
-| LU solve | `lu.hpp` | SIMD dot for forward/back substitution | ✅ DONE |
-| QR decomposition | `qr.hpp` | SIMD dot/axpy for Householder ops | ✅ DONE |
-| **Expression templates** | `expr/expr.hpp` | `backend::add`, `backend::mul_scalar` | ✅ **NEW (2024-12-26)** |
-| **Cholesky decomposition** | `decompose/cholesky.hpp` | `backend::dot` with temporary arrays | ✅ **NEW (2024-12-26)** |
-| **Least squares (lstsq)** | `solve/lstsq.hpp` | `backend::dot` for Q^T multiply | ✅ **NEW (2024-12-26)** |
-| **Matrix trace** | `simd/matrix.hpp` | `backend::reduce_sum` for N > 4 | ✅ **NEW (2024-12-26)** |
-
-**Recent Optimizations (Session 2024-12-26):**
-- ✅ Expression templates: All `VecAdd`, `VecScale`, `MatAdd`, `MatScale` now use SIMD backend (4-8x speedup expected)
-- ✅ Cholesky: Inner product loop uses SIMD dot product with temporary arrays for j >= 8
-- ✅ Lstsq: Q^T multiply uses SIMD dot product (column-major layout allows contiguous access)
-- ✅ Trace: For N > 4, extract diagonal to contiguous array and use SIMD reduction
-- ✅ Einsum outer product: Now uses `backend::mul_scalar` for each column (SIMD vectorized)
-- ✅ Eigen rotation: Eigenvector updates use SIMD for N >= 8 (column operations are contiguous)
-- ✅ Solve column extraction: Optimized pointer access for contiguous column data
-
-Note: Some operations remain scalar due to strided memory access patterns:
-- Row operations in column-major matrices (LU elimination, QR right-multiply, Eigen matrix updates)
-- Cholesky inner products for j < 8 (overhead > benefit)
-- Cross product (only 3 scalar operations, already optimal)
-- Eigen rotation for N < 8 (overhead > benefit)
-- These would require gather/scatter which may not be faster for small matrices
-
-### Missing lina/ Features
-
-#### Basic Operations - DONE & Missing
-- [x] Specialized 2x2, 3x3, 4x4 kernels for determinant ✅ (Session 2024-12-26)
-  - **32x faster** for 2x2, **140x faster** for 3x3, **243x faster** for 4x4 vs LU
-- [x] Specialized 2x2, 3x3, 4x4 kernels for inverse (direct formulas) ✅ (Session 2024-12-26)
-  - Near-instant performance (< 0.001ms for 1M operations)
-- [x] **SIMD-optimized trace function** ✅ (Session 2024-12-26)
-  - Implemented directly in `simd/matrix.hpp`
-  - Uses `backend::reduce_sum` for matrices with N > 4
-  - Scalar loop for small matrices (N ≤ 4) where overhead > benefit
-- [ ] `adjoint.hpp` - Adjoint/Adjugate matrix (transpose of cofactor matrix)
-- [ ] `cofactor.hpp` - Cofactor matrix
-- [ ] Double contraction A:B (Frobenius inner product for tensors)
-- [ ] Tensor cross product
-
-#### Tensor Algebra - Missing
-- [ ] Extend einsum beyond rank-2 (arbitrary rank tensors)
-- [ ] General tensor contractions for rank > 2
-- [ ] Network einsum (multi-tensor contraction with optimization)
-- [ ] Compile-time contraction order optimization
-- [ ] `Index<i,j,k>` type system for compile-time index specification
-- [ ] Voigt notation conversion for mechanics tensors
-- [ ] Cyclic contractions
-
-#### Expression Templates - Missing
-- [ ] Subtraction expression `MatSub<L, R>`
-- [ ] Multiplication expression `MatMul<L, R>` (lazy matmul)
-- [ ] Unary math expressions (sin, cos, exp, log on matrices)
-- [ ] Transpose expression (lazy transpose)
-- [ ] Determinant expression (lazy determinant)
-- [ ] Inverse expression (lazy inverse)
-- [ ] Solve expression (lazy linear solve)
-- [ ] SVD/LU/QR expressions (lazy decompositions)
-- [ ] Norm expression (lazy norm computation)
-
-#### Additional Features - Missing
-- [ ] Blocked/tiled algorithms for cache efficiency
-- [ ] Complex number support (complex<T> matrices)
-- [ ] Sparse matrix support (CSR, CSC, COO formats)
-- [ ] SIMD gather/scatter for strided row operations
-- [ ] BLAS/MKL backend switching for large matrices
-- [ ] libXSMM integration for small matrix optimization
-- [ ] Block size tuning macros
+### Missing (Optional/Future)
+- [ ] Hardware gather/scatter (AVX-512 k-registers)
+- [ ] SLEEF/MKL/libXSMM backends
+- [ ] Sparse matrix support
 
 ---
 
-## Module 3: Optimization (`on::opti`) - PLANNED
+## Module 2: Linear Algebra - ✅ COMPLETE
 
-### Folder Structure (Planned)
+### Implementation Summary
+
+**Basic Operations:**
+- ✅ matmul, transpose, inverse, determinant, norm, trace
+- ✅ Specialized 2x2/3x3/4x4 kernels (direct formulas)
+- ✅ adjoint/adjugate matrix
+- ✅ cofactor matrix
+
+**Decompositions:**
+- ✅ LU with partial pivoting
+- ✅ QR (Householder reflections)
+- ✅ SVD (one-sided Jacobi)
+- ✅ Cholesky (SPD matrices)
+- ✅ Eigendecomposition (power iteration, symmetric)
+
+**Solvers:**
+- ✅ solve (Ax = b via LU)
+- ✅ lstsq (least squares via QR)
+
+**Tensor Algebra:**
+- ✅ einsum (rank-1/2)
+- ✅ contraction (inner, outer, hadamard)
+
+**Expression Templates:**
+- ✅ Lazy evaluation (VecAdd, VecScale, MatAdd, MatScale)
+- ✅ SIMD backend integration
+
+**SIMD Integration:**
+- ✅ All reductions use `backend::dot`, `backend::reduce_sum`
+- ✅ Expression templates use SIMD elementwise ops
+- ✅ Cholesky/QR/Lstsq use SIMD for inner products
+- ✅ Column operations vectorized (column-major layout)
+
+### Missing Features - SIMD-Realistic Assessment
+
+**✅ IMPLEMENT - High SIMD Benefit (80-95% SIMD coverage):**
+- [ ] **pinv()** - Pseudo-inverse (wraps SIMD SVD) - CRITICAL
+- [ ] **rank()** - Matrix rank (wraps SIMD SVD) - CRITICAL
+- [ ] **cond()** / **rcond()** - Condition number (wraps SIMD SVD) - CRITICAL
+- [ ] **kron()** - Kronecker product (80% SIMD elementwise ops)
+- [ ] **null()** - Null space (wraps SIMD SVD)
+- [ ] **orth()** - Orthonormal basis (wraps SIMD QR)
+- [ ] **is_finite()** - Finite check (95% SIMD via isfinite + reductions)
+- [ ] **log_det()** - Log determinant (wraps SIMD LU + log reduction)
+
+**⚠️ DEFER - Complex or Limited SIMD (<50% coverage):**
+- [ ] expmat() - Matrix exponential (complex Padé, ~70% SIMD)
+- [ ] Schur decomposition (iterative QR, ~60% SIMD, niche)
+- [ ] is_symmetric() / is_hermitian() (~30% SIMD, strided access)
+- [ ] sqrtmat() / logmat() / powmat() (complex, ~50% SIMD)
+
+**❌ DON'T IMPLEMENT - Poor SIMD Fit (<30% coverage):**
+- [ ] ~~Sylvester solver~~ - Sequential back-sub, <20% SIMD
+- [ ] ~~Lyapunov solver~~ - Same as Sylvester
+- [ ] ~~balance()~~ - Strided row ops, ~30% SIMD
+- [ ] ~~Hessenberg~~ - Preprocessing only, limited value
+
+**Optional/Future:**
+- [ ] Double contraction A:B
+- [ ] Tensor cross product (beyond 3D)
+- [ ] Extend einsum to rank > 2
+- [ ] Network einsum (multi-tensor optimization)
+- [ ] MatSub, MatMul (lazy operations)
+- [ ] Unary math expressions (sin, cos, exp on matrices)
+- [ ] Lazy decompositions (SVD, LU, QR)
+- [ ] Blocked/tiled algorithms
+- [ ] Complex matrix support
+- [ ] Sparse matrices (CSR/CSC/COO)
+- [ ] BLAS/MKL backend switching
+
+**⚠️ REMINDER:** When implementing any of these, add to `optinum::` namespace in `optinum.hpp`!
+
+---
+
+## Module 3: Optimization - 📋 PLANNED
+
+### Planned Structure
 
 ```
 include/optinum/opti/
 ├── opti.hpp                     # Module header
 ├── core/
-│   ├── function.hpp             # Function wrapper with mixins
 │   ├── traits.hpp               # Function type traits
-│   ├── checks.hpp               # Static interface checks
+│   ├── callback.hpp             # Callback infrastructure
 │   └── log.hpp                  # Logging utilities
-├── callback/
-│   ├── callback.hpp             # Base callback infrastructure
-│   ├── early_stop.hpp           # Stop when loss plateaus
-│   ├── grad_clip.hpp            # Gradient clipping
-│   ├── print.hpp                # Print loss each iteration
-│   ├── progress.hpp             # Progress bar
-│   └── timer.hpp                # Time-based stopping
 ├── gradient/
 │   ├── gd.hpp                   # Gradient Descent
-│   └── sgd.hpp                  # Stochastic GD + Momentum + Nesterov
+│   └── sgd.hpp                  # SGD + Momentum + Nesterov
 ├── adaptive/
 │   ├── adam.hpp                 # Adam + AdaMax + AMSGrad + NAdam
 │   ├── adagrad.hpp              # AdaGrad
-│   ├── rmsprop.hpp              # RMSProp
-│   └── lookahead.hpp            # Lookahead wrapper
+│   └── rmsprop.hpp              # RMSProp
 ├── quasi_newton/
 │   └── lbfgs.hpp                # L-BFGS
 ├── evolutionary/
 │   ├── cmaes.hpp                # CMA-ES
 │   ├── de.hpp                   # Differential Evolution
-│   ├── pso.hpp                  # Particle Swarm Optimization
+│   ├── pso.hpp                  # Particle Swarm
 │   └── sa.hpp                   # Simulated Annealing
 ├── schedule/
-│   ├── schedule.hpp             # Module header
-│   ├── cyclical.hpp             # Cyclical LR
+│   ├── cyclical.hpp             # Cyclical learning rate
 │   └── warmup.hpp               # Warm restarts
 └── problem/
-    ├── sphere.hpp               # Sphere function (DONE - test function exists)
+    ├── sphere.hpp               # ✅ DONE (test problem)
     ├── rosenbrock.hpp           # Rosenbrock function
     ├── rastrigin.hpp            # Rastrigin function
     └── ackley.hpp               # Ackley function
 ```
 
-### Implementation Status
+### Implementation Phases
 
-#### Done
-- [x] `problem/sphere.hpp` - Sphere benchmark function
-
-#### Phase 1: Core Infrastructure
-- [ ] `core/function.hpp` - Function wrapper
+**Phase 1: Core Infrastructure**
 - [ ] `core/traits.hpp` - Type traits for objective functions
-- [ ] `callback/callback.hpp` - Callback system
+- [ ] `core/callback.hpp` - Callback system (early stop, print, timer)
 
-#### Phase 2: First-Order Methods
+**Phase 2: First-Order Methods**
 - [ ] `gradient/gd.hpp` - Gradient Descent
-- [ ] `gradient/sgd.hpp` - SGD with momentum
+- [ ] `gradient/sgd.hpp` - SGD with momentum/Nesterov
 - [ ] `adaptive/adam.hpp` - Adam optimizer
 
-#### Phase 3: Second-Order Methods
+**Phase 3: Second-Order Methods**
 - [ ] `quasi_newton/lbfgs.hpp` - L-BFGS
 
-#### Phase 4: Derivative-Free Methods
+**Phase 4: Derivative-Free Methods**
 - [ ] `evolutionary/cmaes.hpp` - CMA-ES
 - [ ] `evolutionary/de.hpp` - Differential Evolution
 - [ ] `evolutionary/pso.hpp` - Particle Swarm
 
----
+**Phase 5: Utilities**
+- [ ] More test problems (rosenbrock, rastrigin, ackley)
+- [ ] Learning rate schedulers
+- [ ] Advanced callbacks (gradient clipping, progress bars)
 
-## Testing
-
-All tests use **doctest**. Run with `make test`.
-
-### Test Coverage
-
-```
-test/simd/
-├── arch/arch_test.cpp           # Architecture detection
-├── pack/
-│   ├── pack_test.cpp            # pack<T,W> operations
-│   ├── mask_test.cpp            # mask<T,W> operations
-│   └── neon_test.cpp            # ARM NEON pack tests ✅ (70+ test cases)
-├── view/
-│   ├── view_test.cpp            # All view types
-│   ├── diagonal_view_test.cpp  # Diagonal view tests ✅ (Session 2024-12-26)
-│   └── filter_view_test.cpp    # Filter view tests ✅ (Session 2024-12-26)
-├── debug_test.cpp               # Debug mode tests ✅ (Session 2024-12-26)
-├── algo/
-│   ├── algo_elementwise_test.cpp # axpy, scale, add, etc.
-│   └── transform_test.cpp       # exp, log, sin, cos, tanh, sqrt
-├── backend/
-│   ├── elementwise_test.cpp     # Low-level SIMD elementwise
-│   ├── reduce_test.cpp          # Low-level SIMD reductions
-│   ├── dot_test.cpp             # Dot product
-│   ├── norm_test.cpp            # L2 norm
-│   ├── matmul_test.cpp          # Matrix multiplication
-│   ├── transpose_test.cpp       # Matrix transpose
-│   └── det_inverse_small_test.cpp # Specialized small matrix kernels ✅ (21 test cases)
-├── bridge_test.cpp              # view<W>() factory
-├── scalar_test.cpp              # Scalar<T> wrapper
-├── vector_test.cpp              # Vector<T,N> wrapper
-└── matrix_test.cpp              # Matrix<T,R,C> wrapper
-
-test/lina/
-├── lina_test.cpp                # Module-level tests
-├── basic/
-│   ├── lina_matmul_test.cpp     # matmul
-│   ├── lina_transpose_test.cpp  # transpose
-│   ├── determinant_test.cpp     # determinant
-│   ├── inverse_test.cpp         # inverse
-│   └── lina_norm_test.cpp       # norm
-├── decompose/
-│   ├── lu_test.cpp              # LU decomposition
-│   ├── qr_test.cpp              # QR decomposition
-│   ├── svd_test.cpp             # SVD
-│   ├── cholesky_test.cpp        # Cholesky
-│   └── eigen_test.cpp           # Eigendecomposition
-├── solve/
-│   ├── solve_test.cpp           # Ax = b solver
-│   └── lstsq_test.cpp           # Least squares
-├── algebra/
-│   ├── einsum_test.cpp          # Einstein summation
-│   └── contraction_test.cpp     # Tensor contraction
-└── expr/expr_test.cpp           # Expression templates
-
-test/simd/tensor_reshape_test.cpp # Tensor reshape() and squeeze() tests ✅ (Session 2024-12-26)
-
-test/opti/
-└── problem/sphere_test.cpp      # Sphere function
-```
-
-**Current test count: 45 tests, all passing** (44 original + 1 tensor_reshape_test)
+**⚠️ CRITICAL REMINDER:** 
+- When implementing opti:: features, expose them in `optinum::` namespace!
+- Example: `opti::GradientDescent` → Add `using GradientDescent = opti::GradientDescent;`
+- Example: `opti::minimize()` → Add `using opti::minimize;`
+- See "PLAN: API UNIFICATION" section above for rules
 
 ---
 
-## Examples
+## Design Principles
 
+1. **Header-only** - No compilation needed
+2. **Non-owning views** - Zero-copy over datapod types
+3. **SIMD-first** - All hot paths vectorized
+4. **Zero-cost abstractions** - Expression templates, compile-time dims
+5. **Constexpr friendly** - Scalar fallback for compile-time eval
+6. **datapod integration** - Prefer `dp::` over `std::` types
+7. **Modern C++20** - Concepts, constexpr, fold expressions
+8. **Real-time safe** - No dynamic allocation in critical paths
+
+---
+
+## Datapod Type Usage
+
+**In `lina::` and `opti::` modules, prefer datapod types:**
+
+| Use | Instead of |
+|-----|------------|
+| `dp::Result<T, dp::Error>` | exceptions, error codes |
+| `dp::Optional<T>` | `std::optional<T>` |
+| `dp::Vector<T>` | `std::vector<T>` |
+| `dp::Array<T, N>` | `std::array<T, N>` |
+| `dp::String` | `std::string` |
+
+**Error handling pattern:**
+```cpp
+dp::Result<dp::mat::vector<T, N>, dp::Error> solve(const Matrix& A, const Vector& b) {
+    if (is_singular(A)) {
+        return dp::Result<...>::err(dp::Error::invalid_argument("matrix is singular"));
+    }
+    return dp::Result<...>::ok(solution);
+}
 ```
-examples/
-├── scalar_usage.cpp                        # Scalar<T> usage
-├── vector_usage.cpp                        # Vector<T,N> usage
-├── matrix_usage.cpp                        # Matrix<T,R,C> usage
-├── factory_usage.cpp                       # Factory functions (fill, iota, zeros, etc.)
-├── simd_views_usage.cpp                    # Vector/Matrix/Tensor views + algorithms
-├── slicing_usage.cpp                       # View slicing operations
-├── how_slicing_works.cpp                   # Slicing internals
-└── sphere_optimization.cpp                 # Optimization example
-
-# Benchmarks (all operations)
-├── math_functions_complete_benchmark.cpp      # ALL 33 SIMD math functions ✅
-├── backend_operations_benchmark.cpp           # 15 backend ops (fill, reduce, matmul) ✅
-├── wrapper_operations_benchmark.cpp           # 26 Vector/Matrix/Tensor ops ✅
-├── lina_operations_benchmark.cpp              # 37 linear algebra ops ✅
-├── simd_pack_cross_platform_benchmark.cpp     # Cross-platform pack benchmark (AVX-512, AVX2, SSE, NEON, Scalar) ✅
-├── small_matrix_benchmark.cpp                 # Specialized 2x2/3x3/4x4 vs LU (32-243x speedup!) ✅
-├── simd_math_benchmark.cpp                    # Original SIMD math (6 functions)
-├── math_benchmark_all.cpp                     # Legacy comprehensive math
-├── fast_math_benchmark_new.cpp                # Legacy fast math
-├── boolean_benchmark.cpp                      # Boolean function benchmarks
-├── boolean_real_world_benchmark.cpp           # Real-world boolean usage
-├── double_precision_benchmark.cpp             # Double precision math
-└── float_precision_benchmark.cpp              # Float precision math
-```
-
-**Benchmark Coverage:** 111 operations across 4 comprehensive new benchmarks covering:
-- 27 missing SIMD math functions (tan, inverse trig, hyperbolic, rounding, special)
-- 15 backend operations (elementwise, reductions, matrix ops)
-- 26 wrapper type operations (Vector, Matrix, Tensor factories and ops)
-- 37 linear algebra operations (matmul, decompositions, solvers, tensor algebra)
 
 ---
 
@@ -695,200 +403,58 @@ examples/
 ```bash
 make config    # Configure (preserves cache)
 make build     # Build examples and tests
-make test      # Run all tests (33 tests)
+make test      # Run all tests
 make clean     # Clean build artifacts
 ```
 
----
-
-## Design Principles
-
-1. **Header-only**: No compilation, just include
-2. **Non-owning views**: `simd::view<W>()` over `dp::mat::*` - zero copy
-3. **Zero-cost abstractions**: Expression templates, compile-time dimensions
-4. **SIMD everywhere**: All math operations vectorized when possible
-5. **Constexpr friendly**: Scalar fallback for compile-time evaluation
-6. **POD-friendly**: Easy serialization via `datapod`
-7. **Use datapod types**: Prefer `dp::` types over `std::` equivalents (see below)
-8. **Modern C++**: Requires C++20 (concepts, constexpr, fold expressions)
+**Test count:** 53 tests (all passing)
 
 ---
 
-## Datapod Type Usage
+## Performance Highlights
 
-**In `lina::` and `opti::` modules, always prefer datapod types over std equivalents:**
+**SIMD Math Speedups (vs scalar):**
+- sin/cos: 22x (float), 6x (double)
+- tanh: 27x (float), 7x (double)
+- exp: 8x (float), 5x (double)
+- sinh/cosh: 19x (float), 18x (double)
+- atan: 11x (float), 5x (double)
 
-### Error Handling
-| Use | Instead of |
-|-----|------------|
-| `dp::Result<T, dp::Error>` | exceptions, error codes |
-| `dp::Res<T>` | (alias for `Result<T, Error>`) |
-| `dp::Optional<T>` | `std::optional<T>` |
-| `dp::Error` | custom error types |
+**Small Matrix Kernels:**
+- 2x2 det: 32x faster than LU
+- 3x3 det: 140x faster than LU
+- 4x4 det: 243x faster than LU
+- 2x2/3x3/4x4 inverse: < 0.001ms for 1M operations
 
-### Containers
-| Use | Instead of |
-|-----|------------|
-| `dp::Vector<T>` | `std::vector<T>` |
-| `dp::Array<T, N>` | `std::array<T, N>` |
-| `dp::String` | `std::string` |
-| `dp::Pair<K, V>` | `std::pair<K, V>` |
-| `dp::Tuple<Ts...>` | `std::tuple<Ts...>` |
-| `dp::Variant<Ts...>` | `std::variant<Ts...>` |
+---
 
-### Matrix Types (for data ownership)
-| Use | Description |
-|-----|-------------|
-| `dp::mat::scalar<T>` | Rank-0 (single value) |
-| `dp::mat::vector<T, N>` | Rank-1 (1D array) |
-| `dp::mat::matrix<T, R, C>` | Rank-2 (2D, column-major) |
-| `dp::mat::tensor<T, Dims...>` | Rank-N (N-dimensional) |
+## What Optinum Does Better Than Fastor
 
-### Error Factory Methods
-```cpp
-dp::Error::ok()                    // Success (code 0)
-dp::Error::invalid_argument(msg)   // Invalid input
-dp::Error::out_of_range(msg)       // Index out of bounds
-dp::Error::not_found(msg)          // Item not found
-// ... and more
-```
-
-### Usage Pattern
-```cpp
-// Failable operations return dp::Result
-dp::Result<dp::mat::vector<T, N>, dp::Error> solve(const Matrix& A, const Vector& b) {
-    if (is_singular(A)) {
-        return dp::Result<...>::err(dp::Error::invalid_argument("matrix is singular"));
-    }
-    // ... compute solution ...
-    return dp::Result<...>::ok(solution);
-}
-
-// Caller handles result
-auto result = solve(A, b);
-if (result.is_ok()) {
-    auto x = result.unwrap();
-} else {
-    auto err = result.unwrap_err();
-    // handle error
-}
-```
+| Feature | Advantage |
+|---------|-----------|
+| Modern C++20 | Concepts, constexpr, cleaner syntax |
+| LU with pivoting | Numerically stable (Fastor lacks pivot) |
+| QR/Cholesky/Eigen | Fastor lacks these decompositions |
+| Result<T, Error> | Safe error handling (vs exceptions) |
+| datapod integration | Clean ownership model |
+| Real-time friendly | No dynamic allocation in hot paths |
+| Focused scope | Less bloat, easier to maintain |
 
 ---
 
 ## Dependencies
 
 - **C++20** or later
-- **datapod** library (fetched automatically via CMake/xmake)
-- **Optional**: AVX2/AVX-512 for best SIMD performance
-
----
-
----
-
-## Feature Gap Summary (vs Fastor)
-
-This section tracks features present in Fastor that are missing in optinum.
-
-### Priority Levels
-
-| Priority | Description |
-|----------|-------------|
-| **P0** | Critical - Core functionality gaps |
-| **P1** | High - Important for usability |
-| **P2** | Medium - Nice to have |
-| **P3** | Low - Optional/advanced |
-
-### P0 - Critical (Core Functionality)
-
-| Feature | Category | Status |
-|---------|----------|--------|
-| AVX-512 full implementation | SIMD | **DONE** ✅ (Session 2024-12-26) |
-| ARM NEON full implementation | SIMD | **DONE** ✅ (Session 2024-12-26) |
-| `asin()`, `acos()`, `atan()`, `atan2()` | SIMD Math | **DONE** ✅ |
-| `pow()` function | SIMD Math | **DONE** ✅ |
-| `ceil()`, `floor()`, `round()`, `trunc()` | SIMD Math | **DONE** ✅ |
-| Specialized 2x2, 3x3, 4x4 inverse kernels | Backend | **DONE** ✅ (Session 2024-12-26) - Near-instant!|
-| Gather/Scatter operations | SIMD | Missing |
-
-### P1 - High (Usability)
-
-| Feature | Category | Status |
-|---------|----------|--------|
-| `sinh()`, `cosh()` | SIMD Math | **DONE** ✅ |
-| `asinh()`, `acosh()`, `atanh()` | SIMD Math | **DONE** ✅ |
-| `exp2()`, `log2()`, `log10()` | SIMD Math | **DONE** ✅ |
-| `expm1()`, `log1p()` | SIMD Math | **DONE** ✅ |
-| `abs()`, `cbrt()`, `clamp()`, `hypot()` | SIMD Math | **DONE** ✅ |
-| `isinf()`, `isnan()`, `isfinite()` | SIMD Math | **DONE** ✅ |
-| `zeros()`, `ones()`, `iota()` factories | Tensor | **DONE** ✅ |
-| `random()`, `randint()` factories | Tensor | **DONE** ✅ |
-| `reshape()`, `flatten()`, `squeeze()` | Tensor | **DONE** ✅ (Session 2024-12-26) |
-| View slicing (`seq()`, `fseq()`, `all`) | Views | **DONE** ✅ |
-| Tensor dimensionality reduction slicing | Views | **DONE** ✅ |
-| Stream output `operator<<` | I/O | **DONE** ✅ (Vector, Matrix, Tensor) |
-| Debug bounds/shape checking | Debug | **DONE** ✅ (Session 2024-12-26) |
-| Diagonal view | Views | **DONE** ✅ (Session 2024-12-26) |
-| Filter view | Views | **DONE** ✅ (Session 2024-12-26) |
-| Adjoint/Adjugate matrix | LinAlg | Missing |
-| Cofactor matrix | LinAlg | Missing |
-
-### P2 - Medium (Nice to Have)
-
-| Feature | Category | Status |
-|---------|----------|--------|
-| Complex number support | SIMD | Missing |
-| `cbrt()` cube root | SIMD Math | Missing |
-| `hypot()` | SIMD Math | Missing |
-| `erf()` error function | SIMD Math | ✅ Implemented |
-| `tgamma()`, `lgamma()` | SIMD Math | ✅ Implemented |
-| Pack `set()`, `set_sequential()` | SIMD | **DONE** ✅ |
-| Pack `reverse()`, `shift()`, `rotate()` | SIMD | **DONE** ✅ |
-| Pack `cast<U>()`, `get<I>()` | SIMD | **DONE** ✅ |
-| Pack `gather()`, `scatter()` | SIMD | **DONE** ✅ |
-| Diagonal view | Views | **DONE** ✅ (Session 2024-12-26) |
-| Filter view | Views | **DONE** ✅ (Session 2024-12-26) |
-| Network einsum | Tensor | Missing |
-| More expression template ops | Expr | Missing |
-| Double contraction | LinAlg | Missing |
-| Tensor cross product | LinAlg | Missing |
-| Voigt notation | LinAlg | Missing |
-
-### P3 - Low (Advanced/Optional)
-
-| Feature | Category | Status |
-|---------|----------|--------|
-| Intel MIC support | SIMD | Not planned |
-| SLEEF backend | SIMD Math | Optional |
-| libXSMM backend | Backend | Optional |
-| Intel MKL backend | Backend | Optional |
-| BLAS size threshold switching | Backend | Optional |
-| Block size tuning macros | Backend | Optional |
-| Continuum mechanics tags | LinAlg | Not needed |
-| Plane strain/stress modes | LinAlg | Not needed |
-| Sparse matrix support | LinAlg | Future |
-
-### What Optinum Does Better Than Fastor
-
-| Feature | Description |
-|---------|-------------|
-| Modern C++20 | Concepts, constexpr, cleaner syntax |
-| LU with pivoting | Numerically stable (Fastor has no pivot) |
-| QR decomposition | Fastor lacks this |
-| Cholesky decomposition | Fastor lacks this |
-| Eigendecomposition | Fastor lacks this (for symmetric matrices) |
-| Result<T, Error> | Safe error handling (Fastor uses exceptions) |
-| datapod integration | Clean ownership model |
-| Focused scope | Less bloat, easier to maintain |
-| Real-time friendly | No dynamic allocation in hot paths |
+- **datapod** v0.0.9 (fetched automatically via xmake)
+- **doctest** (for tests, fetched automatically)
+- **Optional:** AVX2/AVX-512 for best performance
 
 ---
 
 ## References
 
-- Cephes library: https://www.netlib.org/cephes/
 - Intel Intrinsics Guide: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/
 - Fastor: https://github.com/romeric/Fastor
 - ensmallen: https://github.com/mlpack/ensmallen
-- SLEEF: https://sleef.org/ (vectorized math library)
-- libXSMM: https://github.com/libxsmm/libxsmm (small matrix library)
+- SLEEF: https://sleef.org/
+- libXSMM: https://github.com/libxsmm/libxsmm
