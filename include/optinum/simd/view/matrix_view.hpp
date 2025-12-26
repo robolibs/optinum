@@ -6,6 +6,7 @@
 // =============================================================================
 
 #include <optinum/simd/kernel.hpp>
+#include <optinum/simd/view/slice.hpp>
 #include <optinum/simd/view/vector_view.hpp>
 
 namespace optinum::simd {
@@ -130,6 +131,66 @@ namespace optinum::simd {
             T *block_ptr = kernel_.data() + row_offset + col_offset * rows();
             Kernel<T, W, 2> block_kernel(block_ptr, {nrows, ncols}, {1, rows()});
             return matrix_view(block_kernel);
+        }
+
+        // ==========================================================================
+        // Slicing - 2D slicing with seq/fseq/all/fix
+        // ==========================================================================
+
+        // Two-dimensional slicing: m.slice(row_slice, col_slice)
+        // Returns a matrix_view of the sliced region
+        //
+        // Examples:
+        //   m.slice(seq(0, 3), all)        // rows 0..2, all columns
+        //   m.slice(all, fix<2>)           // all rows, column 2
+        //   m.slice(seq(1,5), seq(2,8))    // rows 1..4, cols 2..7
+        //   m.slice(fseq<0,4>(), all)      // compile-time rows 0..3, all cols
+        template <typename SliceR, typename SliceC>
+        OPTINUM_INLINE auto slice(const SliceR &row_slice, const SliceC &col_slice) const noexcept {
+            static_assert(is_slice_v<SliceR> || is_fixed_index_v<SliceR>, "Invalid row slice type");
+            static_assert(is_slice_v<SliceC> || is_fixed_index_v<SliceC>, "Invalid col slice type");
+
+            // Resolve both slices to concrete indices
+            seq row_seq = resolve_slice(row_slice, rows());
+            seq col_seq = resolve_slice(col_slice, cols());
+
+            // Handle special case: both are single indices -> return scalar view
+            // (For now, just handle the matrix case)
+
+            // Calculate new pointer offset
+            // Column-major layout: element(r,c) is at data[r + c*rows]
+            T *slice_ptr = kernel_.data() + row_seq.start + col_seq.start * rows();
+
+            // Calculate new dimensions
+            std::size_t new_rows = row_seq.size();
+            std::size_t new_cols = col_seq.size();
+
+            // Calculate new strides
+            // row_stride remains 1 in column-major (unless we have row stepping)
+            // col_stride is rows() in original matrix (unless we have col stepping)
+            std::size_t new_row_stride = row_seq.step;
+            std::size_t new_col_stride = rows() * col_seq.step;
+
+            // Create new kernel with adjusted pointer, dimensions, and strides
+            Kernel<T, W, 2> slice_kernel(slice_ptr, {new_rows, new_cols}, {new_row_stride, new_col_stride});
+
+            // Handle special cases for dimensionality reduction
+            if constexpr (is_fixed_index_v<SliceR> && is_fixed_index_v<SliceC>) {
+                // Both dimensions fixed -> return scalar_view (not implemented yet)
+                // For now, just return a 1x1 matrix
+                return matrix_view(slice_kernel);
+            } else if constexpr (is_fixed_index_v<SliceR>) {
+                // Row is fixed -> return vector_view (column slice of single row)
+                Kernel<T, W, 1> vec_kernel(slice_ptr, {new_cols}, {new_col_stride});
+                return vector_view<T, W>(vec_kernel);
+            } else if constexpr (is_fixed_index_v<SliceC>) {
+                // Column is fixed -> return vector_view (row slice of single column)
+                Kernel<T, W, 1> vec_kernel(slice_ptr, {new_rows}, {new_row_stride});
+                return vector_view<T, W>(vec_kernel);
+            } else {
+                // Both are ranges -> return matrix_view
+                return matrix_view(slice_kernel);
+            }
         }
     };
 
