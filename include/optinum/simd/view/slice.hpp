@@ -69,7 +69,7 @@ namespace optinum::simd {
             }
         }
 
-        static constexpr std::size_t operator[](std::size_t i) noexcept { return Start + i * Step; }
+        constexpr std::size_t operator[](std::size_t i) const noexcept { return Start + i * Step; }
     };
 
     // Deduction guide for fseq

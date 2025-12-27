@@ -15,10 +15,16 @@ namespace optinum::simd {
 
     namespace dp = ::datapod;
 
+    // Import Dynamic constant from datapod
+    using dp::mat::Dynamic;
+
     // Vector: 1D fixed-size array with SIMD-accelerated operations
     // Wraps datapod::mat::vector<T, N>
+    // Template parameter N can be:
+    //   - Fixed size: Vector<double, 10>  (compile-time size)
+    //   - Dynamic size: Vector<double, Dynamic> (runtime size)
     template <typename T, std::size_t N> class Vector {
-        static_assert(N > 0, "Vector size must be > 0");
+        static_assert(N > 0 || N == Dynamic, "Vector size must be > 0 or Dynamic");
         static_assert(std::is_arithmetic_v<T>, "Vector<T, N> requires arithmetic type");
 
       public:
@@ -34,7 +40,18 @@ namespace optinum::simd {
 
         static constexpr size_type extent = N;
 
+        // Default constructor
         constexpr Vector() noexcept = default;
+
+        // Runtime size constructor (only for Dynamic)
+        template <std::size_t M = N, typename = std::enable_if_t<M == Dynamic>>
+        explicit Vector(size_type size) : pod_(size) {}
+
+        // Runtime size + fill constructor (only for Dynamic)
+        template <std::size_t M = N, typename = std::enable_if_t<M == Dynamic>>
+        Vector(size_type size, const T &value) : pod_(size, value) {}
+
+        // POD constructors
         constexpr explicit Vector(const pod_type &pod) noexcept : pod_(pod) {}
         constexpr explicit Vector(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
 
@@ -62,8 +79,21 @@ namespace optinum::simd {
         constexpr reference back() noexcept { return pod_.back(); }
         constexpr const_reference back() const noexcept { return pod_.back(); }
 
-        static constexpr size_type size() noexcept { return N; }
-        static constexpr bool empty() noexcept { return false; }
+        constexpr size_type size() const noexcept {
+            if constexpr (N == Dynamic) {
+                return pod_.size();
+            } else {
+                return N;
+            }
+        }
+
+        constexpr bool empty() const noexcept {
+            if constexpr (N == Dynamic) {
+                return pod_.empty();
+            } else {
+                return false;
+            }
+        }
 
         constexpr iterator begin() noexcept { return pod_.begin(); }
         constexpr const_iterator begin() const noexcept { return pod_.begin(); }
@@ -85,7 +115,7 @@ namespace optinum::simd {
         // Fill with sequential values: 0, 1, 2, ...
         constexpr Vector &iota() noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i) {
+                for (size_type i = 0; i < size(); ++i) {
                     pod_[i] = static_cast<T>(i);
                 }
             } else {
@@ -97,7 +127,7 @@ namespace optinum::simd {
         // Fill with sequential values starting from 'start'
         constexpr Vector &iota(T start) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i) {
+                for (size_type i = 0; i < size(); ++i) {
                     pod_[i] = start + static_cast<T>(i);
                 }
             } else {
@@ -109,7 +139,7 @@ namespace optinum::simd {
         // Fill with sequential values with custom start and step
         constexpr Vector &iota(T start, T step) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i) {
+                for (size_type i = 0; i < size(); ++i) {
                     pod_[i] = start + static_cast<T>(i) * step;
                 }
             } else {
@@ -172,12 +202,12 @@ namespace optinum::simd {
 
             if constexpr (std::is_floating_point_v<T>) {
                 std::uniform_real_distribution<T> dis(T{0}, T{1});
-                for (size_type i = 0; i < N; ++i) {
+                for (size_type i = 0; i < size(); ++i) {
                     pod_[i] = dis(gen);
                 }
             } else {
                 std::uniform_int_distribution<T> dis(T{0}, std::numeric_limits<T>::max());
-                for (size_type i = 0; i < N; ++i) {
+                for (size_type i = 0; i < size(); ++i) {
                     pod_[i] = dis(gen);
                 }
             }
@@ -190,7 +220,7 @@ namespace optinum::simd {
             static std::mt19937 gen(rd());
             std::uniform_int_distribution<T> dis(low, high);
 
-            for (size_type i = 0; i < N; ++i) {
+            for (size_type i = 0; i < size(); ++i) {
                 pod_[i] = dis(gen);
             }
             return *this;
@@ -199,47 +229,63 @@ namespace optinum::simd {
         // Compound assignment
         constexpr Vector &operator+=(const Vector &rhs) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i)
+                for (size_type i = 0; i < size(); ++i)
                     pod_[i] += rhs.pod_[i];
             } else {
-                backend::add<T, N>(data(), data(), rhs.data());
+                if constexpr (N == Dynamic) {
+                    backend::add_runtime<T>(data(), data(), rhs.data(), size());
+                } else {
+                    backend::add<T, N>(data(), data(), rhs.data());
+                }
             }
             return *this;
         }
 
         constexpr Vector &operator-=(const Vector &rhs) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i)
+                for (size_type i = 0; i < size(); ++i)
                     pod_[i] -= rhs.pod_[i];
             } else {
-                backend::sub<T, N>(data(), data(), rhs.data());
+                if constexpr (N == Dynamic) {
+                    backend::sub_runtime<T>(data(), data(), rhs.data(), size());
+                } else {
+                    backend::sub<T, N>(data(), data(), rhs.data());
+                }
             }
             return *this;
         }
 
         constexpr Vector &operator*=(const Vector &rhs) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i)
+                for (size_type i = 0; i < size(); ++i)
                     pod_[i] *= rhs.pod_[i];
             } else {
-                backend::mul<T, N>(data(), data(), rhs.data());
+                if constexpr (N == Dynamic) {
+                    backend::mul_runtime<T>(data(), data(), rhs.data(), size());
+                } else {
+                    backend::mul<T, N>(data(), data(), rhs.data());
+                }
             }
             return *this;
         }
 
         constexpr Vector &operator/=(const Vector &rhs) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i)
+                for (size_type i = 0; i < size(); ++i)
                     pod_[i] /= rhs.pod_[i];
             } else {
-                backend::div<T, N>(data(), data(), rhs.data());
+                if constexpr (N == Dynamic) {
+                    backend::div_runtime<T>(data(), data(), rhs.data(), size());
+                } else {
+                    backend::div<T, N>(data(), data(), rhs.data());
+                }
             }
             return *this;
         }
 
         constexpr Vector &operator*=(T scalar) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i)
+                for (size_type i = 0; i < size(); ++i)
                     pod_[i] *= scalar;
             } else {
                 backend::mul_scalar<T, N>(data(), data(), scalar);
@@ -249,7 +295,7 @@ namespace optinum::simd {
 
         constexpr Vector &operator/=(T scalar) noexcept {
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < N; ++i)
+                for (size_type i = 0; i < size(); ++i)
                     pod_[i] /= scalar;
             } else {
                 backend::div_scalar<T, N>(data(), data(), scalar);
@@ -260,12 +306,22 @@ namespace optinum::simd {
         // Unary
         constexpr Vector operator-() const noexcept {
             Vector result;
-            for (size_type i = 0; i < N; ++i)
+            for (size_type i = 0; i < size(); ++i)
                 result.pod_[i] = -pod_[i];
             return result;
         }
 
         constexpr Vector operator+() const noexcept { return *this; }
+
+        // Resize (only for Dynamic vectors)
+        template <std::size_t M = N, typename = std::enable_if_t<M == Dynamic>> void resize(size_type new_size) {
+            pod_.resize(new_size);
+        }
+
+        template <std::size_t M = N, typename = std::enable_if_t<M == Dynamic>>
+        void resize(size_type new_size, const T &value) {
+            pod_.resize(new_size, value);
+        }
 
       private:
         pod_type pod_{};
@@ -323,11 +379,18 @@ namespace optinum::simd {
     // Scalar ops
     template <typename T, std::size_t N> constexpr Vector<T, N> operator*(const Vector<T, N> &lhs, T scalar) noexcept {
         Vector<T, N> result;
+        if constexpr (N == Dynamic) {
+            result.resize(lhs.size());
+        }
         if (std::is_constant_evaluated()) {
-            for (std::size_t i = 0; i < N; ++i)
+            for (std::size_t i = 0; i < lhs.size(); ++i)
                 result[i] = lhs[i] * scalar;
         } else {
-            backend::mul_scalar<T, N>(result.data(), lhs.data(), scalar);
+            if constexpr (N == Dynamic) {
+                backend::mul_scalar_runtime<T>(result.data(), lhs.data(), scalar, lhs.size());
+            } else {
+                backend::mul_scalar<T, N>(result.data(), lhs.data(), scalar);
+            }
         }
         return result;
     }
@@ -370,7 +433,11 @@ namespace optinum::simd {
                 result += lhs[i] * rhs[i];
             return result;
         }
-        return backend::dot<T, N>(lhs.data(), rhs.data());
+        if constexpr (N == Dynamic) {
+            return backend::dot_runtime<T>(lhs.data(), rhs.data(), lhs.size());
+        } else {
+            return backend::dot<T, N>(lhs.data(), rhs.data());
+        }
     }
 
     template <typename T, std::size_t N> constexpr T sum(const Vector<T, N> &v) noexcept {
@@ -380,11 +447,19 @@ namespace optinum::simd {
                 result += v[i];
             return result;
         }
-        return backend::reduce_sum<T, N>(v.data());
+        if constexpr (N == Dynamic) {
+            return backend::reduce_sum_runtime<T>(v.data(), v.size());
+        } else {
+            return backend::reduce_sum<T, N>(v.data());
+        }
     }
 
     template <typename T, std::size_t N> T norm(const Vector<T, N> &v) noexcept {
-        return backend::norm_l2<T, N>(v.data());
+        if constexpr (N == Dynamic) {
+            return backend::norm_l2_runtime<T>(v.data(), v.size());
+        } else {
+            return backend::norm_l2<T, N>(v.data());
+        }
     }
 
     template <typename T, std::size_t N> Vector<T, N> normalized(const Vector<T, N> &v) noexcept {

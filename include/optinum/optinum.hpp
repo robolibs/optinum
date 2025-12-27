@@ -15,13 +15,23 @@ namespace optinum {
     // Core Types (from simd::)
     // =========================================================================
 
-    /// Matrix type - column-major, fixed-size
+    /// Dynamic size constant (for runtime-sized containers)
+    /// Use as template parameter: Vector<double, Dynamic>
+    using simd::Dynamic;
+
+    /// Matrix type - column-major
+    /// Fixed-size: Matrix<double, 3, 4>
+    /// Dynamic-size: Matrix<double, Dynamic, Dynamic>
     template <typename T, std::size_t R, std::size_t C> using Matrix = simd::Matrix<T, R, C>;
 
-    /// Vector type - fixed-size 1D array
+    /// Vector type - 1D array
+    /// Fixed-size: Vector<double, 10>
+    /// Dynamic-size: Vector<double, Dynamic>
     template <typename T, std::size_t N> using Vector = simd::Vector<T, N>;
 
-    /// Tensor type - fixed-size N-dimensional array
+    /// Tensor type - N-dimensional array
+    /// Fixed-size: Tensor<double, 2, 3, 4>
+    /// Dynamic-size: Tensor<double, Dynamic, Dynamic, Dynamic>
     template <typename T, std::size_t... Dims> using Tensor = simd::Tensor<T, Dims...>;
 
     /// Scalar wrapper type

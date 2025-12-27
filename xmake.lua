@@ -12,6 +12,7 @@ add_rules("mode.debug", "mode.release")
 add_cxxflags("-Wall", "-Wextra", "-Wpedantic")
 add_cxxflags("-Wno-reorder", "-Wno-narrowing", "-Wno-array-bounds")
 add_cxxflags("-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-stringop-overflow", "-Wno-unused-but-set-variable")
+add_cxxflags("-Wno-gnu-line-marker")
 
 -- Enable AVX/AVX2 optimizations for SIMD (use explicit flags for Nix compatibility)
 add_cxxflags("-mavx", "-mavx2", "-mfma")
@@ -92,7 +93,7 @@ package("datapod")
         if not os.isdir(sourcedir) then
             print("Fetching datapod from git...")
             os.mkdir(path.directory(sourcedir))
-            os.execv("git", {"clone", "--quiet", "--depth", "1", "--branch", "0.0.9",
+            os.execv("git", {"clone", "--quiet", "--depth", "1", "--branch", "0.0.10",
                             "-c", "advice.detachedHead=false",
                             "https://github.com/robolibs/datapod.git", sourcedir})
         end
@@ -223,7 +224,7 @@ if has_config("tests") and os.projectdir() == os.curdir() then
             add_packages("datapod", "doctest")
             add_includedirs("include")
             add_defines("DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN")
-            
+
             -- Always enable SHORT_NAMESPACE for tests
             add_defines("SHORT_NAMESPACE")
 

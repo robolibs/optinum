@@ -48,9 +48,11 @@ namespace optinum::opti {
          */
         template <typename T, std::size_t N>
         void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+            const std::size_t n = x.size(); // Get runtime size
+
             // Lazy initialization on first use
-            if (mean_squared_grad.size() != N) {
-                mean_squared_grad.resize(N, T{0});
+            if (mean_squared_grad.size() != n) {
+                mean_squared_grad.resize(n, T{0});
             }
 
             T alpha_t = T(alpha);
@@ -67,51 +69,101 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            // SIMD width for this type and size
-            constexpr std::size_t W = simd::backend::preferred_simd_lanes<T, N>();
-            constexpr std::size_t main = simd::backend::main_loop_count<N, W>();
+            if constexpr (N == simd::Dynamic) {
+                // Runtime SIMD path for Dynamic sizes
+                const std::size_t W = simd::backend::preferred_simd_lanes_runtime<T>();
+                const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
 
-            using pack_t = simd::pack<T, W>;
+                constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
+                using pack_t = simd::pack<T, pack_width>;
 
-            const pack_t alpha_vec(alpha_t);
-            const pack_t one_minus_alpha_vec(one_minus_alpha);
-            const pack_t step_vec(step_size);
-            const pack_t eps_vec(eps_t);
+                const pack_t alpha_vec(alpha_t);
+                const pack_t one_minus_alpha_vec(one_minus_alpha);
+                const pack_t step_vec(step_size);
+                const pack_t eps_vec(eps_t);
 
-            // Update mean squared gradient: v = alpha * v + (1 - alpha) * g² (SIMD)
-            for (std::size_t i = 0; i < main; i += W) {
-                auto v_val = pack_t::loadu(v_ptr + i);
-                auto g_val = pack_t::loadu(g_ptr + i);
-                auto g_squared = g_val * g_val;
-                auto result = alpha_vec * v_val + one_minus_alpha_vec * g_squared;
-                result.storeu(v_ptr + i);
-            }
-            // Tail
-            for (std::size_t i = main; i < N; ++i) {
-                T g_i = g_ptr[i];
-                v_ptr[i] = alpha_t * v_ptr[i] + one_minus_alpha * g_i * g_i;
-            }
+                // Update mean squared gradient: v = alpha * v + (1 - alpha) * g² (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto g_val = pack_t::loadu(g_ptr + i);
+                    auto g_squared = g_val * g_val;
+                    auto result = alpha_vec * v_val + one_minus_alpha_vec * g_squared;
+                    result.storeu(v_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < n; ++i) {
+                    T g_i = g_ptr[i];
+                    v_ptr[i] = alpha_t * v_ptr[i] + one_minus_alpha * g_i * g_i;
+                }
 
-            // Update iterate: x = x - (step_size / sqrt(v + eps)) * g (SIMD)
-            for (std::size_t i = 0; i < main; i += W) {
-                auto x_val = pack_t::loadu(x_ptr + i);
-                auto v_val = pack_t::loadu(v_ptr + i);
-                auto g_val = pack_t::loadu(g_ptr + i);
+                // Update iterate: x = x - (step_size / sqrt(v + eps)) * g (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto x_val = pack_t::loadu(x_ptr + i);
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto g_val = pack_t::loadu(g_ptr + i);
 
-                // Compute sqrt(v) + eps
-                auto sqrt_v = simd::sqrt(v_val);
-                auto denom = sqrt_v + eps_vec;
+                    // Compute sqrt(v) + eps
+                    auto sqrt_v = simd::sqrt(v_val);
+                    auto denom = sqrt_v + eps_vec;
 
-                // Compute update: step_size * g / denom
-                auto update = step_vec * g_val / denom;
+                    // Compute update: step_size * g / denom
+                    auto update = step_vec * g_val / denom;
 
-                // Apply update: x -= update
-                auto result = x_val - update;
-                result.storeu(x_ptr + i);
-            }
-            // Tail
-            for (std::size_t i = main; i < N; ++i) {
-                x_ptr[i] -= step_size * g_ptr[i] / (std::sqrt(v_ptr[i]) + eps_t);
+                    // Apply update: x -= update
+                    auto result = x_val - update;
+                    result.storeu(x_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < n; ++i) {
+                    x_ptr[i] -= step_size * g_ptr[i] / (std::sqrt(v_ptr[i]) + eps_t);
+                }
+            } else {
+                // Compile-time SIMD path for fixed sizes
+                constexpr std::size_t W = simd::backend::preferred_simd_lanes<T, N>();
+                constexpr std::size_t main = simd::backend::main_loop_count<N, W>();
+
+                using pack_t = simd::pack<T, W>;
+
+                const pack_t alpha_vec(alpha_t);
+                const pack_t one_minus_alpha_vec(one_minus_alpha);
+                const pack_t step_vec(step_size);
+                const pack_t eps_vec(eps_t);
+
+                // Update mean squared gradient: v = alpha * v + (1 - alpha) * g² (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto g_val = pack_t::loadu(g_ptr + i);
+                    auto g_squared = g_val * g_val;
+                    auto result = alpha_vec * v_val + one_minus_alpha_vec * g_squared;
+                    result.storeu(v_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < N; ++i) {
+                    T g_i = g_ptr[i];
+                    v_ptr[i] = alpha_t * v_ptr[i] + one_minus_alpha * g_i * g_i;
+                }
+
+                // Update iterate: x = x - (step_size / sqrt(v + eps)) * g (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto x_val = pack_t::loadu(x_ptr + i);
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto g_val = pack_t::loadu(g_ptr + i);
+
+                    // Compute sqrt(v) + eps
+                    auto sqrt_v = simd::sqrt(v_val);
+                    auto denom = sqrt_v + eps_vec;
+
+                    // Compute update: step_size * g / denom
+                    auto update = step_vec * g_val / denom;
+
+                    // Apply update: x -= update
+                    auto result = x_val - update;
+                    result.storeu(x_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < N; ++i) {
+                    x_ptr[i] -= step_size * g_ptr[i] / (std::sqrt(v_ptr[i]) + eps_t);
+                }
             }
         }
 

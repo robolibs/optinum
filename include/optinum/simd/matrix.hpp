@@ -16,9 +16,13 @@ namespace optinum::simd {
 
     namespace dp = ::datapod;
 
+    // Matrix: 2D array with SIMD-accelerated operations
+    // Template parameters R, C can be:
+    //   - Fixed size: Matrix<double, 3, 4>  (compile-time size)
+    //   - Dynamic size: Matrix<double, Dynamic, Dynamic> (runtime size)
     template <typename T, std::size_t R, std::size_t C> class Matrix {
-        static_assert(R > 0, "Matrix rows must be > 0");
-        static_assert(C > 0, "Matrix cols must be > 0");
+        static_assert(R > 0 || R == Dynamic, "Matrix rows must be > 0 or Dynamic");
+        static_assert(C > 0 || C == Dynamic, "Matrix cols must be > 0 or Dynamic");
         static_assert(std::is_arithmetic_v<T>, "Matrix<T, R, C> requires arithmetic type");
 
       public:
@@ -36,7 +40,14 @@ namespace optinum::simd {
         static constexpr size_type cols_extent = C;
         static constexpr size_type extent = R * C;
 
+        // Default constructor
         constexpr Matrix() noexcept = default;
+
+        // Runtime size constructor (only for Dynamic)
+        template <std::size_t RR = R, std::size_t CC = C, typename = std::enable_if_t<RR == Dynamic && CC == Dynamic>>
+        explicit Matrix(size_type rows, size_type cols) : pod_(rows, cols) {}
+
+        // POD constructors
         constexpr explicit Matrix(const pod_type &pod) noexcept : pod_(pod) {}
         constexpr explicit Matrix(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
 
@@ -69,8 +80,21 @@ namespace optinum::simd {
             return pod_[i];
         }
 
-        static constexpr size_type rows() noexcept { return R; }
-        static constexpr size_type cols() noexcept { return C; }
+        constexpr size_type rows() const noexcept {
+            if constexpr (R == Dynamic) {
+                return pod_.rows();
+            } else {
+                return R;
+            }
+        }
+
+        constexpr size_type cols() const noexcept {
+            if constexpr (C == Dynamic) {
+                return pod_.cols();
+            } else {
+                return C;
+            }
+        }
         static constexpr size_type size() noexcept { return R * C; }
         static constexpr bool empty() noexcept { return false; }
 
@@ -218,7 +242,7 @@ namespace optinum::simd {
         template <std::size_t R_ = R, std::size_t C_ = C>
         constexpr std::enable_if_t<R_ == C_, Matrix &> set_identity() noexcept {
             fill(T{});
-            for (size_type i = 0; i < R; ++i)
+            for (size_type i = 0; i < rows(); ++i)
                 (*this)(i, i) = T{1};
             return *this;
         }
@@ -273,6 +297,12 @@ namespace optinum::simd {
         }
 
         constexpr Matrix operator+() const noexcept { return *this; }
+
+        // Resize (only for Dynamic matrices)
+        template <std::size_t RR = R, std::size_t CC = C, typename = std::enable_if_t<RR == Dynamic && CC == Dynamic>>
+        void resize(size_type new_rows, size_type new_cols) {
+            pod_.resize(new_rows, new_cols);
+        }
 
       private:
         pod_type pod_{};

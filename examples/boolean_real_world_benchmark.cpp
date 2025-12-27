@@ -372,7 +372,7 @@ void benchmark_outlier_detection() {
             auto outlier_mask = on::simd::cmp_gt(diff, threshold);
 
             // Exclude if non-finite OR outlier
-            auto exclude_mask = !finite_mask | outlier_mask;
+            auto exclude_mask = (!finite_mask) | outlier_mask;
 
             simd_excluded += exclude_mask.popcount();
 

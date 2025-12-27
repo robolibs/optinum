@@ -44,49 +44,86 @@ namespace optinum::opti {
          */
         template <typename T, std::size_t N>
         void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
-            // Lazy initialization of velocity on first use
-            if (velocity.size() != N) {
-                velocity.resize(N, T{0});
-            }
-
+            const std::size_t n = x.size(); // Get runtime size
             T mu = T(momentum);
+
+            // Lazy initialization of velocity on first use
+            if (velocity.size() != n) {
+                velocity.resize(n, T{0});
+            }
 
             // Get raw pointers for SIMD operations
             T *v_ptr = velocity.data();
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            // SIMD width for this type and size
-            constexpr std::size_t W = simd::backend::preferred_simd_lanes<T, N>();
-            constexpr std::size_t main = simd::backend::main_loop_count<N, W>();
+            if constexpr (N == simd::Dynamic) {
+                // Runtime SIMD path for Dynamic sizes
+                const std::size_t W = simd::backend::preferred_simd_lanes_runtime<T>();
+                const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
 
-            using pack_t = simd::pack<T, W>;
+                constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
+                using pack_t = simd::pack<T, pack_width>;
 
-            const pack_t mu_vec(mu);
-            const pack_t step_vec(step_size);
+                const pack_t mu_vec(mu);
+                const pack_t step_vec(step_size);
 
-            // Update velocity: v = momentum * v - step_size * gradient (SIMD)
-            for (std::size_t i = 0; i < main; i += W) {
-                auto v_val = pack_t::loadu(v_ptr + i);
-                auto g_val = pack_t::loadu(g_ptr + i);
-                auto result = mu_vec * v_val - step_vec * g_val;
-                result.storeu(v_ptr + i);
-            }
-            // Tail
-            for (std::size_t i = main; i < N; ++i) {
-                v_ptr[i] = mu * v_ptr[i] - step_size * g_ptr[i];
-            }
+                // Update velocity: v = momentum * v - step_size * gradient (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto g_val = pack_t::loadu(g_ptr + i);
+                    auto result = mu_vec * v_val - step_vec * g_val;
+                    result.storeu(v_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < n; ++i) {
+                    v_ptr[i] = mu * v_ptr[i] - step_size * g_ptr[i];
+                }
 
-            // Update iterate: x = x + v (SIMD)
-            for (std::size_t i = 0; i < main; i += W) {
-                auto x_val = pack_t::loadu(x_ptr + i);
-                auto v_val = pack_t::loadu(v_ptr + i);
-                auto result = x_val + v_val;
-                result.storeu(x_ptr + i);
-            }
-            // Tail
-            for (std::size_t i = main; i < N; ++i) {
-                x_ptr[i] += v_ptr[i];
+                // Update iterate: x = x + v (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto x_val = pack_t::loadu(x_ptr + i);
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto result = x_val + v_val;
+                    result.storeu(x_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < n; ++i) {
+                    x_ptr[i] += v_ptr[i];
+                }
+            } else {
+                // Compile-time SIMD path for fixed sizes
+                constexpr std::size_t W = simd::backend::preferred_simd_lanes<T, N>();
+                constexpr std::size_t main = simd::backend::main_loop_count<N, W>();
+
+                using pack_t = simd::pack<T, W>;
+
+                const pack_t mu_vec(mu);
+                const pack_t step_vec(step_size);
+
+                // Update velocity: v = momentum * v - step_size * gradient (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto g_val = pack_t::loadu(g_ptr + i);
+                    auto result = mu_vec * v_val - step_vec * g_val;
+                    result.storeu(v_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < N; ++i) {
+                    v_ptr[i] = mu * v_ptr[i] - step_size * g_ptr[i];
+                }
+
+                // Update iterate: x = x + v (SIMD)
+                for (std::size_t i = 0; i < main; i += W) {
+                    auto x_val = pack_t::loadu(x_ptr + i);
+                    auto v_val = pack_t::loadu(v_ptr + i);
+                    auto result = x_val + v_val;
+                    result.storeu(x_ptr + i);
+                }
+                // Tail
+                for (std::size_t i = main; i < N; ++i) {
+                    x_ptr[i] += v_ptr[i];
+                }
             }
         }
 

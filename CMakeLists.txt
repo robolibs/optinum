@@ -26,7 +26,7 @@ include(FetchContent)
 # --------------------------------------------------------------------------------------------------
 set(ext_deps)
 
-FetchContent_Declare(datapod GIT_REPOSITORY https://github.com/robolibs/datapod.git GIT_TAG 0.0.9)
+FetchContent_Declare(datapod GIT_REPOSITORY https://github.com/robolibs/datapod.git GIT_TAG 0.0.10)
 FetchContent_MakeAvailable(datapod)
 list(APPEND ext_deps datapod::datapod)
 

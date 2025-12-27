@@ -392,7 +392,6 @@ TEST_CASE("mask<double, 4> - AVX") {
 
 TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
     using pack_f4 = on::simd::pack<float, 4>;
-    using mask_f4 = on::simd::mask<float, 4>;
 
     SUBCASE("isinf - SSE float") {
         // Test positive infinity
@@ -466,7 +465,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 #ifdef OPTINUM_HAS_SSE2
     SUBCASE("isinf - SSE double") {
         using pack_d2 = on::simd::pack<double, 2>;
-        using mask_d2 = on::simd::mask<double, 2>;
 
         alignas(16) double data_inf[2] = {INFINITY, 1.5};
         auto p_inf = pack_d2::load(data_inf);
@@ -484,7 +482,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 
     SUBCASE("isnan - SSE double") {
         using pack_d2 = on::simd::pack<double, 2>;
-        using mask_d2 = on::simd::mask<double, 2>;
 
         alignas(16) double data_nan[2] = {std::numeric_limits<double>::quiet_NaN(), 2.5};
         auto p_nan = pack_d2::load(data_nan);
@@ -497,7 +494,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 
     SUBCASE("isfinite - SSE double") {
         using pack_d2 = on::simd::pack<double, 2>;
-        using mask_d2 = on::simd::mask<double, 2>;
 
         alignas(16) double data_mixed[2] = {INFINITY, 3.14};
         auto p_mixed = pack_d2::load(data_mixed);
@@ -512,7 +508,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 #ifdef OPTINUM_HAS_AVX
     SUBCASE("isinf - AVX float") {
         using pack_f8 = on::simd::pack<float, 8>;
-        using mask_f8 = on::simd::mask<float, 8>;
 
         alignas(32) float data_inf[8] = {INFINITY, 1.0f, -INFINITY, 2.0f, 3.0f, INFINITY, 4.0f, -INFINITY};
         auto p_inf = pack_f8::load(data_inf);
@@ -531,7 +526,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 
     SUBCASE("isnan - AVX float") {
         using pack_f8 = on::simd::pack<float, 8>;
-        using mask_f8 = on::simd::mask<float, 8>;
 
         alignas(32) float data_nan[8] = {NAN, 1.0f, 2.0f, NAN, 3.0f, 4.0f, NAN, 5.0f};
         auto p_nan = pack_f8::load(data_nan);
@@ -545,7 +539,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 
     SUBCASE("isfinite - AVX float") {
         using pack_f8 = on::simd::pack<float, 8>;
-        using mask_f8 = on::simd::mask<float, 8>;
 
         alignas(32) float data_mixed[8] = {1.0f, INFINITY, NAN, 2.0f, 3.0f, -INFINITY, 4.0f, NAN};
         auto p_mixed = pack_f8::load(data_mixed);
@@ -564,7 +557,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 
     SUBCASE("isinf - AVX double") {
         using pack_d4 = on::simd::pack<double, 4>;
-        using mask_d4 = on::simd::mask<double, 4>;
 
         alignas(32) double data_inf[4] = {INFINITY, 1.5, -INFINITY, 2.5};
         auto p_inf = pack_d4::load(data_inf);
@@ -579,7 +571,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 
     SUBCASE("isnan - AVX double") {
         using pack_d4 = on::simd::pack<double, 4>;
-        using mask_d4 = on::simd::mask<double, 4>;
 
         alignas(32) double data_nan[4] = {std::numeric_limits<double>::quiet_NaN(), 1.5, 2.5, NAN};
         auto p_nan = pack_d4::load(data_nan);
@@ -594,7 +585,6 @@ TEST_CASE("Boolean functions - isinf, isnan, isfinite") {
 
     SUBCASE("isfinite - AVX double") {
         using pack_d4 = on::simd::pack<double, 4>;
-        using mask_d4 = on::simd::mask<double, 4>;
 
         alignas(32) double data_mixed[4] = {1.5, INFINITY, NAN, 2.5};
         auto p_mixed = pack_d4::load(data_mixed);

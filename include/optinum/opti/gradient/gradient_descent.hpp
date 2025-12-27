@@ -70,18 +70,25 @@ namespace optinum::opti {
             using vector_type = simd::Vector<T, N>;
 
             // Working variables
-            vector_type x = x_init;        // Current iterate
-            vector_type gradient;          // Gradient storage
+            vector_type x = x_init; // Current iterate
+            vector_type gradient;   // Gradient storage
+
+            // For Dynamic vectors, allocate gradient with same size as x
+            if constexpr (N == simd::Dynamic) {
+                gradient.resize(x.size());
+            }
+
             T current_step = T(step_size); // Current step size
             T last_objective = std::numeric_limits<T>::max();
-            T current_objective;
+            T current_objective{};
 
             // Initialize policies
             if (reset_policy) {
                 update_policy.reset();
                 decay_policy.reset();
             }
-            update_policy.template initialize<T, N>(N);
+            // Use runtime size for initialization (handles both fixed and dynamic)
+            update_policy.template initialize<T, N>(x.size());
             decay_policy.initialize();
 
             // Callback: begin optimization
