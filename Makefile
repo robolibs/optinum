@@ -126,6 +126,7 @@ else
 endif
 
 TYPE ?= patch
+HAS_CODENAME := $(shell command -v git-codename 2>/dev/null)
 
 release:
 	@if [ -z "$(TYPE)" ]; then \
@@ -148,9 +149,9 @@ release:
 		changelog=$$(git cliff --unreleased --strip all); \
 		git cliff --tag $$version --unreleased --prepend CHANGELOG.md; \
 	fi; \
-	if [ "$(TYPE)" = "minor" ] || [ "$(TYPE)" = "major" ]; then \
-		RELEASE_NAME=$$(aichat "Based on the following changelog, generate a creative release codename. Should be 2 words, poetic or evocative, like 'Frozen Lake' or 'Iron Orchard'. Changelog: $$changelog"); \
-		echo "Release codename: $$RELEASE_NAME"; \
+	if { [ "$(TYPE)" = "minor" ] || [ "$(TYPE)" = "major" ]; } && [ -n "$(HAS_CODENAME)" ]; then \
+		RELEASE_NAME=$$(git-codename "$$changelog"); \
+		echo "-------------- $$RELEASE_NAME --------------"; \
 	fi; \
 	sed -i -E 's/(project\(.*VERSION )[0-9]+\.[0-9]+\.[0-9]+/\1'$$version'/' CMakeLists.txt; \
 	if [ -f xmake.lua ]; then \

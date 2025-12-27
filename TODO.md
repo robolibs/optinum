@@ -828,3 +828,228 @@ namespace optinum {
 ---
 
 **Last Updated:** December 27, 2025 - Phase 0 Complete! Next: DARE + meta module
+
+---
+
+## 🔬 Phase 0.7: Lie Groups (Manifold Optimization) - PROPOSED
+
+**Status:** ⏸️ PLANNING - Pending Decision
+
+**Rationale:** Critical for proper rotation/pose optimization in graphix (SLAM, bundle adjustment)
+
+### Why We Need Lie Groups
+
+Without Lie groups, optimizing rotations is problematic:
+- **Rotation matrices (R^9)**: Overparameterized, constraints hard to maintain
+- **Euler angles (R^3)**: Gimbal lock, singularities at 2π
+- **Quaternions (R^4)**: Need normalization constraint, optimization drifts
+
+**With Lie groups:**
+- Natural parameterization (R^3 tangent space for SO(3))
+- No constraints in optimization
+- Proper exp/log maps for manifold optimization
+- Clean derivatives for Gauss-Newton/Levenberg-Marquardt
+
+### Components to Implement
+
+#### 0.7a. **Quaternion Class** - CRITICAL ⭐⭐⭐⭐⭐
+- **File:** `include/optinum/lie/core/quaternion.hpp`
+- **Complexity:** ⭐⭐ Medium (~250 lines)
+- **Impact:** Foundation for SO(3), critical for 3D rotations
+- **Storage:** `Vector<T, 4>` with SIMD
+- **Operations:**
+  - Hamilton product (quaternion multiplication)
+  - Conjugate, inverse, normalization
+  - Conversion to/from rotation matrix
+  - Spherical interpolation (slerp)
+- **SIMD:** Automatic via Vector<T,4> operations
+
+#### 0.7b. **SO(3) - 3D Rotations** - CRITICAL ⭐⭐⭐⭐⭐
+- **File:** `include/optinum/lie/groups/so3.hpp`
+- **Complexity:** ⭐⭐⭐ Medium-Hard (~400 lines)
+- **Impact:** Essential for camera/robot orientation optimization
+- **Storage:** Unit quaternion
+- **Tangent Space:** R^3 (axis-angle / rotation vector)
+- **Operations:**
+  - `exp`: R^3 → SO(3) (Rodrigues formula)
+  - `log`: SO(3) → R^3 (atan2-based, numerically stable)
+  - `hat`: R^3 → so(3) (skew-symmetric matrix)
+  - `vee`: so(3) → R^3 (inverse of hat)
+  - Group: `*`, `inverse()`, `identity()`
+  - Jacobians: `left_jacobian()`, `right_jacobian()`, `Adj()`
+- **SIMD:** 95% coverage via matmul, sin/cos, norm
+- **Applications:** Bundle adjustment rotations, IMU orientation
+
+#### 0.7c. **SE(3) - 3D Rigid Transformations** - HIGH ⭐⭐⭐⭐
+- **File:** `include/optinum/lie/groups/se3.hpp`
+- **Complexity:** ⭐⭐⭐ Hard (~500 lines)
+- **Impact:** Camera poses in SLAM, robot poses
+- **Storage:** SO(3) + Vector<T,3> (rotation + translation)
+- **Tangent Space:** R^6 ([ω; v] rotation + translation)
+- **Operations:**
+  - `exp`: R^6 → SE(3) (matrix exponential)
+  - `log`: SE(3) → R^6 (matrix logarithm)
+  - `hat`: R^6 → se(3) (4×4 matrix)
+  - `vee`: se(3) → R^6
+  - `Adj()`: 6×6 adjoint transformation
+- **SIMD:** 90% coverage
+- **Applications:** Visual SLAM, pose graph optimization
+
+#### 0.7d. **Matrix Exponential** - MEDIUM ⭐⭐⭐
+- **File:** `include/optinum/lina/basic/expmat.hpp` (already exists!)
+- **Status:** CHECK IF IMPLEMENTED
+- **Needed for:** SE(3)::exp
+- **Algorithm:** Padé approximation or Taylor series
+- **SIMD:** Automatic via matmul
+
+### Module Structure
+
+```
+include/optinum/lie/
+├── lie.hpp                     # Main header (includes all)
+├── core/
+│   ├── quaternion.hpp          # Quaternion class (~250 lines)
+│   ├── concepts.hpp            # C++20 Lie group concepts (~50 lines)
+│   └── math.hpp                # Rodrigues, helpers (~150 lines)
+├── groups/
+│   ├── so3.hpp                 # SO(3) implementation (~400 lines)
+│   └── se3.hpp                 # SE(3) implementation (~500 lines)
+└── algorithms/
+    └── interpolate.hpp         # slerp, manifold interp (~150 lines)
+
+test/lie/
+├── quaternion_test.cpp         # 10-15 test cases
+├── so3_test.cpp                # 15-20 test cases
+└── se3_test.cpp                # 15-20 test cases
+
+examples/
+├── so3_demo.cpp                # Rotation optimization
+└── se3_demo.cpp                # Pose graph/bundle adjustment
+```
+
+**Total Estimate:** ~1,500 lines code + 500 lines tests = 2,000 lines
+
+### Dependencies
+
+**What We Have ✅:**
+- Matrix/Vector with SIMD ✅
+- matmul, transpose, inverse ✅
+- cross product, norm ✅
+- sin, cos, atan2 (simd/math) ✅
+- Jacobian computation ✅
+- GaussNewton, LevenbergMarquardt ✅
+
+**What We Need ❌:**
+- Matrix exponential (check if expmat.hpp is complete)
+- Quaternion class
+- SO(3), SE(3) Lie groups
+
+### Integration with Optimizers
+
+Manifold optimization works with existing GN/LM:
+
+```cpp
+// Standard optimization on R^n
+x_new = x + delta;
+
+// Manifold optimization  
+x_new = x * SO3::exp(delta);  // Retraction on manifold
+```
+
+**Modifications needed:**
+- Retraction step in GN/LM (1 line change)
+- Jacobian computed in tangent space (already works!)
+
+### SIMD Performance
+
+Expected SIMD coverage:
+- **Quaternion ops:** 100% (4-vector operations)
+- **SO(3)::exp:** 95% (sin/cos, vector ops)
+- **SO(3)::matrix:** 95% (quaternion → matrix conversion)
+- **SE(3)::exp:** 90% (matrix exponential, matmul)
+
+**Performance:** 3-5x faster than scalar Sophus
+
+### API Design
+
+```cpp
+namespace optinum::lie {
+    template <typename T = double> class Quaternion;
+    template <typename T = double> class SO3;
+    template <typename T = double> class SE3;
+}
+
+// Exposed in optinum:: namespace
+namespace optinum {
+    template <typename T = double> using Quaternion = lie::Quaternion<T>;
+    template <typename T = double> using SO3 = lie::SO3<T>;
+    template <typename T = double> using SE3 = lie::SE3<T>;
+}
+```
+
+### Example Usage
+
+```cpp
+using namespace optinum;
+
+// Camera pose optimization
+auto residuals = [&](const Vector<double, 6>& xi) {
+    SE3<double> pose = SE3<double>::exp(xi);
+    // Project 3D points, compute reprojection error
+    return error_vector;
+};
+
+LevenbergMarquardt<double> optimizer;
+auto result = optimizer.optimize(residuals, Vector<double, 6>::Zero());
+SE3<double> optimal_pose = SE3<double>::exp(result.x);
+```
+
+### Testing Strategy
+
+**Unit Tests:**
+- Quaternion: ops, conversions, normalization
+- SO(3): exp/log round-trip, hat/vee, group axioms
+- SE(3): exp/log round-trip, composition, inverse
+
+**Numerical Tests:**
+- Jacobians vs finite differences
+- Orthogonality of rotation matrices
+- Unit quaternion constraint
+
+**Integration Tests:**
+- Bundle adjustment with SE(3)
+- Rotation averaging with SO(3)
+
+### Decision Factors
+
+**GO - Implement if:**
+- ✅ graphix needs camera pose optimization (SLAM)
+- ✅ Want proper bundle adjustment
+- ✅ Want to avoid Sophus + Eigen dependency
+- ✅ Want complete self-contained optimization library
+
+**NO-GO - Skip if:**
+- ❌ Okay with keeping Sophus as external dependency
+- ❌ graphix only does unconstrained optimization
+- ❌ Time constraints (can add later)
+
+### Recommendation
+
+**Status:** ✅ **RECOMMENDED** - Implement Phase 0.7
+
+**Priority:** HIGH (after Phase 0.5 DARE)
+
+**Effort:** 2-3 weeks
+
+**Payoff:** 
+- Enables proper manifold optimization
+- Critical for graphix (SLAM, bundle adjustment)
+- No external dependencies (Sophus, Eigen)
+- Clean integration with existing optimizers
+- SIMD-accelerated (3-5x faster than scalar)
+
+**Implementation Order:**
+1. Phase 0.7a: Quaternion (~1 week)
+2. Phase 0.7b: SO(3) (~1 week)
+3. Phase 0.7c: SE(3) + examples (~1 week)
+

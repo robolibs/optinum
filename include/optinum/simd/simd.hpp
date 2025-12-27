@@ -10,6 +10,7 @@
 #include <optinum/simd/pack/complex.hpp>
 #include <optinum/simd/pack/neon.hpp>
 #include <optinum/simd/pack/pack.hpp>
+#include <optinum/simd/pack/quaternion.hpp>
 #include <optinum/simd/pack/sse.hpp>
 
 // mask<T,W> - comparison results
@@ -41,6 +42,7 @@
 // User-facing types (legacy, wrapping datapod)
 #include <optinum/simd/complex.hpp>
 #include <optinum/simd/matrix.hpp>
+#include <optinum/simd/quaternion.hpp>
 #include <optinum/simd/scalar.hpp>
 #include <optinum/simd/tensor.hpp>
 #include <optinum/simd/vector.hpp>
