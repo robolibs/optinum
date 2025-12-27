@@ -5,6 +5,7 @@
 // Unified public API - everything exposed through optinum:: namespace
 // =============================================================================
 
+#include <optinum/lie/lie.hpp>
 #include <optinum/lina/lina.hpp>
 #include <optinum/opti/opti.hpp>
 #include <optinum/simd/simd.hpp>
@@ -276,6 +277,22 @@ namespace optinum {
 
     // Test problems
     using opti::Sphere;
+
+    // =========================================================================
+    // Lie Groups (from lie::)
+    // =========================================================================
+
+    // 2D rotation group (unit complex number)
+    template <typename T = double> using SO2 = lie::SO2<T>;
+    using SO2f = lie::SO2f;
+    using SO2d = lie::SO2d;
+
+    // Lie group utilities
+    using lie::interpolate;
+    // using lie::average;  // Has template deduction issues, use lie::average directly
+
+    // Constants (from lie::)
+    // These are already namespaced as lie::pi<T>, lie::epsilon<T>, etc.
 
 } // namespace optinum
 
