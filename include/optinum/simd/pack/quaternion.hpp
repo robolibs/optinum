@@ -6,7 +6,11 @@
 // =============================================================================
 
 #include <datapod/matrix/math/quaternion.hpp>
+#include <optinum/simd/mask.hpp>
+#include <optinum/simd/math/simd_math.hpp>
 #include <optinum/simd/pack/pack.hpp>
+
+#include <cmath>
 
 namespace optinum::simd {
 
@@ -346,6 +350,265 @@ namespace optinum::simd {
             ax = x_ / s;
             ay = y_ / s;
             az = z_ / s;
+        }
+
+        // ===== FACTORY METHODS =====
+
+        // Create from axis-angle representation (SIMD version)
+        // ax, ay, az should be unit vectors, angle is in radians
+        [[nodiscard]] static pack from_axis_angle(const real_pack &ax, const real_pack &ay, const real_pack &az,
+                                                  const real_pack &angle) noexcept {
+            auto half = angle * T{0.5};
+            auto s = optinum::simd::sin(half);
+            auto c = optinum::simd::cos(half);
+            return pack(c, ax * s, ay * s, az * s);
+        }
+
+        // Create from Euler angles (ZYX convention: roll, pitch, yaw)
+        [[nodiscard]] static pack from_euler(const real_pack &roll, const real_pack &pitch,
+                                             const real_pack &yaw) noexcept {
+            auto half_roll = roll * T{0.5};
+            auto half_pitch = pitch * T{0.5};
+            auto half_yaw = yaw * T{0.5};
+
+            auto cr = optinum::simd::cos(half_roll);
+            auto sr = optinum::simd::sin(half_roll);
+            auto cp = optinum::simd::cos(half_pitch);
+            auto sp = optinum::simd::sin(half_pitch);
+            auto cy = optinum::simd::cos(half_yaw);
+            auto sy = optinum::simd::sin(half_yaw);
+
+            return pack(cr * cp * cy + sr * sp * sy,  // w
+                        sr * cp * cy - cr * sp * sy,  // x
+                        cr * sp * cy + sr * cp * sy,  // y
+                        cr * cp * sy - sr * sp * cy); // z
+        }
+
+        // ===== CONVERSION METHODS =====
+
+        // Convert to Euler angles (roll, pitch, yaw in radians)
+        void to_euler(real_pack &roll, real_pack &pitch, real_pack &yaw) const noexcept {
+            // Roll (x-axis rotation)
+            auto sinr_cosp = real_pack(T{2}) * (w_ * x_ + y_ * z_);
+            auto cosr_cosp = real_pack(T{1}) - real_pack(T{2}) * (x_ * x_ + y_ * y_);
+            roll = atan2(sinr_cosp, cosr_cosp);
+
+            // Pitch (y-axis rotation) - need to handle gimbal lock
+            auto sinp = real_pack(T{2}) * (w_ * y_ - z_ * x_);
+            // Clamp sinp to [-1, 1] to avoid NaN from asin
+            sinp = max(real_pack(T{-1}), min(sinp, real_pack(T{1})));
+            pitch = asin(sinp);
+
+            // Yaw (z-axis rotation)
+            auto siny_cosp = real_pack(T{2}) * (w_ * z_ + x_ * y_);
+            auto cosy_cosp = real_pack(T{1}) - real_pack(T{2}) * (y_ * y_ + z_ * z_);
+            yaw = atan2(siny_cosp, cosy_cosp);
+        }
+
+        // Convert to axis-angle representation
+        void to_axis_angle(real_pack &ax, real_pack &ay, real_pack &az, real_pack &angle) const noexcept {
+            angle = real_pack(T{2}) * acos(w_);
+            auto s = sqrt(real_pack(T{1}) - w_ * w_);
+
+            // Handle small angles (avoid division by zero)
+            // When s is very small, axis is arbitrary (no rotation)
+            auto safe_s = max(s, real_pack(T{1e-10}));
+            ax = x_ / safe_s;
+            ay = y_ / safe_s;
+            az = z_ / safe_s;
+        }
+
+        // Convert to 3x3 rotation matrix (column-major, outputs 9 real_packs)
+        // Matrix layout: [m00, m10, m20, m01, m11, m21, m02, m12, m22]
+        void to_rotation_matrix(real_pack &m00, real_pack &m01, real_pack &m02, real_pack &m10, real_pack &m11,
+                                real_pack &m12, real_pack &m20, real_pack &m21, real_pack &m22) const noexcept {
+            auto two = real_pack(T{2});
+
+            auto xx = x_ * x_;
+            auto yy = y_ * y_;
+            auto zz = z_ * z_;
+            auto xy = x_ * y_;
+            auto xz = x_ * z_;
+            auto yz = y_ * z_;
+            auto wx = w_ * x_;
+            auto wy = w_ * y_;
+            auto wz = w_ * z_;
+
+            m00 = real_pack(T{1}) - two * (yy + zz);
+            m01 = two * (xy - wz);
+            m02 = two * (xz + wy);
+
+            m10 = two * (xy + wz);
+            m11 = real_pack(T{1}) - two * (xx + zz);
+            m12 = two * (yz - wx);
+
+            m20 = two * (xz - wy);
+            m21 = two * (yz + wx);
+            m22 = real_pack(T{1}) - two * (xx + yy);
+        }
+
+        // ===== ADVANCED INTERPOLATION =====
+
+        // True SLERP with proper handling of quaternion double-cover
+        // Uses branchless SIMD operations where possible
+        [[nodiscard]] pack slerp(const pack &other, T t) const noexcept {
+            auto d = dot(other);
+
+            // Handle quaternion double-cover: if dot < 0, negate other
+            // This ensures we take the shorter path on the sphere
+            auto sign_mask = cmp_lt(d, real_pack(T{0}));
+
+            // Conditionally negate other's components based on sign
+            // blend(a, b, mask) returns b where mask is true, else a
+            auto other_w = blend(other.w_, -other.w_, sign_mask);
+            auto other_x = blend(other.x_, -other.x_, sign_mask);
+            auto other_y = blend(other.y_, -other.y_, sign_mask);
+            auto other_z = blend(other.z_, -other.z_, sign_mask);
+            d = abs(d);
+
+            // Clamp d to avoid numerical issues with acos
+            d = min(d, real_pack(T{1}));
+
+            auto theta = acos(d);
+            auto sin_theta = sin(theta);
+
+            // Handle near-parallel quaternions (use lerp when sin_theta ≈ 0)
+            auto use_lerp = cmp_lt(sin_theta, real_pack(T{1e-6}));
+
+            // SLERP weights
+            auto one_minus_t = real_pack(T{1} - t);
+            auto wa_slerp = sin(one_minus_t * theta) / sin_theta;
+            auto wb_slerp = sin(real_pack(t) * theta) / sin_theta;
+
+            // LERP weights (fallback)
+            auto wa_lerp = one_minus_t;
+            auto wb_lerp = real_pack(t);
+
+            // Blend between slerp and lerp weights
+            // blend(a, b, mask): returns b where mask is true, else a
+            auto wa = blend(wa_slerp, wa_lerp, use_lerp);
+            auto wb = blend(wb_slerp, wb_lerp, use_lerp);
+
+            // Compute interpolated quaternion
+            auto result_w = wa * w_ + wb * other_w;
+            auto result_x = wa * x_ + wb * other_x;
+            auto result_y = wa * y_ + wb * other_y;
+            auto result_z = wa * z_ + wb * other_z;
+
+            // Normalize if we used lerp (slerp result is already unit)
+            auto result = pack(result_w, result_x, result_y, result_z);
+            return qblend(result, result.normalized(), use_lerp);
+        }
+
+        // ===== POWER AND EXPONENTIAL =====
+
+        // Full exponential for general quaternions (not just pure)
+        // exp(q) = exp(w) * (cos|v| + sin|v|/|v| * v)
+        [[nodiscard]] pack qexp() const noexcept {
+            auto vnorm = sqrt(x_ * x_ + y_ * y_ + z_ * z_);
+            // Use std::exp element-wise for the scalar exponential
+            // This avoids dependency on SIMD exp which may not be available for all types
+            real_pack ew;
+            for (std::size_t i = 0; i < W; ++i) {
+                ew.data_[i] = std::exp(w_[i]);
+            }
+
+            // Handle small vector norm (avoid division by zero)
+            auto safe_vnorm = max(vnorm, real_pack(T{1e-10}));
+            auto sinc = sin(vnorm) / safe_vnorm;
+
+            return pack(ew * cos(vnorm), ew * sinc * x_, ew * sinc * y_, ew * sinc * z_);
+        }
+
+        // Power: q^t (useful for interpolation and smooth rotations)
+        [[nodiscard]] pack pow(T t) const noexcept { return (this->log() * t).qexp(); }
+
+        // Power with SIMD exponent
+        [[nodiscard]] pack pow(const real_pack &t) const noexcept { return (this->log() * t).qexp(); }
+
+        // ===== DERIVATIVE OPERATIONS =====
+        // Critical for optimization on SO(3)
+
+        // Compute the derivative of q*v*q^(-1) with respect to q
+        // Returns dv/dq for a given vector v = (vx, vy, vz)
+        // This is essential for Jacobian computation in Lie group optimization
+        void rotate_vector_jacobian(const real_pack &vx, const real_pack &vy, const real_pack &vz, real_pack &dw,
+                                    real_pack &dx, real_pack &dy, real_pack &dz) const noexcept {
+            // Jacobian of rotation with respect to quaternion
+            // dR/dq where R(q)v = q*v*q^(-1)
+            auto two = real_pack(T{2});
+
+            // Partial derivatives with respect to w
+            dw = two * (w_ * vx + y_ * vz - z_ * vy);
+
+            // Partial derivatives with respect to x
+            dx = two * (x_ * vx + y_ * vy + z_ * vz);
+
+            // Partial derivatives with respect to y
+            dy = two * (-y_ * vx + x_ * vy + w_ * vz);
+
+            // Partial derivatives with respect to z
+            dz = two * (-z_ * vx - w_ * vy + x_ * vz);
+        }
+
+        // Difference quaternion: returns delta such that other = this * delta
+        // Useful for computing relative rotations in optimization
+        [[nodiscard]] pack difference(const pack &other) const noexcept { return this->conjugate() * other; }
+
+        // Angular velocity between this and other quaternion
+        // Returns the axis-angle representation of the difference
+        void angular_difference(const pack &other, real_pack &wx, real_pack &wy, real_pack &wz) const noexcept {
+            auto delta = difference(other);
+            auto log_delta = delta.log();
+            // Angular velocity is 2 * log(delta).xyz
+            wx = real_pack(T{2}) * log_delta.x();
+            wy = real_pack(T{2}) * log_delta.y();
+            wz = real_pack(T{2}) * log_delta.z();
+        }
+
+        // ===== SQUAD (Spherical Quadrangle Interpolation) =====
+        // For smooth C1 interpolation between multiple quaternions
+
+        // Inner control point for SQUAD (given q_{i-1}, q_i, q_{i+1})
+        [[nodiscard]] static pack squad_control(const pack &q_prev, const pack &q_curr, const pack &q_next) noexcept {
+            // s_i = q_i * exp(-1/4 * (log(q_i^(-1) * q_{i+1}) + log(q_i^(-1) * q_{i-1})))
+            auto q_inv = q_curr.conjugate();
+            auto log_next = (q_inv * q_next).log();
+            auto log_prev = (q_inv * q_prev).log();
+            auto sum = (log_next + log_prev) * T{-0.25};
+            return q_curr * sum.qexp();
+        }
+
+        // SQUAD interpolation between q1 and q2 with control points s1 and s2
+        [[nodiscard]] static pack squad(const pack &q1, const pack &q2, const pack &s1, const pack &s2, T t) noexcept {
+            // squad(q1, q2, s1, s2, t) = slerp(slerp(q1, q2, t), slerp(s1, s2, t), 2t(1-t))
+            auto slerp1 = q1.slerp(q2, t);
+            auto slerp2 = s1.slerp(s2, t);
+            return slerp1.slerp(slerp2, T{2} * t * (T{1} - t));
+        }
+
+        // ===== UTILITY =====
+
+        // Check if quaternion is approximately unit (within tolerance)
+        [[nodiscard]] real_pack is_unit(T tolerance = T{1e-6}) const noexcept {
+            auto n2 = norm_squared();
+            return abs(n2 - real_pack(T{1})) < real_pack(tolerance);
+        }
+
+        // Check if quaternion is approximately identity
+        [[nodiscard]] real_pack is_identity(T tolerance = T{1e-6}) const noexcept {
+            auto dw = abs(w_ - real_pack(T{1}));
+            auto dx = abs(x_);
+            auto dy = abs(y_);
+            auto dz = abs(z_);
+            return (dw < real_pack(tolerance)) & (dx < real_pack(tolerance)) & (dy < real_pack(tolerance)) &
+                   (dz < real_pack(tolerance));
+        }
+
+        // Blend two quaternion packs based on a mask
+        // blend(a, b, mask): returns b where mask is true, else a
+        [[nodiscard]] static pack qblend(const pack &a, const pack &b, const mask<T, W> &m) noexcept {
+            return pack(blend(a.w_, b.w_, m), blend(a.x_, b.x_, m), blend(a.y_, b.y_, m), blend(a.z_, b.z_, m));
         }
     };
 

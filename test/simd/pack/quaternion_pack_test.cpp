@@ -1,6 +1,7 @@
-#include <cmath>
 #include <doctest/doctest.h>
 #include <optinum/simd/pack/quaternion.hpp>
+
+#include <cmath>
 
 using optinum::simd::pack;
 namespace dp = datapod;
@@ -372,4 +373,237 @@ TEST_CASE("Quaternion pack horizontal sum") {
     CHECK(sum.x == doctest::Approx(1.0));  // 0.1+0.2+0.3+0.4
     CHECK(sum.y == doctest::Approx(0.0));
     CHECK(sum.z == doctest::Approx(0.0));
+}
+
+// ===== NEW OPERATIONS TESTS =====
+
+TEST_CASE("Quaternion pack from_axis_angle") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 4>;
+
+    // Create 90 degree rotations about different axes
+    pack<double, 4> ax, ay, az, angle;
+    // Rotation about X
+    ax.data_[0] = 1.0;
+    ay.data_[0] = 0.0;
+    az.data_[0] = 0.0;
+    angle.data_[0] = M_PI / 2.0;
+    // Rotation about Y
+    ax.data_[1] = 0.0;
+    ay.data_[1] = 1.0;
+    az.data_[1] = 0.0;
+    angle.data_[1] = M_PI / 2.0;
+    // Rotation about Z
+    ax.data_[2] = 0.0;
+    ay.data_[2] = 0.0;
+    az.data_[2] = 1.0;
+    angle.data_[2] = M_PI / 2.0;
+    // 180 deg about X
+    ax.data_[3] = 1.0;
+    ay.data_[3] = 0.0;
+    az.data_[3] = 0.0;
+    angle.data_[3] = M_PI;
+
+    auto q = qpack::from_axis_angle(ax, ay, az, angle);
+
+    // cos(45°) ≈ 0.707
+    CHECK(q.w()[0] == doctest::Approx(std::cos(M_PI / 4.0)));
+    CHECK(q.x()[0] == doctest::Approx(std::sin(M_PI / 4.0)));
+    CHECK(q.y()[0] == doctest::Approx(0.0).epsilon(1e-10));
+
+    CHECK(q.w()[1] == doctest::Approx(std::cos(M_PI / 4.0)));
+    CHECK(q.y()[1] == doctest::Approx(std::sin(M_PI / 4.0)));
+
+    CHECK(q.w()[2] == doctest::Approx(std::cos(M_PI / 4.0)));
+    CHECK(q.z()[2] == doctest::Approx(std::sin(M_PI / 4.0)));
+
+    // 180 deg about X: w = cos(90) = 0, x = sin(90) = 1
+    CHECK(q.w()[3] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(q.x()[3] == doctest::Approx(1.0));
+}
+
+TEST_CASE("Quaternion pack from_euler and to_euler") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 4>;
+
+    // Create quaternions from Euler angles
+    pack<double, 4> roll, pitch, yaw;
+    roll.data_[0] = 0.0;
+    pitch.data_[0] = 0.0;
+    yaw.data_[0] = 0.0; // Identity
+    roll.data_[1] = M_PI / 4.0;
+    pitch.data_[1] = 0.0;
+    yaw.data_[1] = 0.0; // 45 deg roll
+    roll.data_[2] = 0.0;
+    pitch.data_[2] = M_PI / 4.0;
+    yaw.data_[2] = 0.0; // 45 deg pitch
+    roll.data_[3] = 0.0;
+    pitch.data_[3] = 0.0;
+    yaw.data_[3] = M_PI / 4.0; // 45 deg yaw
+
+    auto q = qpack::from_euler(roll, pitch, yaw);
+
+    // Identity quaternion
+    CHECK(q.w()[0] == doctest::Approx(1.0));
+    CHECK(q.x()[0] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(q.y()[0] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(q.z()[0] == doctest::Approx(0.0).epsilon(1e-10));
+
+    // Convert back to Euler angles
+    pack<double, 4> out_roll, out_pitch, out_yaw;
+    q.to_euler(out_roll, out_pitch, out_yaw);
+
+    CHECK(out_roll[0] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(out_pitch[0] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(out_yaw[0] == doctest::Approx(0.0).epsilon(1e-10));
+
+    CHECK(out_roll[1] == doctest::Approx(M_PI / 4.0).epsilon(1e-3));
+    CHECK(out_pitch[2] == doctest::Approx(M_PI / 4.0).epsilon(1e-3));
+    CHECK(out_yaw[3] == doctest::Approx(M_PI / 4.0).epsilon(1e-3));
+}
+
+TEST_CASE("Quaternion pack to_rotation_matrix") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 2>;
+
+    // Identity quaternion -> identity matrix
+    auto id = qpack::identity();
+    pack<double, 2> m00, m01, m02, m10, m11, m12, m20, m21, m22;
+    id.to_rotation_matrix(m00, m01, m02, m10, m11, m12, m20, m21, m22);
+
+    CHECK(m00[0] == doctest::Approx(1.0));
+    CHECK(m11[0] == doctest::Approx(1.0));
+    CHECK(m22[0] == doctest::Approx(1.0));
+    CHECK(m01[0] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(m10[0] == doctest::Approx(0.0).epsilon(1e-10));
+
+    // 90 deg rotation about Z
+    pack<double, 2> w(std::cos(M_PI / 4.0)), x(0.0), y(0.0), z(std::sin(M_PI / 4.0));
+    qpack rot_z(w, x, y, z);
+    rot_z.to_rotation_matrix(m00, m01, m02, m10, m11, m12, m20, m21, m22);
+
+    // Rotation about Z by 90 deg:
+    // [0 -1 0]
+    // [1  0 0]
+    // [0  0 1]
+    CHECK(m00[0] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(m01[0] == doctest::Approx(-1.0));
+    CHECK(m10[0] == doctest::Approx(1.0));
+    CHECK(m11[0] == doctest::Approx(0.0).epsilon(1e-10));
+    CHECK(m22[0] == doctest::Approx(1.0));
+}
+
+TEST_CASE("Quaternion pack slerp") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 2>;
+
+    // SLERP between identity and 90-deg Z rotation
+    auto id = qpack::identity();
+
+    const double angle = M_PI / 2.0;
+    pack<double, 2> w(std::cos(angle / 2.0)), x(0.0), y(0.0), z(std::sin(angle / 2.0));
+    qpack rot90(w, x, y, z);
+
+    // At t=0, should be identity
+    auto s0 = id.slerp(rot90, 0.0);
+    CHECK(s0.w()[0] == doctest::Approx(1.0));
+    CHECK(s0.z()[0] == doctest::Approx(0.0).epsilon(1e-6));
+
+    // At t=1, should be rot90
+    auto s1 = id.slerp(rot90, 1.0);
+    CHECK(s1.w()[0] == doctest::Approx(std::cos(angle / 2.0)));
+    CHECK(s1.z()[0] == doctest::Approx(std::sin(angle / 2.0)));
+
+    // At t=0.5, should be 45-deg rotation
+    auto s05 = id.slerp(rot90, 0.5);
+    CHECK(s05.w()[0] == doctest::Approx(std::cos(M_PI / 8.0)).epsilon(1e-3));
+    CHECK(s05.z()[0] == doctest::Approx(std::sin(M_PI / 8.0)).epsilon(1e-3));
+}
+
+TEST_CASE("Quaternion pack exp and log") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 2>;
+
+    // exp(log(q)) should equal q for unit quaternions
+    const double angle = M_PI / 3.0;
+    pack<double, 2> w(std::cos(angle / 2.0)), x(0.0), y(std::sin(angle / 2.0)), z(0.0);
+    qpack q(w, x, y, z);
+
+    auto log_q = q.log();
+    // log of unit quaternion should have w ≈ 0
+    CHECK(log_q.w()[0] == doctest::Approx(0.0).epsilon(1e-6));
+
+    auto exp_log_q = log_q.qexp();
+    CHECK(exp_log_q.w()[0] == doctest::Approx(q.w()[0]).epsilon(1e-6));
+    CHECK(exp_log_q.x()[0] == doctest::Approx(q.x()[0]).epsilon(1e-6));
+    CHECK(exp_log_q.y()[0] == doctest::Approx(q.y()[0]).epsilon(1e-6));
+    CHECK(exp_log_q.z()[0] == doctest::Approx(q.z()[0]).epsilon(1e-6));
+}
+
+TEST_CASE("Quaternion pack power") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 2>;
+
+    // q^0 = identity
+    const double angle = M_PI / 2.0;
+    pack<double, 2> w(std::cos(angle / 2.0)), x(0.0), y(0.0), z(std::sin(angle / 2.0));
+    qpack q(w, x, y, z);
+
+    auto q0 = q.pow(0.0);
+    CHECK(q0.w()[0] == doctest::Approx(1.0).epsilon(1e-6));
+    CHECK(q0.z()[0] == doctest::Approx(0.0).epsilon(1e-6));
+
+    // q^1 = q
+    auto q1 = q.pow(1.0);
+    CHECK(q1.w()[0] == doctest::Approx(q.w()[0]).epsilon(1e-3));
+    CHECK(q1.z()[0] == doctest::Approx(q.z()[0]).epsilon(1e-3));
+
+    // q^0.5 should be half the rotation
+    auto q05 = q.pow(0.5);
+    CHECK(q05.w()[0] == doctest::Approx(std::cos(angle / 4.0)).epsilon(1e-3));
+    CHECK(q05.z()[0] == doctest::Approx(std::sin(angle / 4.0)).epsilon(1e-3));
+}
+
+TEST_CASE("Quaternion pack difference and angular_difference") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 2>;
+
+    auto id = qpack::identity();
+
+    const double angle = M_PI / 2.0;
+    pack<double, 2> w(std::cos(angle / 2.0)), x(0.0), y(0.0), z(std::sin(angle / 2.0));
+    qpack rot90(w, x, y, z);
+
+    // difference: id^-1 * rot90 = rot90
+    auto diff = id.difference(rot90);
+    CHECK(diff.w()[0] == doctest::Approx(rot90.w()[0]));
+    CHECK(diff.z()[0] == doctest::Approx(rot90.z()[0]));
+
+    // Angular difference (should be the rotation vector)
+    pack<double, 2> wx, wy, wz;
+    id.angular_difference(rot90, wx, wy, wz);
+    // For 90 deg about Z: angular velocity should be (0, 0, pi/2)
+    CHECK(wx[0] == doctest::Approx(0.0).epsilon(1e-6));
+    CHECK(wy[0] == doctest::Approx(0.0).epsilon(1e-6));
+    CHECK(wz[0] == doctest::Approx(angle).epsilon(1e-3));
+}
+
+TEST_CASE("Quaternion pack geodesic_distance") {
+    using quat_t = dp::mat::quaternion<double>;
+    using qpack = pack<quat_t, 2>;
+
+    auto id = qpack::identity();
+
+    // Distance from identity to itself = 0
+    auto d0 = id.geodesic_distance(id);
+    CHECK(d0[0] == doctest::Approx(0.0).epsilon(1e-10));
+
+    // Distance from identity to 90 deg rotation
+    const double angle = M_PI / 2.0;
+    pack<double, 2> w(std::cos(angle / 2.0)), x(0.0), y(0.0), z(std::sin(angle / 2.0));
+    qpack rot90(w, x, y, z);
+
+    auto d90 = id.geodesic_distance(rot90);
+    // geodesic distance = arccos(|q1·q2|) = arccos(cos(45°)) = 45° = pi/4
+    CHECK(d90[0] == doctest::Approx(M_PI / 4.0).epsilon(1e-6));
 }
