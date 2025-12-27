@@ -248,6 +248,24 @@ namespace optinum::simd::backend {
         }
     }
 
+    // Runtime version for Dynamic sizes
+    template <typename T> OPTINUM_INLINE void fill_runtime(T *OPTINUM_RESTRICT dst, std::size_t n, T value) noexcept {
+        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        const std::size_t main = main_loop_count_runtime(n, W);
+
+        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
+        using pack_t = pack<T, pack_width>;
+
+        const pack_t v(value); // Broadcast value to all lanes
+        for (std::size_t i = 0; i < main; i += W) {
+            v.storeu(dst + i);
+        }
+
+        for (std::size_t i = main; i < n; ++i) {
+            dst[i] = value;
+        }
+    }
+
     // Fill array with sequential values (iota) using SIMD
     template <typename T, std::size_t N> OPTINUM_INLINE void iota(T *OPTINUM_RESTRICT dst, T start, T step) noexcept {
         constexpr std::size_t W = preferred_simd_lanes<T, N>();

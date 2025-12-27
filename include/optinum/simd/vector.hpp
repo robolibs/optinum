@@ -107,7 +107,12 @@ namespace optinum::simd {
             if (std::is_constant_evaluated()) {
                 pod_.fill(value);
             } else {
-                backend::fill<T, N>(data(), value);
+                // For Dynamic size, use runtime size instead of compile-time N
+                if constexpr (N == Dynamic) {
+                    backend::fill_runtime<T>(data(), size(), value);
+                } else {
+                    backend::fill<T, N>(data(), value);
+                }
             }
             return *this;
         }
@@ -335,7 +340,12 @@ namespace optinum::simd {
             for (std::size_t i = 0; i < N; ++i)
                 result[i] = lhs[i] + rhs[i];
         } else {
-            backend::add<T, N>(result.data(), lhs.data(), rhs.data());
+            if constexpr (N == Dynamic) {
+                result.resize(lhs.size());
+                backend::add_runtime<T>(result.data(), lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::add<T, N>(result.data(), lhs.data(), rhs.data());
+            }
         }
         return result;
     }
@@ -347,7 +357,12 @@ namespace optinum::simd {
             for (std::size_t i = 0; i < N; ++i)
                 result[i] = lhs[i] - rhs[i];
         } else {
-            backend::sub<T, N>(result.data(), lhs.data(), rhs.data());
+            if constexpr (N == Dynamic) {
+                result.resize(lhs.size());
+                backend::sub_runtime<T>(result.data(), lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::sub<T, N>(result.data(), lhs.data(), rhs.data());
+            }
         }
         return result;
     }
@@ -359,7 +374,12 @@ namespace optinum::simd {
             for (std::size_t i = 0; i < N; ++i)
                 result[i] = lhs[i] * rhs[i];
         } else {
-            backend::mul<T, N>(result.data(), lhs.data(), rhs.data());
+            if constexpr (N == Dynamic) {
+                result.resize(lhs.size());
+                backend::mul_runtime<T>(result.data(), lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::mul<T, N>(result.data(), lhs.data(), rhs.data());
+            }
         }
         return result;
     }
@@ -371,7 +391,12 @@ namespace optinum::simd {
             for (std::size_t i = 0; i < N; ++i)
                 result[i] = lhs[i] / rhs[i];
         } else {
-            backend::div<T, N>(result.data(), lhs.data(), rhs.data());
+            if constexpr (N == Dynamic) {
+                result.resize(lhs.size());
+                backend::div_runtime<T>(result.data(), lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::div<T, N>(result.data(), lhs.data(), rhs.data());
+            }
         }
         return result;
     }

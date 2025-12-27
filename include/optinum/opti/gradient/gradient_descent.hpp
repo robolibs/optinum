@@ -147,8 +147,12 @@ namespace optinum::opti {
                 converged = false;
             }
 
+            // Compute final gradient for result
+            T final_grad_norm = (iteration > 0) ? simd::norm(gradient) : std::numeric_limits<T>::max();
+
             // Create result
-            OptimizationResult<T, N> result(x, current_objective, iteration, converged, termination_reason);
+            OptimizationResult<T, N> result(x, current_objective, final_grad_norm, iteration, converged,
+                                            termination_reason);
 
             // Callback: end optimization
             callback.on_end(result);

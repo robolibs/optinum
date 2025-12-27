@@ -18,16 +18,20 @@ namespace optinum::opti {
 
         vector_type x;                  ///< Final solution vector
         T final_cost;                   ///< Final objective function value
+        T gradient_norm;                ///< Final gradient norm
         std::size_t iterations;         ///< Number of iterations performed
         bool converged;                 ///< Whether convergence criteria were met
         std::string termination_reason; ///< Reason for termination
 
         /// Default constructor
-        OptimizationResult() : x{}, final_cost{}, iterations{0}, converged{false}, termination_reason{} {}
+        OptimizationResult()
+            : x{}, final_cost{}, gradient_norm{}, iterations{0}, converged{false}, termination_reason{} {}
 
-        /// Construct with solution and cost
-        OptimizationResult(const vector_type &x_final, T cost, std::size_t iters, bool conv, const std::string &reason)
-            : x{x_final}, final_cost{cost}, iterations{iters}, converged{conv}, termination_reason{reason} {}
+        /// Construct with solution, cost, and gradient norm
+        OptimizationResult(const vector_type &x_final, T cost, T grad_norm, std::size_t iters, bool conv,
+                           const std::string &reason)
+            : x{x_final}, final_cost{cost}, gradient_norm{grad_norm}, iterations{iters}, converged{conv},
+              termination_reason{reason} {}
     };
 
     /**

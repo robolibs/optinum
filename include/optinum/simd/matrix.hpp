@@ -110,7 +110,12 @@ namespace optinum::simd {
             if (std::is_constant_evaluated()) {
                 pod_.fill(value);
             } else {
-                backend::fill<T, R * C>(data(), value);
+                // For Dynamic size, use runtime size instead of compile-time R*C
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::fill_runtime<T>(data(), rows() * cols(), value);
+                } else {
+                    backend::fill<T, R * C>(data(), value);
+                }
             }
             return *this;
         }
