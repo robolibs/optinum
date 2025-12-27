@@ -16,6 +16,7 @@
 #include <optinum/lina/basic/expmat.hpp>
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/is_finite.hpp>
+#include <optinum/lina/basic/jacobian.hpp>
 #include <optinum/lina/basic/log_det.hpp>
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/lina/basic/norm.hpp>

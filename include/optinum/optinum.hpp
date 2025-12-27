@@ -59,6 +59,11 @@ namespace optinum {
     using lina::norm;
     using lina::norm_fro;
 
+    // Numerical differentiation
+    using lina::gradient;
+    using lina::jacobian;
+    using lina::jacobian_error;
+
     // Matrix properties
     using lina::cond;
     using lina::is_finite;
@@ -236,7 +241,7 @@ namespace optinum {
     // Optimization Module (from opti::)
     // =========================================================================
 
-    // Optimizers
+    // First-order optimizers (gradient-based)
     template <typename UpdatePolicy = opti::VanillaUpdate, typename DecayPolicy = opti::NoDecay>
     using GradientDescent = opti::GradientDescent<UpdatePolicy, DecayPolicy>;
 
@@ -250,6 +255,10 @@ namespace optinum {
     using Momentum = GradientDescent<opti::MomentumUpdate>;
     using RMSprop = GradientDescent<opti::RMSPropUpdate>;
     using Adam = GradientDescent<opti::AdamUpdate>;
+
+    // Second-order optimizers (quasi-Newton methods)
+    template <typename T = double> using GaussNewton = opti::GaussNewton<T>;
+    template <typename T = double> using LevenbergMarquardt = opti::LevenbergMarquardt<T>;
 
     // Decay policies
     using opti::NoDecay;

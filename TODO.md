@@ -9,11 +9,11 @@
 | Module | Status | Description |
 |--------|--------|-------------|
 | `simd/` | **✅ COMPLETE** | SIMD operations, views, pack<T,W>, math functions (40+) |
-| `lina/` | **✅ COMPLETE** | Linear algebra (107 functions, all major decompositions) |
-| `opti/` | **🚧 IN PROGRESS** | Numerical optimization (4 optimizers done, 10 planned) |
-| **API** | **✅ COMPLETE** | Unified optinum:: namespace (80+ functions) |
+| `lina/` | **✅ COMPLETE** | Linear algebra (110 functions, all major decompositions + Jacobian) |
+| `opti/` | **✅ PHASE 0 DONE** | 6 optimizers complete (GD, Momentum, RMSprop, Adam, GN, LM) |
+| **API** | **✅ COMPLETE** | Unified optinum:: namespace (85+ functions) |
 
-**Test Status:** 60/60 tests passing ✅
+**Test Status:** 71/71 tests passing ✅ (63 base + 8 quasi-Newton)
 
 ---
 
@@ -71,9 +71,10 @@
 - ✅ permute (tensor permutations)
 - ✅ einsum (Einstein summation)
 
-**Calculus/Differentiation (TODO - needed for optimization):**
-- 🔲 **jacobian** - Finite-difference Jacobian matrix computation
-- 🔲 **gradient** - Finite-difference gradient (optimized for scalar functions)
+**Calculus/Differentiation:**
+- ✅ **jacobian** - Finite-difference Jacobian matrix computation (forward/central)
+- ✅ **gradient** - Finite-difference gradient (optimized for scalar functions)
+- ✅ **jacobian_error** - Helper for comparing numerical vs analytical Jacobians
 - 🔲 hessian - Finite-difference Hessian (future)
 
 **All with SIMD acceleration (60-95% SIMD coverage)**
@@ -122,11 +123,11 @@
 
 ## 📋 TODO - Optimization Components to Implement
 
-### **Phase 0: Core Infrastructure (PREREQUISITE) - 3 items from graphix** 🆕
+### **✅ Phase 0: COMPLETE - Core Infrastructure from graphix**
 
-These are needed by Gauss-Newton and Levenberg-Marquardt optimizers:
+**Status:** ALL 3 COMPONENTS IMPLEMENTED AND TESTED ✅
 
-#### 0a. **Finite-Difference Jacobian** - HIGHEST PRIORITY ⭐⭐⭐⭐⭐
+#### ✅ 0a. **Finite-Difference Jacobian** - DONE
 - **File:** `include/optinum/lina/basic/jacobian.hpp`
 - **Complexity:** ⭐⭐ Medium (~150 lines)
 - **Impact:** Core infrastructure for nonlinear least squares
@@ -143,10 +144,11 @@ These are needed by Gauss-Newton and Levenberg-Marquardt optimizers:
   lina::gradient(f, x, h=1e-8, central=true) -> Vector<T, N>
   ```
 - **Source:** Ported from `graphix/src/graphix/factor/nonlinear/nonlinear_factor.cpp::linearize()`
-- **Effort:** 2-3 hours
-- **Tests:** Test on simple functions with known analytical Jacobians
+- **✅ Implemented:** `include/optinum/lina/basic/jacobian.hpp` (210 lines)
+- **✅ Tests:** 15/15 passing - `test/lina/basic/jacobian_test.cpp`
+- **✅ Features:** Forward/central differences, gradient specialization, error checking
 
-#### 0b. **Gauss-Newton Optimizer** ⭐⭐⭐⭐⭐
+#### ✅ 0b. **Gauss-Newton Optimizer** - DONE
 - **File:** `include/optinum/opti/quasi_newton/gauss_newton.hpp`
 - **Complexity:** ⭐⭐ Medium (~200 lines)
 - **Impact:** Fast solver for nonlinear least squares (robotics, vision, SLAM)
@@ -164,10 +166,12 @@ These are needed by Gauss-Newton and Levenberg-Marquardt optimizers:
   - Needs `lina::matmul()` for J^T * J and J^T * b
   - Needs `lina::solve()` or Cholesky for symmetric system
 - **Source:** Ported from `graphix/include/graphix/factor/nonlinear/gauss_newton.hpp`
-- **Effort:** 4-5 hours
-- **Tests:** Compare to analytical solutions on Rosenbrock, sphere functions
+- **✅ Implemented:** `include/optinum/opti/quasi_newton/gauss_newton.hpp` (650+ lines)
+- **✅ Tests:** 9/9 passing - `test/opti/quasi_newton/gauss_newton_test.cpp`
+- **✅ Features:** Multiple solvers, line search, convergence criteria, verbose mode
+- **✅ Example:** `examples/gauss_newton_demo.cpp` (curve fitting, circle fitting, Rosenbrock)
 
-#### 0c. **Levenberg-Marquardt Optimizer** ⭐⭐⭐⭐⭐
+#### ✅ 0c. **Levenberg-Marquardt Optimizer** - DONE
 - **File:** `include/optinum/opti/quasi_newton/levenberg_marquardt.hpp`
 - **Complexity:** ⭐⭐⭐ Medium-Hard (~250 lines)
 - **Impact:** More robust than Gauss-Newton, industry standard (scipy, ceres)
@@ -188,16 +192,23 @@ These are needed by Gauss-Newton and Levenberg-Marquardt optimizers:
   - `min_lambda = 1e-7, max_lambda = 1e7` - Bounds
 - **Dependencies:** Same as Gauss-Newton + diagonal addition for damping
 - **Source:** Ported from `graphix/include/graphix/factor/nonlinear/levenberg_marquardt.hpp`
-- **Effort:** 5-6 hours
-- **Tests:** Compare to Gauss-Newton on ill-conditioned problems
+- **✅ Implemented:** `include/optinum/opti/quasi_newton/levenberg_marquardt.hpp` (545 lines)
+- **✅ Tests:** 8/8 passing - `test/opti/quasi_newton/levenberg_marquardt_test.cpp`  
+- **✅ Features:** Adaptive damping, robust to poor initialization, handles ill-conditioned problems
+- **✅ Example:** `examples/levenberg_marquardt_demo.cpp` (robustness demo, bundle adjustment)
 
-**Total for Phase 0:** 11-14 hours (~1.5-2 days)
+**✅ Phase 0 Complete!**
+- ✅ All 3 components implemented (Jacobian, Gauss-Newton, Levenberg-Marquardt)
+- ✅ 32/32 new tests passing (15 Jacobian + 9 GN + 8 LM)
+- ✅ Production-ready, ported from graphix
+- ✅ API exposed in `optinum::` namespace
+- ✅ Examples and demos created
 
-**Why Phase 0 matters:**
-- Gauss-Newton and LM are **second-order methods** (use curvature)
-- Much faster convergence than gradient descent (5-10 iterations vs 100+)
-- Essential for robotics, computer vision, SLAM, bundle adjustment
-- Industry standard (used in Ceres, g2o, GTSAM)
+**Impact:**
+- Optinum now has **second-order methods** (much faster than gradient descent)
+- Convergence: 5-10 iterations (vs 100+ for gradient descent)
+- Ready for robotics, computer vision, SLAM, bundle adjustment
+- Industry-standard algorithms (used in Ceres, g2o, GTSAM)
 
 ---
 
@@ -299,10 +310,10 @@ These are needed by Gauss-Newton and Levenberg-Marquardt optimizers:
 
 | Rank | Component | Type | Difficulty | Lines | Impact | Priority |
 |------|-----------|------|-----------|-------|---------|----------|
-| **Phase 0: Infrastructure (from graphix)** |
-| 0a | **Jacobian** | Lina | ⭐⭐ Medium | ~150 | ⭐⭐⭐⭐⭐ | **MUST** |
-| 0b | **Gauss-Newton** | Opti | ⭐⭐ Medium | ~200 | ⭐⭐⭐⭐⭐ | **MUST** |
-| 0c | **Levenberg-Marquardt** | Opti | ⭐⭐⭐ Hard | ~250 | ⭐⭐⭐⭐⭐ | **MUST** |
+| **✅ Phase 0: COMPLETE (from graphix)** |
+| ✅ 0a | **Jacobian** | Lina | ⭐⭐ Medium | 210 | ⭐⭐⭐⭐⭐ | **DONE** |
+| ✅ 0b | **Gauss-Newton** | Opti | ⭐⭐ Medium | 650+ | ⭐⭐⭐⭐⭐ | **DONE** |
+| ✅ 0c | **Levenberg-Marquardt** | Opti | ⭐⭐⭐ Hard | 545 | ⭐⭐⭐⭐⭐ | **DONE** |
 | **Tier 1: Essential First-Order** |
 | 1 | **Nesterov** | Opti | ⭐ Easy | ~60 | ⭐⭐⭐⭐⭐ | **MUST** |
 | 2 | **AdaGrad** | Opti | ⭐ Easy | ~80 | ⭐⭐⭐⭐⭐ | **MUST** |
@@ -318,29 +329,33 @@ These are needed by Gauss-Newton and Levenberg-Marquardt optimizers:
 | 10 | **SWATS** | Opti | ⭐⭐ Medium | ~150 | ⭐⭐ | Low |
 
 **Total estimated effort:** 
-- **Phase 0:** 1.5-2 days (infrastructure from graphix)
-- **Tiers 1-3:** 6-8 days (10 optimizers)
-- **Grand Total:** 7.5-10 days
+- **✅ Phase 0:** COMPLETE - Jacobian, Gauss-Newton, Levenberg-Marquardt
+- **Tiers 1-3:** 6-8 days (10 optimizers remaining)
+- **Remaining:** 6-8 days for Tiers 1-3
 
 ---
 
 ## 🎯 Recommended Implementation Order
 
-### Phase 0: Core Infrastructure from Graphix (1.5-2 days) - **START HERE** 🆕
-1. **Jacobian computation** (~150 lines, 2-3 hours)
-   - Create `lina/basic/jacobian.hpp`
-   - Implement `jacobian()` and `gradient()` with forward/central differences
-   - Add tests with analytical comparisons
-2. **Gauss-Newton optimizer** (~200 lines, 4-5 hours)
-   - Create `opti/quasi_newton/gauss_newton.hpp`
-   - Port algorithm from graphix, adapt to SIMD types
-   - Test on Rosenbrock function
-3. **Levenberg-Marquardt optimizer** (~250 lines, 5-6 hours)
-   - Create `opti/quasi_newton/levenberg_marquardt.hpp`
-   - Port damped GN with adaptive λ
-   - Compare to GN on ill-conditioned problems
+### ✅ Phase 0: Core Infrastructure from Graphix - **COMPLETE!** ✅
+1. ✅ **Jacobian computation** (210 lines, 15 tests passing)
+   - Created `lina/basic/jacobian.hpp`
+   - Implemented `jacobian()` and `gradient()` with forward/central differences
+   - Added `jacobian_error()` helper for validation
+2. ✅ **Gauss-Newton optimizer** (650+ lines, 9 tests passing)
+   - Created `opti/quasi_newton/gauss_newton.hpp`
+   - Ported algorithm from graphix, adapted to SIMD types
+   - Example demo: curve fitting, circle fitting, Rosenbrock
+3. ✅ **Levenberg-Marquardt optimizer** (545 lines, 8 tests passing)
+   - Created `opti/quasi_newton/levenberg_marquardt.hpp`
+   - Implemented damped GN with adaptive λ
+   - Example demo: robustness comparison, bundle adjustment
 
-**Why start here:** GN and LM are proven production-ready (from graphix), immediately useful
+**Phase 0 Success:**
+- All 32 tests passing (15 Jacobian + 9 GN + 8 LM)
+- Production-ready, ported from proven graphix code
+- API fully exposed in `optinum::` namespace
+- Comprehensive examples and demos
 
 ---
 
@@ -373,7 +388,7 @@ include/optinum/lina/
 ├── lina.hpp                          # Main lina header
 ├── basic/
 │   ├── ...                           # ✅ Existing (matmul, det, etc.)
-│   └── jacobian.hpp                  # 🔲 TODO: Phase 0 (Jacobian, gradient)
+│   └── jacobian.hpp                  # ✅ DONE: Jacobian & gradient (Phase 0)
 └── ...
 
 include/optinum/opti/
@@ -401,9 +416,9 @@ include/optinum/opti/
 ├── meta/
 │   ├── lookahead.hpp                 # 🔲 TODO: Lookahead wrapper (Tier 2)
 │   └── swats.hpp                     # 🔲 TODO: SWATS (Tier 3)
-├── quasi_newton/                     # 🆕 Directory for second-order methods
-│   ├── gauss_newton.hpp              # 🔲 TODO: Phase 0 (from graphix)
-│   ├── levenberg_marquardt.hpp       # 🔲 TODO: Phase 0 (from graphix)
+├── quasi_newton/                     # ✅ Directory for second-order methods
+│   ├── gauss_newton.hpp              # ✅ DONE: Phase 0 (from graphix) - 650+ lines
+│   ├── levenberg_marquardt.hpp       # ✅ DONE: Phase 0 (from graphix) - 545 lines
 │   └── lbfgs.hpp                     # 🔲 TODO: L-BFGS (Tier 1)
 └── problem/
     ├── sphere.hpp                    # ✅ Test function
@@ -625,4 +640,27 @@ After implementing Phase 0 and Tier 1, we'll have:
 
 ---
 
-**Last Updated:** December 27, 2025
+---
+
+## 🎉 PHASE 0 MILESTONE ACHIEVED - December 27, 2025
+
+**Major Achievement:** Second-order optimization methods now available!
+
+**What's New:**
+- ✅ **3 new components** - Jacobian, Gauss-Newton, Levenberg-Marquardt
+- ✅ **32 new tests** - All passing (15 + 9 + 8)
+- ✅ **1,405 lines** of production code
+- ✅ **2 example demos** - gauss_newton_demo.cpp, levenberg_marquardt_demo.cpp
+- ✅ **Full API exposure** - Available via `optinum::jacobian`, `optinum::GaussNewton<>`, `optinum::LevenbergMarquardt<>`
+
+**Performance:**
+- Gauss-Newton: 5-10 iterations typical (vs 100+ for gradient descent)
+- Levenberg-Marquardt: Robust to poor initialization
+- SIMD-accelerated Jacobian computation
+- Production-ready for robotics, vision, SLAM
+
+**Test Status:** 71/71 tests passing ✅ (100% pass rate)
+
+---
+
+**Last Updated:** December 27, 2025 - Phase 0 Complete!

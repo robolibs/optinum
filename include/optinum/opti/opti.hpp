@@ -15,6 +15,10 @@
 #include <optinum/opti/gradient/update_policies/rmsprop_update.hpp>
 #include <optinum/opti/gradient/update_policies/vanilla_update.hpp>
 
+// Quasi-Newton methods
+#include <optinum/opti/quasi_newton/gauss_newton.hpp>
+#include <optinum/opti/quasi_newton/levenberg_marquardt.hpp>
+
 // Test problems
 #include <optinum/opti/problem/sphere.hpp>
 

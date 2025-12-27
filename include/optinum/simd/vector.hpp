@@ -51,6 +51,13 @@ namespace optinum::simd {
         template <std::size_t M = N, typename = std::enable_if_t<M == Dynamic>>
         Vector(size_type size, const T &value) : pod_(size, value) {}
 
+        // Initializer list constructor (for fixed-size vectors)
+        template <std::size_t M = N, typename = std::enable_if_t<M != Dynamic>>
+        constexpr Vector(std::initializer_list<T> init) {
+            OPTINUM_ASSERT(init.size() == N, "Initializer list size must match vector size");
+            std::copy(init.begin(), init.end(), pod_.begin());
+        }
+
         // POD constructors
         constexpr explicit Vector(const pod_type &pod) noexcept : pod_(pod) {}
         constexpr explicit Vector(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
@@ -109,7 +116,7 @@ namespace optinum::simd {
             } else {
                 // For Dynamic size, use runtime size instead of compile-time N
                 if constexpr (N == Dynamic) {
-                    backend::fill_runtime<T>(data(), size(), value);
+                    backend::fill_runtime(data(), size(), value);
                 } else {
                     backend::fill<T, N>(data(), value);
                 }
