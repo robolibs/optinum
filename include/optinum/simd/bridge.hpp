@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <datapod/matrix.hpp>
+#include <optinum/simd/view/complex_view.hpp>
 #include <optinum/simd/view/matrix_view.hpp>
 #include <optinum/simd/view/quaternion_view.hpp>
 #include <optinum/simd/view/scalar_view.hpp>
@@ -189,6 +190,78 @@ namespace optinum::simd {
         constexpr std::array<std::size_t, Rank> extents = {Dims...};
         constexpr std::array<std::size_t, Rank> strides = detail::compute_strides(extents);
         return tensor_view<const T, W, Rank>(t.data(), extents, strides);
+    }
+
+    // -------------------------------------------------------------------------
+    // Complex view (from dp::mat::complex<T> arrays)
+    // -------------------------------------------------------------------------
+
+    // From raw pointer + size
+    template <std::size_t W, typename T>
+    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
+        return complex_view<T, W>(ptr, n);
+    }
+
+    template <std::size_t W, typename T>
+    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
+        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(ptr), n);
+    }
+
+    // Auto-detect width from raw pointer
+    template <typename T> OPTINUM_INLINE auto view(datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return complex_view<T, W>(ptr, n);
+    }
+
+    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(ptr), n);
+    }
+
+    // From C-style array
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::complex<T> (&arr)[N]) noexcept {
+        return complex_view<T, W>(arr, N);
+    }
+
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::complex<T> (&arr)[N]) noexcept {
+        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(arr), N);
+    }
+
+    // Auto-detect width from C-style array
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::complex<T> (&arr)[N]) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return complex_view<T, W>(arr, N);
+    }
+
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(const datapod::mat::complex<T> (&arr)[N]) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(arr), N);
+    }
+
+    // From datapod::mat::vector<complex<T>, N>
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
+        return complex_view<T, W>(v.data(), N);
+    }
+
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
+        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(v.data()), N);
+    }
+
+    // Auto-detect width from datapod::mat::vector<complex<T>, N>
+    template <typename T, std::size_t N>
+    OPTINUM_INLINE auto view(datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return complex_view<T, W>(v.data(), N);
+    }
+
+    template <typename T, std::size_t N>
+    OPTINUM_INLINE auto view(const datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(v.data()), N);
     }
 
     // -------------------------------------------------------------------------

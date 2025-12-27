@@ -128,19 +128,19 @@ namespace optinum::simd {
 
         [[nodiscard]] Quaternion conjugate() const noexcept {
             Quaternion result;
-            as_view().conjugate_to(result.data());
+            (void)as_view().conjugate_to(result.data());
             return result;
         }
 
         [[nodiscard]] Quaternion normalized() const noexcept {
             Quaternion result;
-            as_view().normalized_to(result.data());
+            (void)as_view().normalized_to(result.data());
             return result;
         }
 
         [[nodiscard]] Quaternion inverse() const noexcept {
             Quaternion result;
-            as_view().inverse_to(result.data());
+            (void)as_view().inverse_to(result.data());
             return result;
         }
 
@@ -148,13 +148,13 @@ namespace optinum::simd {
 
         [[nodiscard]] Quaternion operator*(const Quaternion &other) const noexcept {
             Quaternion result;
-            as_view().multiply_to(other.as_view(), result.data());
+            (void)as_view().multiply_to(other.as_view(), result.data());
             return result;
         }
 
         Quaternion &operator*=(const Quaternion &other) noexcept {
             Quaternion result;
-            as_view().multiply_to(other.as_view(), result.data());
+            (void)as_view().multiply_to(other.as_view(), result.data());
             pod_ = result.pod_;
             return *this;
         }
@@ -163,13 +163,13 @@ namespace optinum::simd {
 
         [[nodiscard]] Quaternion slerp(const Quaternion &other, T t) const noexcept {
             Quaternion result;
-            as_view().slerp_to(other.as_view(), t, result.data());
+            (void)as_view().slerp_to(other.as_view(), t, result.data());
             return result;
         }
 
         [[nodiscard]] Quaternion nlerp(const Quaternion &other, T t) const noexcept {
             Quaternion result;
-            as_view().nlerp_to(other.as_view(), t, result.data());
+            (void)as_view().nlerp_to(other.as_view(), t, result.data());
             return result;
         }
 

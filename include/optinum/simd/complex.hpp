@@ -1,8 +1,28 @@
 #pragma once
 
+// =============================================================================
+// optinum/simd/complex.hpp
+// High-level complex array container with transparent SIMD
+// =============================================================================
+//
+// This file provides a simple owning container for complex number arrays.
+// For non-owning views with SIMD operations, use view/complex_view.hpp
+// For low-level SIMD pack operations, use pack/complex.hpp
+//
+// Usage:
+//   Complex<double, 8> nums;
+//   nums[0] = dp::mat::complex<double>{3.0, 4.0};
+//   nums.conjugate_inplace();  // SIMD under the hood
+//
+// Or use the view() bridge for existing arrays:
+//   dp::mat::complex<double> nums[8];
+//   auto cv = view(nums);  // auto-detect SIMD width
+//   cv.conjugate_inplace();
+// =============================================================================
+
 #include <datapod/matrix/math/complex.hpp>
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/debug.hpp>
+#include <optinum/simd/bridge.hpp>
 
 #include <cstddef>
 #include <iostream>
@@ -12,7 +32,18 @@ namespace optinum::simd {
 
     namespace dp = ::datapod;
 
-    // Complex number array wrapper (owns data via datapod)
+    /**
+     * @brief Complex array container with transparent SIMD operations
+     *
+     * High-level container for N complex numbers. Operations use SIMD internally
+     * via complex_view. User works with dp::mat::complex<T> directly.
+     *
+     * Use cases:
+     *   - FFT preprocessing
+     *   - Signal processing
+     *   - Quantum computing simulations
+     *   - Electrical engineering (phasors)
+     */
     template <typename T, std::size_t N> class Complex {
         static_assert(N > 0, "Complex size must be > 0");
         static_assert(std::is_floating_point_v<T>, "Complex<T, N> requires floating-point type");
@@ -21,6 +52,7 @@ namespace optinum::simd {
         using value_type = dp::mat::complex<T>;
         using pod_type = dp::mat::vector<value_type, N>;
         using real_type = T;
+        using view_type = complex_view<T, detail::default_width<T>()>;
 
         static constexpr std::size_t extent = N;
         static constexpr std::size_t rank = 1;
@@ -29,7 +61,8 @@ namespace optinum::simd {
         pod_type pod_;
 
       public:
-        // Constructors
+        // ===== CONSTRUCTORS =====
+
         constexpr Complex() noexcept : pod_() {}
         constexpr Complex(const Complex &) = default;
         constexpr Complex(Complex &&) noexcept = default;
@@ -39,12 +72,13 @@ namespace optinum::simd {
         // Direct initialization from pod
         constexpr explicit Complex(const pod_type &p) noexcept : pod_(p) {}
 
-        // Element access
-        [[nodiscard]] constexpr value_type &operator[](std::size_t i) noexcept { return pod_[i]; }
+        // ===== ELEMENT ACCESS =====
 
+        [[nodiscard]] constexpr value_type &operator[](std::size_t i) noexcept { return pod_[i]; }
         [[nodiscard]] constexpr const value_type &operator[](std::size_t i) const noexcept { return pod_[i]; }
 
-        // Raw data access
+        // ===== RAW DATA ACCESS =====
+
         [[nodiscard]] constexpr value_type *data() noexcept { return pod_.data(); }
         [[nodiscard]] constexpr const value_type *data() const noexcept { return pod_.data(); }
 
@@ -52,7 +86,16 @@ namespace optinum::simd {
         [[nodiscard]] constexpr pod_type &pod() noexcept { return pod_; }
         [[nodiscard]] constexpr const pod_type &pod() const noexcept { return pod_; }
 
-        // Fill operations
+        // Get SIMD view (for advanced operations)
+        [[nodiscard]] view_type as_view() noexcept { return view(pod_); }
+        [[nodiscard]] view_type as_view() const noexcept { return view(pod_); }
+
+        // ===== SIZE =====
+
+        [[nodiscard]] static constexpr std::size_t size() noexcept { return N; }
+
+        // ===== FILL OPERATIONS =====
+
         constexpr void fill(const value_type &val) noexcept {
             for (std::size_t i = 0; i < N; ++i) {
                 pod_[i] = val;
@@ -65,7 +108,8 @@ namespace optinum::simd {
             }
         }
 
-        // Factory functions
+        // ===== FACTORY FUNCTIONS =====
+
         [[nodiscard]] static constexpr Complex zeros() noexcept {
             Complex c;
             c.fill(value_type{T{}, T{}});
@@ -84,109 +128,108 @@ namespace optinum::simd {
             return c;
         }
 
-        // Extract real/imaginary parts
-        constexpr void real_parts(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].real;
-            }
-        }
+        // ===== IN-PLACE OPERATIONS (SIMD accelerated) =====
 
-        constexpr void imag_parts(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].imag;
-            }
-        }
+        void conjugate_inplace() noexcept { as_view().conjugate_inplace(); }
 
-        // Conjugate
-        [[nodiscard]] constexpr Complex conjugate() const noexcept {
+        void normalize_inplace() noexcept { as_view().normalize_inplace(); }
+
+        void negate_inplace() noexcept { as_view().negate_inplace(); }
+
+        void scale_inplace(T scalar) noexcept { as_view().scale_inplace(scalar); }
+
+        // ===== OPERATIONS RETURNING NEW ARRAY =====
+
+        [[nodiscard]] Complex conjugate() const noexcept {
             Complex result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i].conjugate();
-            }
+            (void)as_view().conjugate_to(result.data());
             return result;
         }
 
-        // Magnitude
-        constexpr void magnitude(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].magnitude();
-            }
-        }
-
-        // Arithmetic operators
-        [[nodiscard]] constexpr Complex operator+(const Complex &other) const noexcept {
+        [[nodiscard]] Complex normalized() const noexcept {
             Complex result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] + other[i];
-            }
+            (void)as_view().normalized_to(result.data());
             return result;
         }
 
-        [[nodiscard]] constexpr Complex operator-(const Complex &other) const noexcept {
+        // ===== BINARY OPERATIONS =====
+
+        [[nodiscard]] Complex operator+(const Complex &other) const noexcept {
             Complex result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] - other[i];
-            }
+            (void)as_view().add_to(other.as_view(), result.data());
             return result;
         }
 
-        [[nodiscard]] constexpr Complex operator*(const Complex &other) const noexcept {
+        [[nodiscard]] Complex operator-(const Complex &other) const noexcept {
             Complex result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] * other[i];
-            }
+            (void)as_view().subtract_to(other.as_view(), result.data());
+            return result;
+        }
+
+        [[nodiscard]] Complex operator*(const Complex &other) const noexcept {
+            Complex result;
+            (void)as_view().multiply_to(other.as_view(), result.data());
             return result;
         }
 
         [[nodiscard]] Complex operator/(const Complex &other) const noexcept {
             Complex result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] / other[i];
-            }
+            (void)as_view().divide_to(other.as_view(), result.data());
             return result;
         }
 
         // Scalar multiplication
-        [[nodiscard]] constexpr Complex operator*(T scalar) const noexcept {
-            Complex result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] * scalar;
-            }
+        [[nodiscard]] Complex operator*(T scalar) const noexcept {
+            Complex result = *this;
+            result.scale_inplace(scalar);
             return result;
         }
 
-        [[nodiscard]] friend constexpr Complex operator*(T scalar, const Complex &c) noexcept { return c * scalar; }
+        [[nodiscard]] friend Complex operator*(T scalar, const Complex &c) noexcept { return c * scalar; }
 
-        // Compound assignment
-        constexpr Complex &operator+=(const Complex &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] += other[i];
-            }
+        // ===== COMPOUND ASSIGNMENT =====
+
+        Complex &operator+=(const Complex &other) noexcept {
+            as_view().add_to(other.as_view(), data());
             return *this;
         }
 
-        constexpr Complex &operator-=(const Complex &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] -= other[i];
-            }
+        Complex &operator-=(const Complex &other) noexcept {
+            as_view().subtract_to(other.as_view(), data());
             return *this;
         }
 
-        constexpr Complex &operator*=(const Complex &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] *= other[i];
-            }
+        Complex &operator*=(const Complex &other) noexcept {
+            as_view().multiply_to(other.as_view(), data());
             return *this;
         }
 
         Complex &operator/=(const Complex &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] /= other[i];
-            }
+            as_view().divide_to(other.as_view(), data());
             return *this;
         }
 
-        // Stream output
+        Complex &operator*=(T scalar) noexcept {
+            scale_inplace(scalar);
+            return *this;
+        }
+
+        // ===== REDUCTION OPERATIONS =====
+
+        void magnitudes(T *out) const noexcept { as_view().magnitudes_to(out); }
+
+        void phases(T *out) const noexcept { as_view().phases_to(out); }
+
+        void real_parts(T *out) const noexcept { as_view().real_parts_to(out); }
+
+        void imag_parts(T *out) const noexcept { as_view().imag_parts_to(out); }
+
+        [[nodiscard]] value_type sum() const noexcept { return as_view().sum(); }
+
+        [[nodiscard]] value_type dot(const Complex &other) const noexcept { return as_view().dot(other.as_view()); }
+
+        // ===== STREAM OUTPUT =====
+
         friend std::ostream &operator<<(std::ostream &os, const Complex &c) {
             os << "[";
             for (std::size_t i = 0; i < N; ++i) {
@@ -197,6 +240,18 @@ namespace optinum::simd {
             os << "]";
             return os;
         }
+
+        // ===== ITERATORS =====
+
+        value_type *begin() noexcept { return pod_.data(); }
+        value_type *end() noexcept { return pod_.data() + N; }
+        const value_type *begin() const noexcept { return pod_.data(); }
+        const value_type *end() const noexcept { return pod_.data() + N; }
     };
+
+    // ===== TYPE ALIASES =====
+
+    template <std::size_t N> using Complexf = Complex<float, N>;
+    template <std::size_t N> using Complexd = Complex<double, N>;
 
 } // namespace optinum::simd
