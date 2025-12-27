@@ -52,7 +52,7 @@ b: build
 
 config:
 ifeq ($(BUILD_SYSTEM),xmake)
-	@xmake f --examples=y --tests=y -c -y
+	@xmake f --examples=y --tests=y -y
 	@xmake project -k compile_commands
 else
 	@mkdir -p $(BUILD_DIR)
@@ -125,6 +125,7 @@ else
 	$(error Invalid documentation type. Use 'make docs TYPE=mdbook' or 'make docs TYPE=doxygen')
 endif
 
+TYPE ?= patch
 
 release:
 	@if [ -z "$(TYPE)" ]; then \
@@ -146,6 +147,10 @@ release:
 	else \
 		changelog=$$(git cliff --unreleased --strip all); \
 		git cliff --tag $$version --unreleased --prepend CHANGELOG.md; \
+	fi; \
+	if [ "$(TYPE)" = "minor" ] || [ "$(TYPE)" = "major" ]; then \
+		RELEASE_NAME=$$(aichat "Based on the following changelog, generate a creative release codename. Should be 2 words, poetic or evocative, like 'Frozen Lake' or 'Iron Orchard'. Changelog: $$changelog"); \
+		echo "Release codename: $$RELEASE_NAME"; \
 	fi; \
 	sed -i -E 's/(project\(.*VERSION )[0-9]+\.[0-9]+\.[0-9]+/\1'$$version'/' CMakeLists.txt; \
 	if [ -f xmake.lua ]; then \
