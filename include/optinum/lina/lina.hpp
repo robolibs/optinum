@@ -35,6 +35,7 @@
 
 #include <optinum/lina/expr/expr.hpp>
 
+#include <optinum/lina/solve/dare.hpp>
 #include <optinum/lina/solve/lstsq.hpp>
 #include <optinum/lina/solve/solve.hpp>
 #include <optinum/lina/solve/triangular_solve.hpp>

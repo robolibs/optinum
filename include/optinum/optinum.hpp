@@ -104,6 +104,8 @@ namespace optinum {
     // Linear System Solvers (from lina::)
     // =========================================================================
 
+    using lina::dare;
+    using lina::lqr_gain;
     using lina::lstsq;
     using lina::solve;
     using lina::solve_lower_triangular;
