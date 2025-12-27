@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <datapod/matrix.hpp>
 #include <optinum/simd/view/matrix_view.hpp>
+#include <optinum/simd/view/quaternion_view.hpp>
 #include <optinum/simd/view/scalar_view.hpp>
 #include <optinum/simd/view/tensor_view.hpp>
 #include <optinum/simd/view/vector_view.hpp>
@@ -188,6 +189,122 @@ namespace optinum::simd {
         constexpr std::array<std::size_t, Rank> extents = {Dims...};
         constexpr std::array<std::size_t, Rank> strides = detail::compute_strides(extents);
         return tensor_view<const T, W, Rank>(t.data(), extents, strides);
+    }
+
+    // -------------------------------------------------------------------------
+    // Quaternion view (from dp::mat::quaternion<T> arrays)
+    // -------------------------------------------------------------------------
+
+    // From raw pointer + size
+    template <std::size_t W, typename T>
+    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
+        return quaternion_view<T, W>(ptr, n);
+    }
+
+    template <std::size_t W, typename T>
+    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
+        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(ptr), n);
+    }
+
+    // Auto-detect width from raw pointer
+    template <typename T> OPTINUM_INLINE auto view(datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return quaternion_view<T, W>(ptr, n);
+    }
+
+    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(ptr), n);
+    }
+
+    // From C-style array
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::quaternion<T> (&arr)[N]) noexcept {
+        return quaternion_view<T, W>(arr, N);
+    }
+
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::quaternion<T> (&arr)[N]) noexcept {
+        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(arr), N);
+    }
+
+    // Auto-detect width from C-style array
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::quaternion<T> (&arr)[N]) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return quaternion_view<T, W>(arr, N);
+    }
+
+    template <typename T, std::size_t N>
+    OPTINUM_INLINE auto view(const datapod::mat::quaternion<T> (&arr)[N]) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(arr), N);
+    }
+
+    // From datapod::mat::vector<quaternion<T>, N>
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
+        return quaternion_view<T, W>(v.data(), N);
+    }
+
+    template <std::size_t W, typename T, std::size_t N>
+    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
+        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(v.data()), N);
+    }
+
+    // Auto-detect width from datapod::mat::vector<quaternion<T>, N>
+    template <typename T, std::size_t N>
+    OPTINUM_INLINE auto view(datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return quaternion_view<T, W>(v.data(), N);
+    }
+
+    template <typename T, std::size_t N>
+    OPTINUM_INLINE auto view(const datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
+        constexpr std::size_t W = detail::default_width<T>();
+        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(v.data()), N);
+    }
+
+    // -------------------------------------------------------------------------
+    // Spatial Quaternion support (dp::Quaternion -> dp::mat::quaternion<double>)
+    // These work because dp::Quaternion inherits from dp::mat::quaternion<double>
+    // -------------------------------------------------------------------------
+
+    // From raw pointer + size (spatial Quaternion)
+    template <std::size_t W>
+    OPTINUM_INLINE quaternion_view<double, W> view(datapod::Quaternion *ptr, std::size_t n) noexcept {
+        // dp::Quaternion inherits from dp::mat::quaternion<double>, so this cast is safe
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(ptr), n);
+    }
+
+    template <std::size_t W>
+    OPTINUM_INLINE quaternion_view<double, W> view(const datapod::Quaternion *ptr, std::size_t n) noexcept {
+        return quaternion_view<double, W>(const_cast<datapod::mat::quaternion<double> *>(
+                                              reinterpret_cast<const datapod::mat::quaternion<double> *>(ptr)),
+                                          n);
+    }
+
+    // Auto-detect width for spatial Quaternion
+    OPTINUM_INLINE auto view(datapod::Quaternion *ptr, std::size_t n) noexcept {
+        constexpr std::size_t W = detail::default_width<double>();
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(ptr), n);
+    }
+
+    OPTINUM_INLINE auto view(const datapod::Quaternion *ptr, std::size_t n) noexcept {
+        constexpr std::size_t W = detail::default_width<double>();
+        return quaternion_view<double, W>(const_cast<datapod::mat::quaternion<double> *>(
+                                              reinterpret_cast<const datapod::mat::quaternion<double> *>(ptr)),
+                                          n);
+    }
+
+    // From C-style array of spatial Quaternion
+    template <std::size_t W, std::size_t N>
+    OPTINUM_INLINE quaternion_view<double, W> view(datapod::Quaternion (&arr)[N]) noexcept {
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(arr), N);
+    }
+
+    template <std::size_t N> OPTINUM_INLINE auto view(datapod::Quaternion (&arr)[N]) noexcept {
+        constexpr std::size_t W = detail::default_width<double>();
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(arr), N);
     }
 
 } // namespace optinum::simd

@@ -1,8 +1,28 @@
 #pragma once
 
+// =============================================================================
+// optinum/simd/quaternion.hpp
+// High-level quaternion array container with transparent SIMD
+// =============================================================================
+//
+// This file provides a simple owning container for quaternion arrays.
+// For non-owning views with SIMD operations, use quaternion_view.hpp
+// For low-level SIMD pack operations, use pack/quaternion.hpp
+//
+// Usage:
+//   Quaternion<double, 8> rotations;
+//   rotations[0] = dp::mat::quaternion<double>::from_axis_angle(0, 0, 1, M_PI/4);
+//   rotations.normalize_inplace();  // SIMD under the hood
+//
+// Or use the view() bridge for existing arrays:
+//   dp::mat::quaternion<double> quats[8];
+//   auto qv = view(quats);  // auto-detect SIMD width
+//   qv.normalize_inplace();
+// =============================================================================
+
 #include <datapod/matrix/math/quaternion.hpp>
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/debug.hpp>
+#include <optinum/simd/bridge.hpp>
 
 #include <cstddef>
 #include <iostream>
@@ -13,22 +33,16 @@ namespace optinum::simd {
     namespace dp = ::datapod;
 
     /**
-     * @brief Quaternion array wrapper (owns data via datapod)
+     * @brief Quaternion array container with transparent SIMD operations
      *
-     * High-level container for N quaternions, designed for SIMD operations.
-     * Wraps datapod::mat::vector<quaternion<T>, N> and provides quaternion-specific
-     * operations useful for Lie group optimization (SO(3)).
+     * High-level container for N quaternions. Operations use SIMD internally
+     * via quaternion_view. User works with dp::mat::quaternion<T> directly.
      *
      * Use cases:
      *   - Batch rotation operations
      *   - Lie group optimization on SO(3)
      *   - Parallel quaternion interpolation
      *   - SLAM, robotics, computer graphics
-     *
-     * Example:
-     *   Quaternion<double, 8> rotations;
-     *   rotations[0] = dp::mat::quaternion<double>::from_axis_angle(0, 0, 1, M_PI/4);
-     *   auto normalized = rotations.normalized();
      */
     template <typename T, std::size_t N> class Quaternion {
         static_assert(N > 0, "Quaternion array size must be > 0");
@@ -38,6 +52,7 @@ namespace optinum::simd {
         using value_type = dp::mat::quaternion<T>;
         using pod_type = dp::mat::vector<value_type, N>;
         using real_type = T;
+        using view_type = quaternion_view<T, detail::default_width<T>()>;
 
         static constexpr std::size_t extent = N;
         static constexpr std::size_t rank = 1;
@@ -71,6 +86,14 @@ namespace optinum::simd {
         [[nodiscard]] constexpr pod_type &pod() noexcept { return pod_; }
         [[nodiscard]] constexpr const pod_type &pod() const noexcept { return pod_; }
 
+        // Get SIMD view (for advanced operations)
+        [[nodiscard]] view_type as_view() noexcept { return view(pod_); }
+        [[nodiscard]] view_type as_view() const noexcept { return view(pod_); }
+
+        // ===== SIZE =====
+
+        [[nodiscard]] static constexpr std::size_t size() noexcept { return N; }
+
         // ===== FILL OPERATIONS =====
 
         constexpr void fill(const value_type &val) noexcept {
@@ -81,283 +104,96 @@ namespace optinum::simd {
 
         // ===== FACTORY FUNCTIONS =====
 
-        // All identity quaternions (1, 0, 0, 0)
         [[nodiscard]] static constexpr Quaternion identity() noexcept {
             Quaternion q;
             q.fill(value_type::identity());
             return q;
         }
 
-        // All zero quaternions (0, 0, 0, 0) - not valid rotations, but useful for accumulators
         [[nodiscard]] static constexpr Quaternion zeros() noexcept {
             Quaternion q;
             q.fill(value_type{T{}, T{}, T{}, T{}});
             return q;
         }
 
-        // ===== COMPONENT EXTRACTION =====
+        // ===== IN-PLACE OPERATIONS (SIMD accelerated) =====
 
-        // Extract w (scalar) components
-        constexpr void w_parts(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].w;
-            }
-        }
+        void conjugate_inplace() noexcept { as_view().conjugate_inplace(); }
 
-        // Extract x components
-        constexpr void x_parts(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].x;
-            }
-        }
+        void normalize_inplace() noexcept { as_view().normalize_inplace(); }
 
-        // Extract y components
-        constexpr void y_parts(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].y;
-            }
-        }
+        void inverse_inplace() noexcept { as_view().inverse_inplace(); }
 
-        // Extract z components
-        constexpr void z_parts(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].z;
-            }
-        }
+        // ===== OPERATIONS RETURNING NEW ARRAY =====
 
-        // ===== QUATERNION OPERATIONS =====
-
-        // Conjugate all quaternions
-        [[nodiscard]] constexpr Quaternion conjugate() const noexcept {
+        [[nodiscard]] Quaternion conjugate() const noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i].conjugate();
-            }
+            as_view().conjugate_to(result.data());
             return result;
         }
 
-        // Inverse all quaternions
-        [[nodiscard]] Quaternion inverse() const noexcept {
-            Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i].inverse();
-            }
-            return result;
-        }
-
-        // Normalize all quaternions to unit quaternions
         [[nodiscard]] Quaternion normalized() const noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i].normalized();
-            }
+            as_view().normalized_to(result.data());
             return result;
         }
 
-        // Get norms of all quaternions
-        void norms(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].norm();
-            }
-        }
-
-        // Get squared norms of all quaternions
-        constexpr void norms_squared(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = pod_[i].norm_squared();
-            }
-        }
-
-        // ===== ARITHMETIC OPERATORS =====
-
-        // Component-wise addition
-        [[nodiscard]] constexpr Quaternion operator+(const Quaternion &other) const noexcept {
+        [[nodiscard]] Quaternion inverse() const noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] + other[i];
-            }
+            as_view().inverse_to(result.data());
             return result;
         }
 
-        // Component-wise subtraction
-        [[nodiscard]] constexpr Quaternion operator-(const Quaternion &other) const noexcept {
+        // ===== BINARY OPERATIONS =====
+
+        [[nodiscard]] Quaternion operator*(const Quaternion &other) const noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] - other[i];
-            }
+            as_view().multiply_to(other.as_view(), result.data());
             return result;
         }
 
-        // Hamilton product (element-wise quaternion multiplication)
-        [[nodiscard]] constexpr Quaternion operator*(const Quaternion &other) const noexcept {
+        Quaternion &operator*=(const Quaternion &other) noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] * other[i];
-            }
-            return result;
-        }
-
-        // Quaternion division (element-wise)
-        [[nodiscard]] Quaternion operator/(const Quaternion &other) const noexcept {
-            Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] / other[i];
-            }
-            return result;
-        }
-
-        // Scalar multiplication
-        [[nodiscard]] constexpr Quaternion operator*(T scalar) const noexcept {
-            Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] * scalar;
-            }
-            return result;
-        }
-
-        [[nodiscard]] friend constexpr Quaternion operator*(T scalar, const Quaternion &q) noexcept {
-            return q * scalar;
-        }
-
-        // Scalar division
-        [[nodiscard]] constexpr Quaternion operator/(T scalar) const noexcept {
-            Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = pod_[i] / scalar;
-            }
-            return result;
-        }
-
-        // ===== COMPOUND ASSIGNMENT =====
-
-        constexpr Quaternion &operator+=(const Quaternion &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] += other[i];
-            }
+            as_view().multiply_to(other.as_view(), result.data());
+            pod_ = result.pod_;
             return *this;
         }
 
-        constexpr Quaternion &operator-=(const Quaternion &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] -= other[i];
-            }
-            return *this;
-        }
+        // ===== INTERPOLATION =====
 
-        constexpr Quaternion &operator*=(const Quaternion &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] *= other[i];
-            }
-            return *this;
-        }
-
-        Quaternion &operator/=(const Quaternion &other) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] /= other[i];
-            }
-            return *this;
-        }
-
-        constexpr Quaternion &operator*=(T scalar) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] *= scalar;
-            }
-            return *this;
-        }
-
-        // ===== LIE GROUP OPERATIONS =====
-        // Essential for SO(3) optimization
-
-        // Dot product (element-wise, returns array of scalars)
-        void dot(const Quaternion &other, T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                out[i] = dp::mat::dot(pod_[i], other[i]);
-            }
-        }
-
-        // Normalized linear interpolation (element-wise)
-        [[nodiscard]] Quaternion nlerp(const Quaternion &other, T t) const noexcept {
-            Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = dp::mat::nlerp(pod_[i], other[i], t);
-            }
-            return result;
-        }
-
-        // Spherical linear interpolation (element-wise)
         [[nodiscard]] Quaternion slerp(const Quaternion &other, T t) const noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = dp::mat::slerp(pod_[i], other[i], t);
-            }
+            as_view().slerp_to(other.as_view(), t, result.data());
             return result;
         }
 
-        // Exponential map (from Lie algebra so(3) to SO(3))
-        // Input: array of axis-angle vectors (pure quaternions with w=0)
-        [[nodiscard]] static Quaternion exp(const Quaternion &lie_algebra) noexcept {
+        [[nodiscard]] Quaternion nlerp(const Quaternion &other, T t) const noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = dp::mat::exp(lie_algebra[i]);
-            }
+            as_view().nlerp_to(other.as_view(), t, result.data());
             return result;
         }
 
-        // Logarithm map (from SO(3) to Lie algebra so(3))
-        // Returns pure quaternions (w ≈ 0 for unit quaternions)
-        [[nodiscard]] Quaternion log() const noexcept {
-            Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = dp::mat::log(pod_[i]);
-            }
-            return result;
-        }
+        // ===== REDUCTION OPERATIONS =====
+
+        void norms(T *out) const noexcept { as_view().norms_to(out); }
+
+        void dot(const Quaternion &other, T *out) const noexcept { as_view().dot_to(other.as_view(), out); }
 
         // ===== ROTATION OPERATIONS =====
 
-        // Rotate vectors by these quaternions
-        // vx, vy, vz are arrays of N vectors
-        void rotate_vectors(T *vx, T *vy, T *vz) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i].rotate_vector(vx[i], vy[i], vz[i]);
-            }
-        }
+        void rotate_vectors(T *vx, T *vy, T *vz) const noexcept { as_view().rotate_vectors(vx, vy, vz); }
 
-        // ===== EULER ANGLE CONVERSION =====
+        // ===== CONVERSION OPERATIONS =====
 
-        // Convert to Euler angles (roll, pitch, yaw in radians)
-        void to_euler(T *roll, T *pitch, T *yaw) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i].to_euler(roll[i], pitch[i], yaw[i]);
-            }
-        }
+        void to_euler(T *roll, T *pitch, T *yaw) const noexcept { as_view().to_euler(roll, pitch, yaw); }
 
-        // Create from Euler angles
         static Quaternion from_euler(const T *roll, const T *pitch, const T *yaw) noexcept {
             Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = value_type::from_euler(roll[i], pitch[i], yaw[i]);
-            }
+            view_type::from_euler(roll, pitch, yaw, result.data(), N);
             return result;
         }
 
-        // ===== AXIS-ANGLE CONVERSION =====
-
-        // Create from axis-angle representation
-        static Quaternion from_axis_angle(const T *ax, const T *ay, const T *az, const T *angle) noexcept {
-            Quaternion result;
-            for (std::size_t i = 0; i < N; ++i) {
-                result[i] = value_type::from_axis_angle(ax[i], ay[i], az[i], angle[i]);
-            }
-            return result;
-        }
-
-        // Extract axis-angle representation
-        void to_axis_angle(T *ax, T *ay, T *az, T *angle) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i].to_axis_angle(ax[i], ay[i], az[i], angle[i]);
-            }
-        }
+        void to_axis_angle(T *ax, T *ay, T *az, T *angle) const noexcept { as_view().to_axis_angle(ax, ay, az, angle); }
 
         // ===== STREAM OUTPUT =====
 
@@ -371,6 +207,13 @@ namespace optinum::simd {
             os << "]";
             return os;
         }
+
+        // ===== ITERATORS =====
+
+        value_type *begin() noexcept { return pod_.data(); }
+        value_type *end() noexcept { return pod_.data() + N; }
+        const value_type *begin() const noexcept { return pod_.data(); }
+        const value_type *end() const noexcept { return pod_.data() + N; }
     };
 
     // ===== TYPE ALIASES =====

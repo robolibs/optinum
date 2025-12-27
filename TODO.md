@@ -831,11 +831,29 @@ namespace optinum {
 
 ---
 
-## 🔬 Phase 0.7: Lie Groups (Manifold Optimization) - PROPOSED
+## 🔬 Phase 0.7: Lie Groups (Manifold Optimization) - APPROVED
 
-**Status:** ⏸️ PLANNING - Pending Decision
+**Status:** ✅ APPROVED - Ready for Implementation
 
-**Rationale:** Critical for proper rotation/pose optimization in graphix (SLAM, bundle adjustment)
+**Prerequisites:** ✅ COMPLETE - Quaternion SIMD Infrastructure
+- `simd/pack/quaternion.hpp` - Low-level SIMD pack for quaternions (SoA storage)
+- `simd/view/quaternion_view.hpp` - Transparent SIMD view over quaternion arrays **NEW**
+- `simd/quaternion.hpp` - Owning container (simplified, uses view internally) **UPDATED**
+- `simd/bridge.hpp` - `view()` overloads for automatic SIMD dispatch **UPDATED**
+- All tested: 19 quaternion_view tests + 20 pack tests passing
+
+**Location:** `include/optinum/lie/` (new top-level module)
+
+**Rationale:** Critical for proper rotation/pose optimization in graphix (SLAM, bundle adjustment, IMU preintegration, robot kinematics)
+
+**Design Decisions:**
+- ✅ New `lie/` module at same level as `simd/`, `lina/`, `opti/`
+- ✅ Always use SIMD (leverage existing `simd::quaternion` and math functions)
+- ✅ Support batched operations (process N rotations in parallel)
+- ✅ Implementation order: SO2 → SE2 → SO3 → SE3
+- ✅ All Sophus functions included (not API-compatible, but feature-complete)
+
+---
 
 ### Why We Need Lie Groups
 
@@ -845,211 +863,671 @@ Without Lie groups, optimizing rotations is problematic:
 - **Quaternions (R^4)**: Need normalization constraint, optimization drifts
 
 **With Lie groups:**
-- Natural parameterization (R^3 tangent space for SO(3))
+- Natural parameterization (R^1 for SO2, R^3 for SO3)
 - No constraints in optimization
 - Proper exp/log maps for manifold optimization
 - Clean derivatives for Gauss-Newton/Levenberg-Marquardt
 
-### Components to Implement
-
-#### 0.7a. **Quaternion Class** - CRITICAL ⭐⭐⭐⭐⭐
-- **File:** `include/optinum/lie/core/quaternion.hpp`
-- **Complexity:** ⭐⭐ Medium (~250 lines)
-- **Impact:** Foundation for SO(3), critical for 3D rotations
-- **Storage:** `Vector<T, 4>` with SIMD
-- **Operations:**
-  - Hamilton product (quaternion multiplication)
-  - Conjugate, inverse, normalization
-  - Conversion to/from rotation matrix
-  - Spherical interpolation (slerp)
-- **SIMD:** Automatic via Vector<T,4> operations
-
-#### 0.7b. **SO(3) - 3D Rotations** - CRITICAL ⭐⭐⭐⭐⭐
-- **File:** `include/optinum/lie/groups/so3.hpp`
-- **Complexity:** ⭐⭐⭐ Medium-Hard (~400 lines)
-- **Impact:** Essential for camera/robot orientation optimization
-- **Storage:** Unit quaternion
-- **Tangent Space:** R^3 (axis-angle / rotation vector)
-- **Operations:**
-  - `exp`: R^3 → SO(3) (Rodrigues formula)
-  - `log`: SO(3) → R^3 (atan2-based, numerically stable)
-  - `hat`: R^3 → so(3) (skew-symmetric matrix)
-  - `vee`: so(3) → R^3 (inverse of hat)
-  - Group: `*`, `inverse()`, `identity()`
-  - Jacobians: `left_jacobian()`, `right_jacobian()`, `Adj()`
-- **SIMD:** 95% coverage via matmul, sin/cos, norm
-- **Applications:** Bundle adjustment rotations, IMU orientation
-
-#### 0.7c. **SE(3) - 3D Rigid Transformations** - HIGH ⭐⭐⭐⭐
-- **File:** `include/optinum/lie/groups/se3.hpp`
-- **Complexity:** ⭐⭐⭐ Hard (~500 lines)
-- **Impact:** Camera poses in SLAM, robot poses
-- **Storage:** SO(3) + Vector<T,3> (rotation + translation)
-- **Tangent Space:** R^6 ([ω; v] rotation + translation)
-- **Operations:**
-  - `exp`: R^6 → SE(3) (matrix exponential)
-  - `log`: SE(3) → R^6 (matrix logarithm)
-  - `hat`: R^6 → se(3) (4×4 matrix)
-  - `vee`: se(3) → R^6
-  - `Adj()`: 6×6 adjoint transformation
-- **SIMD:** 90% coverage
-- **Applications:** Visual SLAM, pose graph optimization
-
-#### 0.7d. **Matrix Exponential** - MEDIUM ⭐⭐⭐
-- **File:** `include/optinum/lina/basic/expmat.hpp` (already exists!)
-- **Status:** CHECK IF IMPLEMENTED
-- **Needed for:** SE(3)::exp
-- **Algorithm:** Padé approximation or Taylor series
-- **SIMD:** Automatic via matmul
+---
 
 ### Module Structure
 
 ```
 include/optinum/lie/
-├── lie.hpp                     # Main header (includes all)
+├── lie.hpp                      # Main header (includes all)
 ├── core/
-│   ├── quaternion.hpp          # Quaternion class (~250 lines)
-│   ├── concepts.hpp            # C++20 Lie group concepts (~50 lines)
-│   └── math.hpp                # Rodrigues, helpers (~150 lines)
+│   ├── constants.hpp            # Epsilon, pi, tolerances (~50 lines)
+│   ├── concepts.hpp             # C++20 LieGroup concept (~80 lines)
+│   └── rotation_matrix.hpp      # isOrthogonal, makeRotationMatrix (~100 lines)
 ├── groups/
-│   ├── so3.hpp                 # SO(3) implementation (~400 lines)
-│   └── se3.hpp                 # SE(3) implementation (~500 lines)
-└── algorithms/
-    └── interpolate.hpp         # slerp, manifold interp (~150 lines)
+│   ├── so2.hpp                  # SO(2) - 2D rotations (~400 lines)
+│   ├── se2.hpp                  # SE(2) - 2D rigid transforms (~500 lines)
+│   ├── so3.hpp                  # SO(3) - 3D rotations (~600 lines)
+│   ├── se3.hpp                  # SE(3) - 3D rigid transforms (~700 lines)
+│   ├── rxso2.hpp                # R+ x SO(2) - 2D rotation + scale (~400 lines)
+│   ├── rxso3.hpp                # R+ x SO(3) - 3D rotation + scale (~500 lines)
+│   ├── sim2.hpp                 # Sim(2) - 2D similarity (~500 lines)
+│   └── sim3.hpp                 # Sim(3) - 3D similarity (~600 lines)
+├── algorithms/
+│   ├── interpolate.hpp          # Lie group interpolation (~100 lines)
+│   ├── average.hpp              # Biinvariant mean computation (~200 lines)
+│   ├── spline.hpp               # Lie group splines (~300 lines)
+│   └── geometry.hpp             # Pose/plane/line utilities (~150 lines)
+└── batch/
+    ├── so3_batch.hpp            # Batched SO3 (N rotations, SIMD) (~300 lines)
+    └── se3_batch.hpp            # Batched SE3 (N poses, SIMD) (~400 lines)
 
 test/lie/
-├── quaternion_test.cpp         # 10-15 test cases
-├── so3_test.cpp                # 15-20 test cases
-└── se3_test.cpp                # 15-20 test cases
+├── so2_test.cpp                 # 15-20 test cases
+├── se2_test.cpp                 # 15-20 test cases
+├── so3_test.cpp                 # 20-25 test cases
+├── se3_test.cpp                 # 20-25 test cases
+├── rxso2_test.cpp               # 10-15 test cases
+├── rxso3_test.cpp               # 10-15 test cases
+├── sim2_test.cpp                # 10-15 test cases
+├── sim3_test.cpp                # 10-15 test cases
+├── interpolate_test.cpp         # 10-15 test cases
+├── average_test.cpp             # 10-15 test cases
+└── batch_test.cpp               # 15-20 test cases
 
 examples/
-├── so3_demo.cpp                # Rotation optimization
-└── se3_demo.cpp                # Pose graph/bundle adjustment
+├── lie_groups_demo.cpp          # Basic Lie group operations
+├── rotation_optimization.cpp    # SO3 optimization example
+└── pose_graph_demo.cpp          # SE3 pose graph example
 ```
 
-**Total Estimate:** ~1,500 lines code + 500 lines tests = 2,000 lines
+**Total Estimate:** ~4,500 lines code + 1,500 lines tests = 6,000 lines
+
+---
+
+### Implementation Phases
+
+#### Phase 0.7a: SO(2) - 2D Rotations ⭐⭐⭐⭐⭐
+- **File:** `include/optinum/lie/groups/so2.hpp`
+- **Complexity:** ⭐ Easy (~400 lines)
+- **Storage:** Unit complex number (cos θ, sin θ) as `Vector<T, 2>`
+- **DoF:** 1 (rotation angle)
+- **Parameters:** 2 (complex number)
+
+**Functions to implement:**
+| Category | Function | Description |
+|----------|----------|-------------|
+| **Core** | `exp(θ)` | Tangent → Group: `(cos θ, sin θ)` |
+| | `log()` | Group → Tangent: `atan2(y, x)` |
+| | `inverse()` | `(x, -y)` (complex conjugate) |
+| | `operator*` | Complex multiplication |
+| | `operator*(point)` | Rotate 2D point |
+| | `matrix()` | Return 2×2 rotation matrix |
+| | `normalize()` | Ensure unit length |
+| **Lie Algebra** | `hat(θ)` | θ → skew-symmetric 2×2 |
+| | `vee(Ω)` | skew-symmetric → θ |
+| | `Adj()` | Adjoint (= 1 for SO2) |
+| | `lieBracket(a, b)` | [a, b] = 0 (commutative) |
+| | `generator()` | Infinitesimal generator |
+| **Derivatives** | `Dx_exp_x(θ)` | d(exp)/dx |
+| | `Dx_exp_x_at_0()` | d(exp)/dx at x=0 |
+| | `Dx_this_mul_exp_x_at_0()` | d(this * exp(x))/dx at x=0 |
+| | `Dx_log_this_inv_by_x_at_this()` | d(log(this⁻¹ * x))/dx at x=this |
+| **Construction** | `SO2()` | Identity |
+| | `SO2(θ)` | From angle |
+| | `SO2(real, imag)` | From complex parts |
+| | `SO2(Matrix2)` | From rotation matrix |
+| | `fitToSO2(Matrix2)` | Closest SO2 to arbitrary matrix |
+| | `sampleUniform(rng)` | Random rotation |
+| **Access** | `unit_complex()` | Get (cos, sin) |
+| | `data()` | Raw pointer |
+| | `params()` | Internal parameters |
+| | `cast<NewScalar>()` | Type conversion |
+
+---
+
+#### Phase 0.7b: SE(2) - 2D Rigid Transforms ⭐⭐⭐⭐
+- **File:** `include/optinum/lie/groups/se2.hpp`
+- **Complexity:** ⭐⭐ Medium (~500 lines)
+- **Storage:** SO2 + Vector2 (rotation + translation)
+- **DoF:** 3 (2 translation + 1 rotation)
+- **Parameters:** 4 (2 complex + 2 translation)
+- **Tangent:** `[vx, vy, θ]` (translation first, rotation last)
+
+**Functions to implement:**
+| Category | Function | Description |
+|----------|----------|-------------|
+| **Core** | `exp(twist)` | R³ → SE(2) with left Jacobian |
+| | `log()` | SE(2) → R³ twist |
+| | `inverse()` | `(R⁻¹, -R⁻¹ * t)` |
+| | `operator*` | Composition: `(R1*R2, t1 + R1*t2)` |
+| | `operator*(point)` | Transform 2D point |
+| | `operator*(line)` | Transform parametrized line |
+| | `operator*(plane)` | Transform hyperplane |
+| | `matrix()` | Return 3×3 homogeneous matrix |
+| | `matrix2x3()` | Return 2×3 compact form |
+| **Lie Algebra** | `hat(twist)` | R³ → se(2) 3×3 matrix |
+| | `vee(Ω)` | se(2) → R³ |
+| | `Adj()` | 3×3 Adjoint matrix |
+| | `lieBracket(a, b)` | se(2) bracket |
+| | `generator(i)` | i-th infinitesimal generator |
+| **Derivatives** | `Dx_exp_x(twist)` | 4×3 Jacobian |
+| | `Dx_exp_x_at_0()` | Jacobian at identity |
+| | `Dx_this_mul_exp_x_at_0()` | |
+| | `Dx_log_this_inv_by_x_at_this()` | |
+| **Construction** | `SE2()` | Identity |
+| | `SE2(SO2, Vector2)` | From rotation + translation |
+| | `SE2(θ, Vector2)` | From angle + translation |
+| | `SE2(Matrix3)` | From homogeneous matrix |
+| | `rot(θ)` | Pure rotation |
+| | `trans(x, y)` | Pure translation |
+| | `transX(x)`, `transY(y)` | Axis translations |
+| | `fitToSE2(Matrix3)` | Closest SE2 |
+| | `sampleUniform(rng)` | Random pose |
+| **Access** | `so2()` | Rotation component |
+| | `translation()` | Translation component |
+| | `rotationMatrix()` | 2×2 rotation matrix |
+| | `setComplex()`, `setRotationMatrix()` | Mutators |
+
+---
+
+#### Phase 0.7c: SO(3) - 3D Rotations ⭐⭐⭐⭐⭐
+- **File:** `include/optinum/lie/groups/so3.hpp`
+- **Complexity:** ⭐⭐⭐ Hard (~600 lines)
+- **Storage:** `dp::mat::quaternion<T>` with `[w, x, y, z]` convention (scalar first)
+- **DoF:** 3 (rotation vector / axis-angle)
+- **Parameters:** 4 (quaternion)
+- **SIMD:** Uses `simd::quaternion_view` for batched ops, `pack<quaternion>` internally
+- **Note:** Storage is `dp::mat::quaternion<T>`, enabling implicit conversion to/from `dp::Quaternion`
+
+**Functions to implement:**
+| Category | Function | Description |
+|----------|----------|-------------|
+| **Core** | `exp(ω)` | R³ → SO(3) via quaternion: `q = [sin(θ/2)*ω̂, cos(θ/2)]` |
+| | `expAndTheta(ω, &θ)` | exp + return angle (reuse in Jacobian) |
+| | `log()` | SO(3) → R³: `2 * atan2(|v|, w) * v/|v|` |
+| | `logAndTheta()` | log + return angle |
+| | `inverse()` | Quaternion conjugate |
+| | `operator*` | Hamilton product |
+| | `operator*(point)` | Rotate 3D point: `q * v * q⁻¹` |
+| | `operator*(line)` | Rotate parametrized line |
+| | `operator*(plane)` | Rotate hyperplane |
+| | `matrix()` | Return 3×3 rotation matrix |
+| | `normalize()` | Ensure unit quaternion |
+| **Lie Algebra** | `hat(ω)` | R³ → so(3) skew-symmetric 3×3 |
+| | `vee(Ω)` | so(3) → R³ |
+| | `Adj()` | = rotation matrix |
+| | `lieBracket(a, b)` | = cross product `a × b` |
+| | `generator(i)` | i-th infinitesimal generator |
+| **Jacobians** | `leftJacobian(ω)` | J_l(ω) 3×3 matrix |
+| | `leftJacobianInverse(ω)` | J_l⁻¹(ω) |
+| | `Dx_exp_x(ω)` | 4×3 derivative of exp |
+| | `Dx_exp_x_at_0()` | Jacobian at identity |
+| | `Dx_this_mul_exp_x_at_0()` | 4×3 |
+| | `Dx_log_this_inv_by_x_at_this()` | 3×4 |
+| | `Dx_exp_x_times_point_at_0(p)` | 3×3 |
+| **Construction** | `SO3()` | Identity |
+| | `SO3(Quaternion)` | From quaternion (normalizes) |
+| | `SO3(Matrix3)` | From rotation matrix |
+| | `rotX(θ)`, `rotY(θ)`, `rotZ(θ)` | Axis rotations |
+| | `fitToSO3(Matrix3)` | Closest SO3 via SVD |
+| | `sampleUniform(rng)` | Uniform on sphere |
+| **Access** | `unit_quaternion()` | Get quaternion |
+| | `angleX()`, `angleY()`, `angleZ()` | Extract Euler angles |
+| | `data()`, `params()`, `cast<>()` | Standard accessors |
+
+**Key Formulas:**
+```
+Exp: q = [sin(θ/2) * ω/|ω|, cos(θ/2)]  where θ = |ω|
+Log: ω = 2 * atan2(|v|, w) * v/|v|  (Taylor series for small angles)
+Left Jacobian: J_l(ω) = I + (1-cos θ)/θ² [ω]× + (θ-sin θ)/θ³ [ω]×²
+```
+
+---
+
+#### Phase 0.7d: SE(3) - 3D Rigid Transforms ⭐⭐⭐⭐⭐
+- **File:** `include/optinum/lie/groups/se3.hpp`
+- **Complexity:** ⭐⭐⭐ Hard (~700 lines)
+- **Storage:** SO3 + Vector3 (quaternion + translation)
+- **DoF:** 6 (3 translation + 3 rotation)
+- **Parameters:** 7 (4 quaternion + 3 translation)
+- **Tangent:** `[vx, vy, vz, ωx, ωy, ωz]` (translation first, rotation last)
+
+**Functions to implement:**
+| Category | Function | Description |
+|----------|----------|-------------|
+| **Core** | `exp(twist)` | R⁶ → SE(3): `T = [R, V*υ]` where V = J_l(ω) |
+| | `log()` | SE(3) → R⁶: `[V⁻¹*t, ω]` |
+| | `inverse()` | `(R⁻¹, -R⁻¹ * t)` |
+| | `operator*` | `(R1*R2, t1 + R1*t2)` |
+| | `operator*(point)` | `R*p + t` |
+| | `operator*(line)` | Transform line |
+| | `operator*(plane)` | Transform plane |
+| | `matrix()` | 4×4 homogeneous |
+| | `matrix3x4()` | 3×4 compact form |
+| **Lie Algebra** | `hat(twist)` | R⁶ → se(3) 4×4 |
+| | `vee(Ω)` | se(3) → R⁶ |
+| | `Adj()` | 6×6 Adjoint: `[[R, [t]×R], [0, R]]` |
+| | `lieBracket(a, b)` | se(3) bracket |
+| | `generator(i)` | i-th generator |
+| **Jacobians** | `leftJacobian(twist)` | 6×6 matrix |
+| | `leftJacobianInverse(twist)` | 6×6 |
+| | `Dx_exp_x(twist)` | 7×6 |
+| | `Dx_exp_x_at_0()` | 7×6 at identity |
+| | `Dx_this_mul_exp_x_at_0()` | 7×6 |
+| | `Dx_log_this_inv_by_x_at_this()` | 6×7 |
+| **Construction** | `SE3()` | Identity |
+| | `SE3(SO3, Vector3)` | From rotation + translation |
+| | `SE3(Quaternion, Vector3)` | From quat + translation |
+| | `SE3(Matrix3, Vector3)` | From R + t |
+| | `SE3(Matrix4)` | From homogeneous matrix |
+| | `rotX/Y/Z(θ)` | Pure rotations |
+| | `trans(x,y,z)` | Pure translation |
+| | `transX/Y/Z(d)` | Axis translations |
+| | `fitToSE3(Matrix4)` | Closest SE3 |
+| | `sampleUniform(rng)` | Random pose |
+| **Access** | `so3()` | Rotation component |
+| | `translation()` | Translation component |
+| | `rotationMatrix()` | 3×3 matrix |
+| | `unit_quaternion()` | Get quaternion |
+
+---
+
+#### Phase 0.7e: Similarity Groups (RxSO2, RxSO3, Sim2, Sim3) ⭐⭐⭐
+- **Files:** `rxso2.hpp`, `rxso3.hpp`, `sim2.hpp`, `sim3.hpp`
+- **Complexity:** ⭐⭐ Medium (~400-600 lines each)
+- **Purpose:** Rotation + scaling (for scale-invariant problems)
+
+**RxSO2/RxSO3** (Rotation + Scale):
+- Storage: Non-unit complex/quaternion (norm² = scale)
+- DoF: 2 (RxSO2), 4 (RxSO3)
+- `scale()` - extract scale factor
+- `so2()`/`so3()` - extract rotation only
+
+**Sim2/Sim3** (Similarity = RxSO + Translation):
+- Storage: RxSO + translation
+- DoF: 4 (Sim2), 7 (Sim3)
+- Useful for: monocular SLAM, loop closure with scale drift
+
+---
+
+#### Phase 0.7f: Algorithms ⭐⭐⭐⭐
+- **Files:** `algorithms/*.hpp`
+
+**interpolate.hpp:**
+```cpp
+// Geodesic interpolation: exp(t * log(a⁻¹ * b)) * a
+template <class G>
+G interpolate(const G& a, const G& b, Scalar t);
+```
+
+**average.hpp:**
+```cpp
+// Biinvariant mean (iterative or closed-form)
+template <class Container>
+std::optional<G> average(const Container& poses);
+
+template <class Container>
+std::optional<G> iterativeMean(const Container& poses, int max_iter = 20);
+```
+
+**spline.hpp:**
+```cpp
+// Lie group splines for smooth trajectories
+template <class G>
+class LieSpline { ... };
+```
+
+**geometry.hpp:**
+```cpp
+// Construct rotation from normal vector
+SO2<T> SO2FromNormal(Vector2<T> normal);
+SO3<T> SO3FromNormal(Vector3<T> normal);
+
+// Line/plane from pose
+Line2<T> lineFromSE2(SE2<T> pose);
+Plane3<T> planeFromSE3(SE3<T> pose);
+
+// Pose from line/plane
+SE2<T> SE2FromLine(Line2<T> line);
+SE3<T> SE3FromPlane(Plane3<T> plane);
+```
+
+---
+
+#### Phase 0.7g: Batched Operations (SIMD) ⭐⭐⭐⭐⭐
+- **Files:** `batch/so3_batch.hpp`, `batch/se3_batch.hpp`
+- **Purpose:** Process N rotations/poses in parallel using SIMD
+- **Status:** ✅ FOUNDATION READY - Uses `simd::quaternion_view` infrastructure
+
+**Implementation Strategy:**
+
+The batched Lie group operations leverage the new transparent SIMD quaternion infrastructure:
+
+```cpp
+// === EXISTING INFRASTRUCTURE (simd/) ===
+
+// 1. quaternion_view - transparent SIMD over dp::mat::quaternion arrays
+#include <optinum/simd/view/quaternion_view.hpp>
+
+dp::mat::quaternion<double> quats[8];
+auto qv = simd::view(quats);        // auto-detect SIMD width (AVX=4, SSE=2)
+qv.normalize_inplace();              // SIMD under the hood
+qv.rotate_vectors(vx, vy, vz);       // batch rotation
+
+// 2. pack<quaternion> - low-level SIMD pack for quaternions
+#include <optinum/simd/pack/quaternion.hpp>
+
+pack<dp::mat::quaternion<double>, 4> qpack;  // 4 quaternions in AVX registers
+qpack = qpack * other_qpack;                  // Hamilton product (SIMD)
+auto logs = qpack.log();                      // Lie algebra (SIMD)
+
+// 3. Owning container with transparent SIMD
+#include <optinum/simd/quaternion.hpp>
+
+simd::Quaternion<double, 8> rotations;
+rotations.normalize_inplace();  // delegates to quaternion_view
+
+// === NEW LIE GROUP BATCHED API ===
+
+// SO3Batch uses quaternion_view internally
+template <typename T, std::size_t N>
+class SO3Batch {
+    dp::mat::quaternion<T> quats_[N];  // Storage: array of quaternions
+    
+public:
+    // All operations use quaternion_view for transparent SIMD
+    auto as_view() { return simd::view(quats_); }
+    
+    static SO3Batch exp(const Matrix<T, 3, N>& omegas) {
+        SO3Batch result;
+        // Use pack<quaternion>::exp_pure for SIMD exp map
+        // ...
+        return result;
+    }
+    
+    Matrix<T, 3, N> log() const {
+        auto qv = simd::view(quats_);
+        // Use pack.log() internally via view
+        // ...
+    }
+    
+    SO3Batch operator*(const SO3Batch& other) const {
+        SO3Batch result;
+        as_view().multiply_to(other.as_view(), result.quats_);
+        return result;
+    }
+    
+    void rotate(T* vx, T* vy, T* vz) const {
+        as_view().rotate_vectors(vx, vy, vz);  // SIMD rotation
+    }
+    
+    SO3Batch slerp(const SO3Batch& other, T t) const {
+        SO3Batch result;
+        as_view().slerp_to(other.as_view(), t, result.quats_);
+        return result;
+    }
+};
+```
+
+**Key Point:** The `lie/batch/` module is a thin wrapper over `simd/` infrastructure:
+- `simd::quaternion_view` handles SIMD dispatch automatically
+- `simd::pack<quaternion>` provides low-level SIMD operations
+- User works with `dp::mat::quaternion<T>` directly - no manual SIMD management
+
+**Use cases:**
+- Batch factor evaluation in SLAM
+- Parallel ICP iterations
+- Multi-sensor calibration
+
+---
 
 ### Dependencies
 
 **What We Have ✅:**
-- Matrix/Vector with SIMD ✅
-- matmul, transpose, inverse ✅
-- cross product, norm ✅
-- sin, cos, atan2 (simd/math) ✅
-- Jacobian computation ✅
-- GaussNewton, LevenbergMarquardt ✅
+- `simd::Matrix`, `simd::Vector` with SIMD ✅
+- `simd::pack<quaternion>` with full Lie ops ✅ (exp, log, slerp, Hamilton product)
+- `simd::quaternion_view` - transparent SIMD over quaternion arrays ✅ **NEW**
+- `simd::Quaternion<T,N>` - owning container with SIMD ✅ **SIMPLIFIED**
+- `simd::view(quaternion_array)` - bridge for automatic SIMD dispatch ✅ **NEW**
+- `dp::mat::quaternion<T>` ↔ `dp::Quaternion` implicit conversion ✅
+- `lina::matmul`, `lina::transpose`, `lina::inverse` ✅
+- `simd::sin`, `simd::cos`, `simd::atan2`, `simd::sqrt` ✅
+- `lina::jacobian` for numerical derivatives ✅
+- `opti::GaussNewton`, `opti::LevenbergMarquardt` ✅
 
-**What We Need ❌:**
-- Matrix exponential (check if expmat.hpp is complete)
-- Quaternion class
-- SO(3), SE(3) Lie groups
-
-### Integration with Optimizers
-
-Manifold optimization works with existing GN/LM:
-
+**Quaternion SIMD Infrastructure (Ready for Lie Groups):**
 ```cpp
-// Standard optimization on R^n
-x_new = x + delta;
+// User works with dp::mat::quaternion directly - SIMD is automatic
+dp::mat::quaternion<double> quats[8];
+auto qv = simd::view(quats);   // auto-detect width (AVX=4, SSE=2, scalar=1)
 
-// Manifold optimization  
-x_new = x * SO3::exp(delta);  // Retraction on manifold
+// All operations use SIMD internally:
+qv.normalize_inplace();        // batch normalize
+qv.conjugate_inplace();        // batch conjugate
+qv.rotate_vectors(vx,vy,vz);   // batch rotation
+qv.slerp_to(other, t, out);    // batch interpolation
+qv.to_euler(r, p, y);          // batch conversion
+
+// Spatial Quaternion also works (implicit conversion)
+dp::Quaternion spatial_quats[8];
+auto sv = simd::view(spatial_quats);  // same API
 ```
 
-**Modifications needed:**
-- Retraction step in GN/LM (1 line change)
-- Jacobian computed in tangent space (already works!)
+**What We Need to Add:**
+- Core Lie group classes (SO2, SE2, SO3, SE3) - use `quaternion_view` for SO3
+- Similarity groups (RxSO2, RxSO3, Sim2, Sim3)
+- Algorithms (interpolate, average, spline)
+- Batched versions - thin wrappers over `quaternion_view`
 
-### SIMD Performance
+---
 
-Expected SIMD coverage:
-- **Quaternion ops:** 100% (4-vector operations)
-- **SO(3)::exp:** 95% (sin/cos, vector ops)
-- **SO(3)::matrix:** 95% (quaternion → matrix conversion)
-- **SE(3)::exp:** 90% (matrix exponential, matmul)
+### SIMD Strategy
 
-**Performance:** 3-5x faster than scalar Sophus
+**Key Insight:** Use `dp::mat::quaternion<T>` as the storage type, then wrap with `simd::view()` for transparent SIMD acceleration. No need to think about SIMD width - it's auto-detected.
+
+**Single Element:** `SO3<double>` uses scalar `dp::mat::quaternion<T>` operations
+
+**Batched:** `SO3Batch<double, 8>` uses `simd::quaternion_view` for transparent SIMD
+
+```cpp
+// === Single rotation (scalar) ===
+SO3<double> R = SO3<double>::exp(omega);
+Vector3<double> p_rotated = R * p;
+
+// === Batched rotations (transparent SIMD) ===
+// Option 1: Use quaternion_view directly
+dp::mat::quaternion<double> quats[8];
+auto qv = simd::view(quats);  // auto-detect: AVX=4, SSE=2, scalar=1
+qv.normalize_inplace();        // SIMD normalize
+double vx[8], vy[8], vz[8];
+qv.rotate_vectors(vx, vy, vz); // SIMD rotation
+
+// Option 2: Use SO3Batch wrapper (delegates to quaternion_view)
+SO3Batch<double, 8> Rs = SO3Batch<double, 8>::exp(omegas);
+Rs.rotate(vx, vy, vz);  // internally uses quaternion_view
+
+// === The SIMD happens automatically ===
+// On AVX machine: processes 4 quaternions per SIMD op
+// On SSE machine: processes 2 quaternions per SIMD op
+// On scalar machine: falls back gracefully (W=1)
+```
+
+**SIMD Coverage:**
+- Quaternion Hamilton product: 100% SIMD (via `pack<quaternion>`)
+- SO3::exp (via quaternion): 95% SIMD (sin/cos are SIMD)
+- SE3::exp: 90% SIMD (matmul, vector ops)
+- Batched operations: 100% SIMD (via `quaternion_view`)
+- Memory layout: AoS (user-friendly) ↔ SoA (SIMD-friendly) conversion automatic
+
+---
 
 ### API Design
 
 ```cpp
 namespace optinum::lie {
-    template <typename T = double> class Quaternion;
+    // Core groups
+    template <typename T = double> class SO2;
+    template <typename T = double> class SE2;
     template <typename T = double> class SO3;
     template <typename T = double> class SE3;
+    
+    // Similarity groups
+    template <typename T = double> class RxSO2;
+    template <typename T = double> class RxSO3;
+    template <typename T = double> class Sim2;
+    template <typename T = double> class Sim3;
+    
+    // Batched (SIMD)
+    template <typename T, std::size_t N> class SO3Batch;
+    template <typename T, std::size_t N> class SE3Batch;
+    
+    // Algorithms
+    template <class G> G interpolate(const G& a, const G& b, typename G::Scalar t);
+    template <class C> std::optional<typename C::value_type> average(const C& poses);
 }
 
 // Exposed in optinum:: namespace
 namespace optinum {
-    template <typename T = double> using Quaternion = lie::Quaternion<T>;
-    template <typename T = double> using SO3 = lie::SO3<T>;
-    template <typename T = double> using SE3 = lie::SE3<T>;
+    using lie::SO2;
+    using lie::SE2;
+    using lie::SO3;
+    using lie::SE3;
+    using lie::interpolate;
+    using lie::average;
 }
 ```
+
+**Type aliases:**
+```cpp
+using SO2f = SO2<float>;
+using SO2d = SO2<double>;
+using SE3f = SE3<float>;
+using SE3d = SE3<double>;
+// etc.
+```
+
+---
 
 ### Example Usage
 
 ```cpp
+#include <optinum/lie/lie.hpp>
+
 using namespace optinum;
+
+// === SO3 Examples ===
+
+// Create rotation from axis-angle
+Vector<double, 3> omega = {0.1, 0.2, 0.3};  // rotation vector
+SO3<double> R = SO3<double>::exp(omega);
+
+// Rotate a point
+Vector<double, 3> p = {1, 0, 0};
+Vector<double, 3> p_rotated = R * p;
+
+// Compose rotations
+SO3<double> R2 = SO3<double>::rotZ(M_PI / 4);
+SO3<double> R_composed = R * R2;
+
+// Get rotation matrix
+Matrix<double, 3, 3> mat = R.matrix();
+
+// Interpolation (slerp on manifold)
+SO3<double> R_mid = interpolate(R, R2, 0.5);
+
+// === SE3 Examples ===
+
+// Create pose
+SE3<double> T = SE3<double>(R, Vector<double, 3>{1, 2, 3});
+
+// Transform point
+Vector<double, 3> p_world = T * p;
+
+// Inverse
+SE3<double> T_inv = T.inverse();
+
+// Log map (for optimization)
+Vector<double, 6> twist = T.log();
+
+// === Optimization Example ===
 
 // Camera pose optimization
 auto residuals = [&](const Vector<double, 6>& xi) {
     SE3<double> pose = SE3<double>::exp(xi);
-    // Project 3D points, compute reprojection error
-    return error_vector;
+    // Compute reprojection errors...
+    return errors;
 };
 
 LevenbergMarquardt<double> optimizer;
 auto result = optimizer.optimize(residuals, Vector<double, 6>::Zero());
 SE3<double> optimal_pose = SE3<double>::exp(result.x);
+
+// === Batched Operations ===
+
+// Process 8 rotations at once (AVX)
+Matrix<double, 3, 8> omegas;  // 8 rotation vectors
+SO3Batch<double, 8> Rs = SO3Batch<double, 8>::exp(omegas);
+
+Matrix<double, 3, 8> points;  // 8 points to rotate
+Matrix<double, 3, 8> rotated = Rs.rotate(points);  // All 8 rotated in parallel
 ```
+
+---
+
+### Implementation Priority
+
+| Phase | Component | Effort | Priority | Status |
+|-------|-----------|--------|----------|--------|
+| 0.7-pre | **Quaternion SIMD Infrastructure** | - | ⭐⭐⭐⭐⭐ | ✅ DONE |
+| | `pack<quaternion>` | - | - | ✅ 636 lines, 20 tests |
+| | `quaternion_view` | - | - | ✅ 380 lines, 19 tests |
+| | `bridge.hpp` quaternion support | - | - | ✅ 110 lines added |
+| 0.7a | **SO2** | 1 day | ⭐⭐⭐⭐⭐ | 🔲 TODO |
+| 0.7b | **SE2** | 1-2 days | ⭐⭐⭐⭐ | 🔲 TODO |
+| 0.7c | **SO3** | 2-3 days | ⭐⭐⭐⭐⭐ | 🔲 TODO |
+| 0.7d | **SE3** | 2-3 days | ⭐⭐⭐⭐⭐ | 🔲 TODO |
+| 0.7e | **RxSO2/3, Sim2/3** | 3-4 days | ⭐⭐⭐ | 🔲 TODO |
+| 0.7f | **Algorithms** | 2 days | ⭐⭐⭐⭐ | 🔲 TODO |
+| 0.7g | **Batched SIMD** | 1-2 days | ⭐⭐⭐⭐⭐ | 🔲 TODO (foundation ready) |
+
+**Total Estimate:** 2-3 weeks (reduced from original due to SIMD foundation being ready)
+
+---
 
 ### Testing Strategy
 
 **Unit Tests:**
-- Quaternion: ops, conversions, normalization
-- SO(3): exp/log round-trip, hat/vee, group axioms
-- SE(3): exp/log round-trip, composition, inverse
+- Group axioms: identity, inverse, closure, associativity
+- exp/log round-trip consistency
+- hat/vee inverse relationship
+- Jacobian correctness vs finite differences
 
 **Numerical Tests:**
-- Jacobians vs finite differences
-- Orthogonality of rotation matrices
-- Unit quaternion constraint
+- Stability near singularities (small angles)
+- Quaternion normalization preservation
+- Rotation matrix orthogonality
 
 **Integration Tests:**
-- Bundle adjustment with SE(3)
-- Rotation averaging with SO(3)
+- Bundle adjustment with SE3
+- Rotation averaging with SO3
+- Pose graph optimization
 
-### Decision Factors
+---
 
-**GO - Implement if:**
-- ✅ graphix needs camera pose optimization (SLAM)
-- ✅ Want proper bundle adjustment
-- ✅ Want to avoid Sophus + Eigen dependency
-- ✅ Want complete self-contained optimization library
+### Sophus Function Coverage
 
-**NO-GO - Skip if:**
-- ❌ Okay with keeping Sophus as external dependency
-- ❌ graphix only does unconstrained optimization
-- ❌ Time constraints (can add later)
+All major Sophus functions will be implemented:
 
-### Recommendation
+| Sophus File | Our File | Functions |
+|-------------|----------|-----------|
+| `so2.hpp` | `groups/so2.hpp` | exp, log, hat, vee, Adj, generators, derivatives |
+| `se2.hpp` | `groups/se2.hpp` | exp, log, hat, vee, Adj, Jacobians, derivatives |
+| `so3.hpp` | `groups/so3.hpp` | exp, log, hat, vee, Adj, leftJacobian, derivatives |
+| `se3.hpp` | `groups/se3.hpp` | exp, log, hat, vee, Adj, Jacobians, derivatives |
+| `rxso2.hpp` | `groups/rxso2.hpp` | scale, rotation extraction |
+| `rxso3.hpp` | `groups/rxso3.hpp` | scale, rotation extraction |
+| `sim2.hpp` | `groups/sim2.hpp` | similarity transforms 2D |
+| `sim3.hpp` | `groups/sim3.hpp` | similarity transforms 3D |
+| `interpolate.hpp` | `algorithms/interpolate.hpp` | geodesic interpolation |
+| `average.hpp` | `algorithms/average.hpp` | biinvariant mean |
+| `spline.hpp` | `algorithms/spline.hpp` | Lie group splines |
+| `geometry.hpp` | `algorithms/geometry.hpp` | pose/plane/line utilities |
+| `rotation_matrix.hpp` | `core/rotation_matrix.hpp` | isOrthogonal, makeRotationMatrix |
+| `common.hpp` | `core/constants.hpp` | epsilon, pi |
 
-**Status:** ✅ **RECOMMENDED** - Implement Phase 0.7
+**Not porting:**
+- `ceres_manifold.hpp` - Ceres-specific
+- `ceres_typetraits.hpp` - Ceres-specific
+- Eigen::Map specializations - we use datapod, not Eigen
 
-**Priority:** HIGH (after Phase 0.5 DARE)
+---
 
-**Effort:** 2-3 weeks
+### Next Steps
 
-**Payoff:** 
-- Enables proper manifold optimization
-- Critical for graphix (SLAM, bundle adjustment)
-- No external dependencies (Sophus, Eigen)
-- Clean integration with existing optimizers
-- SIMD-accelerated (3-5x faster than scalar)
-
-**Implementation Order:**
-1. Phase 0.7a: Quaternion (~1 week)
-2. Phase 0.7b: SO(3) (~1 week)
-3. Phase 0.7c: SE(3) + examples (~1 week)
+1. ✅ Finalize plan (this document)
+2. ✅ Quaternion SIMD infrastructure (`quaternion_view`, `pack<quaternion>`, bridge)
+3. 🔲 Implement SO2 + tests
+4. 🔲 Implement SE2 + tests
+5. 🔲 Implement SO3 + tests (use `dp::mat::quaternion<T>` + `quaternion_view` for batched)
+6. 🔲 Implement SE3 + tests
+7. 🔲 Implement algorithms (interpolate, average)
+8. 🔲 Implement SO3Batch/SE3Batch (thin wrappers over `quaternion_view`)
+9. 🔲 Add similarity groups if needed
+10. 🔲 Create examples and documentation
 
