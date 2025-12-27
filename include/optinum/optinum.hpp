@@ -6,8 +6,8 @@
 // =============================================================================
 
 #include <optinum/lina/lina.hpp>
+#include <optinum/opti/opti.hpp>
 #include <optinum/simd/simd.hpp>
-// #include <optinum/opti/opti.hpp>  // TODO: implement
 
 namespace optinum {
 
@@ -223,14 +223,38 @@ namespace optinum {
     // Users get them automatically through operator overloading
 
     // =========================================================================
-    // Future: Optimization Module (from opti::)
+    // Optimization Module (from opti::)
     // =========================================================================
 
-    // When opti:: is implemented, add here:
-    // using GradientDescent = opti::GradientDescent;
-    // using Adam = opti::Adam;
-    // using opti::minimize;
-    // etc.
+    // Optimizers
+    template <typename UpdatePolicy = opti::VanillaUpdate, typename DecayPolicy = opti::NoDecay>
+    using GradientDescent = opti::GradientDescent<UpdatePolicy, DecayPolicy>;
+
+    // Update policies
+    using opti::AdamUpdate;
+    using opti::MomentumUpdate;
+    using opti::RMSPropUpdate;
+    using opti::VanillaUpdate;
+
+    // Convenient optimizer aliases
+    using Momentum = GradientDescent<opti::MomentumUpdate>;
+    using RMSprop = GradientDescent<opti::RMSPropUpdate>;
+    using Adam = GradientDescent<opti::AdamUpdate>;
+
+    // Decay policies
+    using opti::NoDecay;
+
+    // Callbacks
+    using opti::EarlyStoppingCallback;
+    using opti::LogCallback;
+    using opti::NoCallback;
+
+    // Result types
+    using opti::IterationInfo;
+    using opti::OptimizationResult;
+
+    // Test problems
+    using opti::Sphere;
 
 } // namespace optinum
 
