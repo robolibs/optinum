@@ -18,8 +18,10 @@
 // Population-based optimizers
 #include "pso.hpp"
 
+// Sampling-based optimizers
+#include "mppi.hpp"
+
 // TODO: Add includes as methods are implemented
-// #include "mppi.hpp"
 // #include "cem.hpp"
 // #include "sa.hpp"
 // #include "de.hpp"
