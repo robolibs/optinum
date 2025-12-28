@@ -18,6 +18,7 @@
 // Population-based optimizers
 #include "cmaes.hpp"
 #include "de.hpp"
+#include "ga.hpp"
 #include "pso.hpp"
 
 // Sampling-based optimizers
@@ -28,9 +29,6 @@
 // Meta-optimizer wrappers
 #include "lookahead.hpp"
 #include "swats.hpp"
-
-// TODO: Add includes as methods are implemented
-// #include "ga.hpp"
 
 namespace optinum::meta {
 
