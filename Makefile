@@ -39,38 +39,40 @@ build:
 	@echo "Running clang-format on source files..."
 	@find ./src ./include -name "*.cpp" -o -name "*.hpp" -o -name "*.h" | xargs clang-format -i
 ifeq ($(BUILD_SYSTEM),xmake)
-	@xmake -y 2>&1 | tee >(grep "error:" > "$(TOP_DIR)/.quickfix")
+	@xmake -y 2>&1 | tee "$(TOP_DIR)/.complog"
+	@grep "error:" "$(TOP_DIR)/.complog" > "$(TOP_DIR)/.quickfix" || true
 else
 	@if [ ! -d "$(BUILD_DIR)" ]; then \
 		echo "Build directory doesn't exist, running config first..."; \
 		$(MAKE) config; \
 	fi
-	@cd $(BUILD_DIR) && set -o pipefail && make -j$(shell nproc) 2>&1 | tee >(grep "^$(TOP_DIR)" | grep -E "error:" > "$(TOP_DIR)/.quickfix")
+	@cd $(BUILD_DIR) && set -o pipefail && make -j$(shell nproc) 2>&1 | tee "$(TOP_DIR)/.complog"
+	@grep "^$(TOP_DIR)" "$(TOP_DIR)/.complog" | grep -E "error:" > "$(TOP_DIR)/.quickfix" || true
 endif
 
 b: build
 
 config:
 ifeq ($(BUILD_SYSTEM),xmake)
-	@xmake f --examples=y --tests=y -y
+	@xmake f --examples=y --tests=y -y 2>&1 | tee "$(TOP_DIR)/.complog"
 	@xmake project -k compile_commands
 else
 	@mkdir -p $(BUILD_DIR)
 	@cd $(BUILD_DIR) && if [ -f Makefile ]; then make clean; fi
 	@echo "cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON .."
-	@cd $(BUILD_DIR) && cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON ..
+	@cd $(BUILD_DIR) && cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON .. 2>&1 | tee "$(TOP_DIR)/.complog"
 endif
 
 reconfig:
 ifeq ($(BUILD_SYSTEM),xmake)
 	@rm -rf .xmake $(BUILD_DIR)
-	@xmake f --examples=y --tests=y -c -y
+	@xmake f --examples=y --tests=y -c -y 2>&1 | tee "$(TOP_DIR)/.complog"
 	@xmake project -k compile_commands
 else
 	@rm -rf $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)
 	@echo "cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON .."
-	@cd $(BUILD_DIR) && cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON ..
+	@cd $(BUILD_DIR) && cmake -Wno-dev -D$(PROJECT_CAP)_BUILD_EXAMPLES=ON -D$(PROJECT_CAP)_ENABLE_TESTS=ON .. 2>&1 | tee "$(TOP_DIR)/.complog"
 endif
 
 c: config
