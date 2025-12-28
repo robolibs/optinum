@@ -292,6 +292,11 @@ namespace optinum {
     using SE2f = lie::SE2f;
     using SE2d = lie::SE2d;
 
+    // 3D rotation group (unit quaternion)
+    template <typename T = double> using SO3 = lie::SO3<T>;
+    using SO3f = lie::SO3f;
+    using SO3d = lie::SO3d;
+
     // Lie group utilities
     using lie::interpolate;
     // using lie::average;  // Has template deduction issues, use lie::average directly
