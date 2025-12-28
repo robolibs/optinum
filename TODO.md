@@ -13,7 +13,7 @@
 | `opti/` | **✅ PHASE 0+0.5 DONE** | 6 optimizers (GD, Momentum, RMSprop, Adam, GN, LM) + optimal control |
 | **API** | **✅ COMPLETE** | Unified optinum:: namespace (85+ functions) |
 
-**Test Status:** 64/64 test suites, 242+ test cases passing ✅
+**Test Status:** 73/73 test suites, 300+ test cases passing ✅
 
 ---
 
@@ -827,7 +827,7 @@ namespace optinum {
 
 ---
 
-**Last Updated:** December 28, 2025 - Phase 0.7a-0.7g Complete! Core Lie Groups + Batched SIMD implemented
+**Last Updated:** December 28, 2025 - Phase 0.7a-0.7g Complete! Core Lie Groups + Similarity Groups + Batched SIMD implemented
 
 ---
 
@@ -1462,7 +1462,7 @@ Matrix<double, 3, 8> rotated = Rs.rotate(points);  // All 8 rotated in parallel
 | 0.7b | **SE2** | 1-2 days | ⭐⭐⭐⭐ | ✅ DONE - 450 lines, 22 tests, 724 assertions |
 | 0.7c | **SO3** | 2-3 days | ⭐⭐⭐⭐⭐ | ✅ DONE - 600 lines, 22 tests, 728 assertions |
 | 0.7d | **SE3** | 2-3 days | ⭐⭐⭐⭐⭐ | ✅ DONE - 700 lines, 18 tests, 497 assertions |
-| 0.7e | **RxSO2/3, Sim2/3** | 3-4 days | ⭐⭐⭐ | 🔲 TODO |
+| 0.7e | **RxSO2/3, Sim2/3** | 3-4 days | ⭐⭐⭐ | ✅ DONE - 1440 lines, 39 tests, 102 assertions |
 | 0.7f | **Algorithms** | 2 days | ⭐⭐⭐⭐ | 🔲 TODO |
 | 0.7g | **Batched SIMD** | 1-2 days | ⭐⭐⭐⭐⭐ | ✅ DONE - SO3Batch + SE3Batch, 29 tests, 582 assertions |
 
@@ -1525,9 +1525,9 @@ All major Sophus functions will be implemented:
 3. ✅ Implement SO2 + tests - **DONE Dec 28, 2025**
 4. ✅ Implement SE2 + tests - **DONE Dec 28, 2025**
 5. ✅ Implement SO3 + tests - **DONE Dec 28, 2025** (uses `dp::mat::quaternion<T>`)
-6. 🔲 Implement SE3 + tests
-7. 🔲 Implement algorithms (interpolate, average)
-8. 🔲 Implement SO3Batch/SE3Batch (thin wrappers over `quaternion_view`)
-9. 🔲 Add similarity groups if needed
+6. ✅ Implement SE3 + tests - **DONE Dec 28, 2025**
+7. ✅ Implement SO3Batch/SE3Batch - **DONE Dec 28, 2025** (29 tests, 582 assertions)
+8. ✅ Implement Similarity Groups (RxSO2, RxSO3, Sim2, Sim3) - **DONE Dec 28, 2025** (39 tests, 102 assertions)
+9. 🔲 Implement algorithms (average, spline)
 10. 🔲 Create examples and documentation
 

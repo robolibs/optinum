@@ -25,12 +25,18 @@
 #include <optinum/lie/core/concepts.hpp>
 #include <optinum/lie/core/constants.hpp>
 
-// Groups (order matters: SO before SE since SE depends on SO)
+// Groups (order matters: SO before SE, RxSO before Sim)
 // clang-format off
 #include <optinum/lie/groups/so2.hpp>
 #include <optinum/lie/groups/so3.hpp>
 #include <optinum/lie/groups/se2.hpp>
 #include <optinum/lie/groups/se3.hpp>
+
+// Similarity groups (rotation + scale)
+#include <optinum/lie/groups/rxso2.hpp>
+#include <optinum/lie/groups/rxso3.hpp>
+#include <optinum/lie/groups/sim2.hpp>
+#include <optinum/lie/groups/sim3.hpp>
 
 // Batched operations (SIMD-accelerated)
 #include <optinum/lie/batch/so3_batch.hpp>
