@@ -827,7 +827,7 @@ namespace optinum {
 
 ---
 
-**Last Updated:** December 28, 2025 - Phase 0.7a-0.7d Complete! Core Lie Groups (SO2, SE2, SO3, SE3) implemented
+**Last Updated:** December 28, 2025 - Phase 0.7a-0.7g Complete! Core Lie Groups + Batched SIMD implemented
 
 ---
 
@@ -1464,7 +1464,7 @@ Matrix<double, 3, 8> rotated = Rs.rotate(points);  // All 8 rotated in parallel
 | 0.7d | **SE3** | 2-3 days | ⭐⭐⭐⭐⭐ | ✅ DONE - 700 lines, 18 tests, 497 assertions |
 | 0.7e | **RxSO2/3, Sim2/3** | 3-4 days | ⭐⭐⭐ | 🔲 TODO |
 | 0.7f | **Algorithms** | 2 days | ⭐⭐⭐⭐ | 🔲 TODO |
-| 0.7g | **Batched SIMD** | 1-2 days | ⭐⭐⭐⭐⭐ | 🔲 TODO (foundation ready) |
+| 0.7g | **Batched SIMD** | 1-2 days | ⭐⭐⭐⭐⭐ | ✅ DONE - SO3Batch + SE3Batch, 29 tests, 582 assertions |
 
 **Total Estimate:** 2-3 weeks (reduced from original due to SIMD foundation being ready)
 

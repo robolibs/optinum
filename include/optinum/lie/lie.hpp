@@ -4,9 +4,13 @@
 //
 // Lie groups for geometry and robotics:
 // - SO2: 2D rotations (unit complex number)
-// - SE2: 2D rigid transforms (rotation + translation) [TODO]
-// - SO3: 3D rotations (unit quaternion) [TODO]
-// - SE3: 3D rigid transforms (rotation + translation) [TODO]
+// - SE2: 2D rigid transforms (rotation + translation)
+// - SO3: 3D rotations (unit quaternion)
+// - SE3: 3D rigid transforms (rotation + translation)
+//
+// Batched operations (SIMD-accelerated):
+// - SO3Batch<T, N>: N rotations processed in parallel
+// - SE3Batch<T, N>: N rigid transforms processed in parallel
 //
 // All groups provide:
 // - exp/log maps (tangent space <-> group)
@@ -27,6 +31,10 @@
 #include <optinum/lie/groups/so3.hpp>
 #include <optinum/lie/groups/se2.hpp>
 #include <optinum/lie/groups/se3.hpp>
+
+// Batched operations (SIMD-accelerated)
+#include <optinum/lie/batch/so3_batch.hpp>
+#include <optinum/lie/batch/se3_batch.hpp>
 // clang-format on
 
 namespace optinum::lie {
