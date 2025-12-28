@@ -5,8 +5,15 @@
 #include <optinum/opti/core/function.hpp>
 #include <optinum/opti/core/types.hpp>
 
-// Decay policies
+// Decay policies (learning rate schedulers)
+#include <optinum/opti/decay/cosine_annealing.hpp>
+#include <optinum/opti/decay/exponential_decay.hpp>
+#include <optinum/opti/decay/inverse_time_decay.hpp>
+#include <optinum/opti/decay/linear_decay.hpp>
 #include <optinum/opti/decay/no_decay.hpp>
+#include <optinum/opti/decay/polynomial_decay.hpp>
+#include <optinum/opti/decay/step_decay.hpp>
+#include <optinum/opti/decay/warmup_decay.hpp>
 
 // Line search algorithms
 #include <optinum/opti/line_search/line_search.hpp>
