@@ -8,8 +8,14 @@
 #include <iostream>
 #include <optinum/optinum.hpp>
 
-using namespace optinum;
 using namespace std::chrono;
+using namespace optinum;
+using namespace optinum::opti;
+
+// Type aliases for convenience
+using Momentum = GradientDescent<MomentumUpdate>;
+using RMSprop = GradientDescent<RMSPropUpdate>;
+using Adam = GradientDescent<AdamUpdate>;
 
 // Benchmark configuration
 constexpr std::size_t WARMUP_ITERS = 1000;

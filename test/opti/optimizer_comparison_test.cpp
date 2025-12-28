@@ -4,6 +4,7 @@
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
+using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam") {

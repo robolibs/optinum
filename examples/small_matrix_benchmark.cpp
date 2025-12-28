@@ -105,18 +105,18 @@ template <std::size_t N> double benchmark_specialized_inverse() {
         }
     }
 
-    float result_data[N * N];
+    float result_data[N * N] = {0};
 
     Timer timer;
     timer.start();
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         if constexpr (N == 2) {
-            on::simd::backend::inverse_2x2(m.data(), result_data);
+            (void)on::simd::backend::inverse_2x2(m.data(), result_data);
         } else if constexpr (N == 3) {
-            on::simd::backend::inverse_3x3(m.data(), result_data);
+            (void)on::simd::backend::inverse_3x3(m.data(), result_data);
         } else if constexpr (N == 4) {
-            on::simd::backend::inverse_4x4(m.data(), result_data);
+            (void)on::simd::backend::inverse_4x4(m.data(), result_data);
         }
     }
 

@@ -430,7 +430,7 @@ namespace optinum::opti {
         template <typename FunctionType, std::size_t N>
         LineSearchResult<T> zoom(FunctionType &func, const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction,
                                  T f0, T dphi0, T armijo_slope, T curvature_threshold, T alpha_lo, T alpha_hi, T f_lo,
-                                 T f_hi, simd::Vector<T, N> &x_new, simd::Vector<T, N> &grad_new,
+                                 [[maybe_unused]] T f_hi, simd::Vector<T, N> &x_new, simd::Vector<T, N> &grad_new,
                                  std::size_t &func_evals, std::size_t &grad_evals) {
             for (std::size_t iter = 0; iter < max_zoom_iters; ++iter) {
                 // Bisection (could use quadratic interpolation for faster convergence)

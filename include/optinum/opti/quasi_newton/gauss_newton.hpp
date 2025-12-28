@@ -239,7 +239,7 @@ namespace optinum::opti {
                 if constexpr (N == simd::Dynamic) {
                     x_new.resize(n);
                 }
-                T new_error;
+                T new_error = T(0);
 
                 if (use_line_search) {
                     // Backtracking line search

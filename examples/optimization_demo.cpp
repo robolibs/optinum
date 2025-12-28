@@ -18,13 +18,13 @@ int main() {
     std::cout << "   Minimum at (0, 0) with f = 0\n\n";
 
     // Create optimizer using unified API
-    optinum::GradientDescent<> gd;
+    optinum::opti::GradientDescent<> gd;
     gd.step_size = 0.1;
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
     // Create test problem
-    optinum::Sphere<double, 2> sphere;
+    optinum::opti::Sphere<double, 2> sphere;
 
     // Initial point
     optinum::Vector<double, 2> x0(datapod::mat::vector<double, 2>{5.0, 3.0});
@@ -94,8 +94,8 @@ int main() {
     std::cout << "   f(x) = Σ xᵢ²\n";
     std::cout << "   Minimum at origin with f = 0\n\n";
 
-    optinum::Sphere<double, 10> sphere_10d;
-    optinum::GradientDescent<> gd_10d;
+    optinum::opti::Sphere<double, 10> sphere_10d;
+    optinum::opti::GradientDescent<> gd_10d;
     gd_10d.step_size = 0.05; // Smaller step for higher dimensions
     gd_10d.max_iterations = 2000;
     gd_10d.tolerance = 1e-6;
@@ -114,7 +114,7 @@ int main() {
     std::cout << "   ✓ Converged: " << (result3.converged ? "Yes" : "No") << "\n";
     std::cout << "   ✓ Iterations: " << result3.iterations << "\n";
     std::cout << "   ✓ Final cost: " << result3.final_cost << "\n";
-    std::cout << "   ✓ Solution norm: " << optinum::norm(x10) << "\n\n";
+    std::cout << "   ✓ Solution norm: " << optinum::lina::norm(x10) << "\n\n";
 
     // =========================================================================
     // Problem 4: With Early Stopping Callback
@@ -124,7 +124,7 @@ int main() {
     std::cout << "   Stop when objective < 1.0\n\n";
 
     optinum::Vector<double, 2> x_callback(datapod::mat::vector<double, 2>{10.0, 10.0});
-    optinum::EarlyStoppingCallback<double> callback(1.0); // Stop at f < 1.0
+    optinum::opti::EarlyStoppingCallback<double> callback(1.0); // Stop at f < 1.0
 
     auto result4 = gd.optimize(sphere, x_callback, callback);
 

@@ -48,7 +48,7 @@ void example_robustness_comparison() {
 
     // Try Gauss-Newton first
     std::cout << "--- Gauss-Newton ---\n";
-    GaussNewton<double> gn;
+    opti::GaussNewton<double> gn;
     gn.max_iterations = 50;
     gn.tolerance = 1e-8;
     gn.use_line_search = true;
@@ -65,7 +65,7 @@ void example_robustness_comparison() {
 
     // Now try Levenberg-Marquardt
     std::cout << "\n--- Levenberg-Marquardt ---\n";
-    LevenbergMarquardt<double> lm;
+    opti::LevenbergMarquardt<double> lm;
     lm.max_iterations = 50;
     lm.tolerance = 1e-8;
     lm.initial_lambda = 1e-3;
@@ -114,7 +114,7 @@ void example_ill_conditioned() {
     std::cout << "Initial guess: [" << x0[0] << ", " << x0[1] << "]\n\n";
 
     // Levenberg-Marquardt with adaptive damping
-    LevenbergMarquardt<double> lm;
+    opti::LevenbergMarquardt<double> lm;
     lm.max_iterations = 100;
     lm.tolerance = 1e-10;
     lm.initial_lambda = 1e-2;
@@ -183,7 +183,7 @@ void example_bundle_adjustment() {
     std::cout << "Initial guess: [" << x0[0] << ", " << x0[1] << ", " << x0[2] << "]\n\n";
 
     // Levenberg-Marquardt
-    LevenbergMarquardt<double> lm;
+    opti::LevenbergMarquardt<double> lm;
     lm.max_iterations = 50;
     lm.tolerance = 1e-12;
     lm.initial_lambda = 1e-4;
@@ -226,7 +226,7 @@ void example_lambda_adaptation() {
     x0[0] = 10.0;
     x0[1] = 10.0;
 
-    LevenbergMarquardt<double> lm;
+    opti::LevenbergMarquardt<double> lm;
     lm.max_iterations = 20;
     lm.tolerance = 1e-10;
     lm.initial_lambda = 1.0; // Start with high lambda

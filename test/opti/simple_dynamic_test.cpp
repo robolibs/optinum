@@ -2,6 +2,7 @@
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
+using namespace optinum::opti;
 
 int main() {
     std::cout << "Testing Dynamic optimization\n";

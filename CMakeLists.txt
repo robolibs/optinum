@@ -20,7 +20,8 @@ set(params
 string(TOUPPER ${project_name} project_name_upper)
 option(${project_name_upper}_BUILD_EXAMPLES "Build examples" OFF)
 option(${project_name_upper}_ENABLE_TESTS "Enable tests" OFF)
-option(SHORT_NAMESPACE "Enable short namespace alias (dp)" OFF)
+option(SHORT_NAMESPACE "Enable short namespace alias (on)" OFF)
+option(OPTINUM_EXPOSE_ALL "Expose all submodule functions in optinum:: namespace" OFF)
 include(FetchContent)
 
 # --------------------------------------------------------------------------------------------------
@@ -43,10 +44,11 @@ if(LIB_SOURCES)
     )
     target_link_libraries(${project_name} PUBLIC ${ext_deps})
     target_compile_options(${project_name} PRIVATE ${params})
-    # Add SHORT_NAMESPACE define if enabled
+    # Add compile definitions if enabled
     target_compile_definitions(${project_name}
         PUBLIC
             $<$<BOOL:${SHORT_NAMESPACE}>:SHORT_NAMESPACE>
+            $<$<BOOL:${OPTINUM_EXPOSE_ALL}>:OPTINUM_EXPOSE_ALL>
     )
 else()
     add_library(${project_name} INTERFACE)
@@ -55,9 +57,12 @@ else()
         $<INSTALL_INTERFACE:include>
     )
     target_link_libraries(${project_name} INTERFACE ${ext_deps})
-    # Add SHORT_NAMESPACE define if enabled (for header-only mode)
+    # Add compile definitions if enabled (for header-only mode)
     if(SHORT_NAMESPACE)
         target_compile_definitions(${project_name} INTERFACE SHORT_NAMESPACE)
+    endif()
+    if(OPTINUM_EXPOSE_ALL)
+        target_compile_definitions(${project_name} INTERFACE OPTINUM_EXPOSE_ALL)
     endif()
 endif()
 

@@ -49,17 +49,17 @@ int main() {
     }
 
     // Transpose
-    auto At = optinum::transpose(A);
+    auto At = optinum::lina::transpose(A);
     std::cout << "transpose(A) =\n";
     for (int i = 0; i < 3; ++i) {
         std::cout << "  [" << At(i, 0) << ", " << At(i, 1) << ", " << At(i, 2) << "]\n";
     }
 
     // Trace
-    std::cout << "trace(A) = " << optinum::trace(A) << "\n";
+    std::cout << "trace(A) = " << optinum::simd::trace(A) << "\n";
 
     // Frobenius norm
-    std::cout << "frobenius_norm(A) = " << optinum::frobenius_norm(A) << "\n";
+    std::cout << "frobenius_norm(A) = " << optinum::simd::frobenius_norm(A) << "\n";
 
     // Matrix-vector multiplication
     optinum::Vector<float, 3> v;
@@ -96,7 +96,8 @@ int main() {
     std::cout << "pod(0,0) = " << pod(0, 0) << "\n";
 
     // Identity factory
-    optinum::Matrix<float, 4, 4> I; I.set_identity();
+    optinum::Matrix<float, 4, 4> I;
+    I.set_identity();
     std::cout << "identity<4>() diagonal = [" << I(0, 0) << ", " << I(1, 1) << ", " << I(2, 2) << ", " << I(3, 3)
               << "]\n";
 
@@ -104,7 +105,7 @@ int main() {
     // Short namespace
     on::Matrix<float, 3, 3> R;
     R.set_identity();
-    std::cout << "on::Matrix<float, 3, 3> trace = " << on::trace(R) << "\n";
+    std::cout << "on::Matrix<float, 3, 3> trace = " << optinum::simd::trace(R) << "\n";
 #endif
 
     return 0;

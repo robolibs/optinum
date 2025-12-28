@@ -43,4 +43,40 @@
 #include <optinum/opti/problem/rosenbrock.hpp>
 #include <optinum/opti/problem/sphere.hpp>
 
-namespace optinum::opti {} // namespace optinum::opti
+namespace optinum::opti {
+
+    // =========================================================================
+    // Convenient type aliases for common optimizer configurations
+    // =========================================================================
+
+    /// Gradient descent with momentum
+    using Momentum = GradientDescent<MomentumUpdate>;
+
+    /// RMSprop optimizer
+    using RMSprop = GradientDescent<RMSPropUpdate>;
+
+    /// Adam optimizer
+    using Adam = GradientDescent<AdamUpdate>;
+
+    /// AMSGrad optimizer (Adam with guaranteed convergence)
+    using AMSGrad = GradientDescent<AMSGradUpdate>;
+
+    /// Nesterov accelerated gradient
+    using Nesterov = GradientDescent<NesterovUpdate>;
+
+    /// AdaGrad optimizer
+    using AdaGrad = GradientDescent<AdaGradUpdate>;
+
+    /// AdaDelta optimizer
+    using AdaDelta = GradientDescent<AdaDeltaUpdate>;
+
+    /// AdaBound optimizer
+    using AdaBound = GradientDescent<AdaBoundUpdate>;
+
+    /// NAdam optimizer (Nesterov + Adam)
+    using NAdam = GradientDescent<NAdamUpdate>;
+
+    /// Yogi optimizer
+    using Yogi = GradientDescent<YogiUpdate>;
+
+} // namespace optinum::opti

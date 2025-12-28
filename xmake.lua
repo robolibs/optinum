@@ -81,7 +81,13 @@ option_end()
 option("short_namespace")
     set_default(false)
     set_showmenu(true)
-    set_description("Enable short namespace alias (dp)")
+    set_description("Enable short namespace alias (on)")
+option_end()
+
+option("expose_all")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Expose all submodule functions in optinum:: namespace")
 option_end()
 
 -- Define datapod package (from git)
@@ -167,6 +173,11 @@ target("optinum")
     -- Add SHORT_NAMESPACE define if enabled
     if has_config("short_namespace") then
         add_defines("SHORT_NAMESPACE", {public = true})
+    end
+
+    -- Add OPTINUM_EXPOSE_ALL define if enabled
+    if has_config("expose_all") then
+        add_defines("OPTINUM_EXPOSE_ALL", {public = true})
     end
 
     -- Conditional rerun support (only if package is found)

@@ -25,14 +25,14 @@ int main() {
     std::cout << "a * 3 = [" << scaled[0] << ", " << scaled[1] << ", " << scaled[2] << "]\n";
 
     // Dot product and norm
-    std::cout << "dot(a, b) = " << optinum::dot(a, b) << "\n";
-    std::cout << "sum(a) = " << optinum::sum(a) << "\n";
-    std::cout << "norm(a) = " << optinum::norm(a) << "\n";
+    std::cout << "dot(a, b) = " << optinum::lina::dot(a, b) << "\n";
+    std::cout << "sum(a) = " << optinum::simd::sum(a) << "\n";
+    std::cout << "norm(a) = " << optinum::lina::norm(a) << "\n";
 
     // Normalized
-    auto n = optinum::normalized(a);
+    auto n = optinum::simd::normalized(a);
     std::cout << "normalized(a) = [" << n[0] << ", " << n[1] << ", " << n[2] << "]\n";
-    std::cout << "norm(normalized(a)) = " << optinum::norm(n) << "\n";
+    std::cout << "norm(normalized(a)) = " << optinum::lina::norm(n) << "\n";
 
     // Access underlying datapod type
     datapod::mat::vector<float, 3> &pod = a.pod();
@@ -56,7 +56,7 @@ int main() {
     v[0] = 1.0f;
     v[1] = 0.0f;
     v[2] = 0.0f;
-    std::cout << "on::Vector<float, 3> norm = " << on::norm(v) << "\n";
+    std::cout << "on::Vector<float, 3> norm = " << optinum::lina::norm(v) << "\n";
 #endif
 
     return 0;

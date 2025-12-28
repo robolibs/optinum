@@ -9,7 +9,6 @@
 #include <optinum/lie/lie.hpp>
 
 using namespace optinum;
-using namespace optinum::lie;
 
 // =============================================================================
 // Example 1: SO2 - 2D Rotations
@@ -22,26 +21,26 @@ void example_so2() {
     std::cout << "========================================\n\n";
 
     // Create rotations from angles
-    SO2d R1(M_PI / 4); // 45 degrees
-    SO2d R2(M_PI / 6); // 30 degrees
+    lie::SO2d R1(M_PI / 4); // 45 degrees
+    lie::SO2d R2(M_PI / 6); // 30 degrees
 
     std::cout << "R1 = rotation by 45 degrees\n";
     std::cout << "R2 = rotation by 30 degrees\n\n";
 
     // Composition
-    SO2d R3 = R1 * R2;
+    lie::SO2d R3 = R1 * R2;
     std::cout << "R1 * R2 angle: " << R3.angle() * 180.0 / M_PI << " degrees\n";
     std::cout << "  (expected: 75 degrees)\n\n";
 
     // Inverse
-    SO2d R1_inv = R1.inverse();
-    SO2d identity = R1 * R1_inv;
+    lie::SO2d R1_inv = R1.inverse();
+    lie::SO2d identity = R1 * R1_inv;
     std::cout << "R1 * R1.inverse() angle: " << identity.angle() * 180.0 / M_PI << " degrees\n";
     std::cout << "  (expected: 0 degrees)\n\n";
 
     // Exp/Log maps
     double theta = M_PI / 3; // 60 degrees
-    SO2d R_exp = SO2d::exp(theta);
+    lie::SO2d R_exp = lie::SO2d::exp(theta);
     double theta_back = R_exp.log();
     std::cout << "exp(60 deg) -> log() = " << theta_back * 180.0 / M_PI << " degrees\n\n";
 
@@ -63,9 +62,9 @@ void example_se2() {
     std::cout << "========================================\n\n";
 
     // Create poses
-    SE2d T1 = SE2d::trans(1.0, 2.0);            // Pure translation
-    SE2d T2 = SE2d(SO2d(M_PI / 2), {0.0, 0.0}); // Pure rotation (90 deg)
-    SE2d T3 = SE2d(SO2d(M_PI / 4), {1.0, 0.0}); // Rotation + translation
+    lie::SE2d T1 = lie::SE2d::trans(1.0, 2.0);                 // Pure translation
+    lie::SE2d T2 = lie::SE2d(lie::SO2d(M_PI / 2), {0.0, 0.0}); // Pure rotation (90 deg)
+    lie::SE2d T3 = lie::SE2d(lie::SO2d(M_PI / 4), {1.0, 0.0}); // Rotation + translation
 
     std::cout << "T1 = translation by [1, 2]\n";
     std::cout << "T2 = rotation by 90 degrees\n";
@@ -83,7 +82,7 @@ void example_se2() {
     std::cout << "  (expected: [0, 1])\n\n";
 
     // Composition
-    SE2d T_composed = T2 * T1; // First translate, then rotate
+    lie::SE2d T_composed = T2 * T1; // First translate, then rotate
     auto p_composed = T_composed * simd::Vector<double, 2>{0.0, 0.0};
     std::cout << "T2 * T1 applied to origin: [" << p_composed[0] << ", " << p_composed[1] << "]\n";
     std::cout << "  (T1 moves to [1,2], T2 rotates to [-2, 1])\n\n";
@@ -105,9 +104,9 @@ void example_so3() {
     std::cout << "========================================\n\n";
 
     // Create rotations around axes
-    SO3d Rx = SO3d::rot_x(M_PI / 4); // 45 deg around X
-    SO3d Ry = SO3d::rot_y(M_PI / 4); // 45 deg around Y
-    SO3d Rz = SO3d::rot_z(M_PI / 2); // 90 deg around Z
+    lie::SO3d Rx = lie::SO3d::rot_x(M_PI / 4); // 45 deg around X
+    lie::SO3d Ry = lie::SO3d::rot_y(M_PI / 4); // 45 deg around Y
+    lie::SO3d Rz = lie::SO3d::rot_z(M_PI / 2); // 90 deg around Z
 
     std::cout << "Rx = 45 deg rotation around X axis\n";
     std::cout << "Ry = 45 deg rotation around Y axis\n";
@@ -121,12 +120,12 @@ void example_so3() {
     std::cout << "  (expected: [0, 1, 0])\n\n";
 
     // Composition (Euler angles: Z-Y-X)
-    SO3d R_euler = Rz * Ry * Rx;
+    lie::SO3d R_euler = Rz * Ry * Rx;
     std::cout << "Combined rotation Rz * Ry * Rx created\n\n";
 
     // Exp/Log maps (axis-angle)
     simd::Vector<double, 3> omega{0.0, 0.0, M_PI / 2}; // 90 deg around Z
-    SO3d R_from_omega = SO3d::exp(omega);
+    lie::SO3d R_from_omega = lie::SO3d::exp(omega);
     auto omega_back = R_from_omega.log();
     std::cout << "exp([0, 0, pi/2]) -> log() = [" << omega_back[0] << ", " << omega_back[1] << ", " << omega_back[2]
               << "]\n\n";
@@ -148,9 +147,9 @@ void example_se3() {
     std::cout << "========================================\n\n";
 
     // Create poses
-    SE3d T1 = SE3d::trans(1.0, 2.0, 3.0);                   // Pure translation
-    SE3d T2 = SE3d(SO3d::rot_z(M_PI / 2), {0.0, 0.0, 0.0}); // Pure rotation
-    SE3d T3 = SE3d(SO3d::rot_x(M_PI / 4), {1.0, 0.0, 0.0}); // Camera-like pose
+    lie::SE3d T1 = lie::SE3d::trans(1.0, 2.0, 3.0);                        // Pure translation
+    lie::SE3d T2 = lie::SE3d(lie::SO3d::rot_z(M_PI / 2), {0.0, 0.0, 0.0}); // Pure rotation
+    lie::SE3d T3 = lie::SE3d(lie::SO3d::rot_x(M_PI / 4), {1.0, 0.0, 0.0}); // Camera-like pose
 
     std::cout << "T1 = translation by [1, 2, 3]\n";
     std::cout << "T2 = 90 deg rotation around Z\n";
@@ -168,7 +167,7 @@ void example_se3() {
     std::cout << "  (expected: [0, 1, 0])\n\n";
 
     // Inverse
-    SE3d T1_inv = T1.inverse();
+    lie::SE3d T1_inv = T1.inverse();
     auto origin_back = T1_inv * p1;
     std::cout << "T1.inverse() * T1 * p = [" << origin_back[0] << ", " << origin_back[1] << ", " << origin_back[2]
               << "]\n";
@@ -193,10 +192,10 @@ void example_similarity() {
 
     // Create similarity transform: scale + rotation + translation
     double scale = 2.0;
-    SO3d R = SO3d::rot_z(M_PI / 4); // 45 deg rotation
+    lie::SO3d R = lie::SO3d::rot_z(M_PI / 4); // 45 deg rotation
     simd::Vector<double, 3> t{1.0, 0.0, 0.0};
 
-    Sim3d S = Sim3d(RxSO3d(scale, R), t);
+    lie::Sim3d S = lie::Sim3d(lie::RxSO3d(scale, R), t);
 
     std::cout << "Sim3 with scale=2, rotation=45 deg around Z, translation=[1, 0, 0]\n\n";
 
@@ -224,12 +223,12 @@ void example_interpolation() {
     std::cout << "========================================\n\n";
 
     // Geodesic interpolation on SO3
-    SO3d R1 = SO3d::identity();
-    SO3d R2 = SO3d::rot_z(M_PI / 2); // 90 degrees
+    lie::SO3d R1 = lie::SO3d::identity();
+    lie::SO3d R2 = lie::SO3d::rot_z(M_PI / 2); // 90 degrees
 
     std::cout << "Interpolating between identity and 90 deg Z rotation:\n";
     for (double t = 0.0; t <= 1.0; t += 0.25) {
-        SO3d R_interp = geodesic(R1, R2, t);
+        lie::SO3d R_interp = lie::geodesic(R1, R2, t);
         auto omega = R_interp.log();
         double angle = std::sqrt(omega[0] * omega[0] + omega[1] * omega[1] + omega[2] * omega[2]);
         std::cout << "  t=" << t << ": angle = " << angle * 180.0 / M_PI << " degrees\n";
@@ -237,9 +236,9 @@ void example_interpolation() {
     std::cout << "\n";
 
     // Average of rotations
-    std::vector<SO3d> rotations = {SO3d::rot_z(0.1), SO3d::rot_z(0.2), SO3d::rot_z(0.3)};
+    std::vector<lie::SO3d> rotations = {lie::SO3d::rot_z(0.1), lie::SO3d::rot_z(0.2), lie::SO3d::rot_z(0.3)};
 
-    auto avg = average<SO3d>(rotations);
+    auto avg = lie::average<lie::SO3d>(rotations);
     if (avg) {
         auto omega = avg->log();
         double angle = std::sqrt(omega[0] * omega[0] + omega[1] * omega[1] + omega[2] * omega[2]);
@@ -259,11 +258,11 @@ void example_batched() {
     std::cout << "========================================\n\n";
 
     // Create batch of 4 rotations
-    SO3Batch<double, 4> rotations;
-    rotations.set(0, SO3d::rot_z(0.0));
-    rotations.set(1, SO3d::rot_z(M_PI / 4));
-    rotations.set(2, SO3d::rot_z(M_PI / 2));
-    rotations.set(3, SO3d::rot_z(M_PI));
+    lie::SO3Batch<double, 4> rotations;
+    rotations.set(0, lie::SO3d::rot_z(0.0));
+    rotations.set(1, lie::SO3d::rot_z(M_PI / 4));
+    rotations.set(2, lie::SO3d::rot_z(M_PI / 2));
+    rotations.set(3, lie::SO3d::rot_z(M_PI));
 
     std::cout << "Batch of 4 rotations: [0, 45, 90, 180] degrees around Z\n\n";
 

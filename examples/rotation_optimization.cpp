@@ -16,7 +16,6 @@
 #include <random>
 
 using namespace optinum;
-using namespace optinum::lie;
 
 // =============================================================================
 // Example 1: Point Cloud Alignment
@@ -38,7 +37,7 @@ void example_point_cloud_alignment() {
     omega_true[0] = axis[0] * angle;
     omega_true[1] = axis[1] * angle;
     omega_true[2] = axis[2] * angle;
-    SO3d R_true = SO3d::exp(omega_true);
+    lie::SO3d R_true = lie::SO3d::exp(omega_true);
 
     std::cout << "Ground truth rotation: 30 deg around [1,1,1]\n\n";
 
@@ -56,9 +55,9 @@ void example_point_cloud_alignment() {
 
     // Define residual function: r_i = R * p_source_i - p_target_i
     // We parameterize R = R_current * exp(delta) and optimize over delta
-    auto make_residual = [&](const SO3d &R_current) {
+    auto make_residual = [&](const lie::SO3d &R_current) {
         return [&, R_current](const simd::Vector<double, 3> &delta) {
-            SO3d R = R_current * SO3d::exp(delta);
+            lie::SO3d R = R_current * lie::SO3d::exp(delta);
             simd::Vector<double, Dynamic> residuals;
             residuals.resize(source_points.size() * 3);
 
@@ -73,8 +72,8 @@ void example_point_cloud_alignment() {
     };
 
     // Iterative optimization on the manifold
-    SO3d R_estimate = SO3d::identity(); // Start from identity
-    GaussNewton<double> gn;
+    lie::SO3d R_estimate = lie::SO3d::identity(); // Start from identity
+    opti::GaussNewton<double> gn;
     gn.max_iterations = 10;
     gn.tolerance = 1e-10;
     gn.verbose = false;
@@ -88,7 +87,7 @@ void example_point_cloud_alignment() {
         auto result = gn.optimize(residual, delta_init);
 
         // Update on manifold: R = R * exp(delta)
-        R_estimate = R_estimate * SO3d::exp(result.x);
+        R_estimate = R_estimate * lie::SO3d::exp(result.x);
 
         // Compute error
         auto omega_error = (R_true.inverse() * R_estimate).log();
@@ -124,13 +123,13 @@ void example_rotation_averaging() {
     std::cout << "========================================\n\n";
 
     // True rotation
-    SO3d R_true = SO3d::rot_z(M_PI / 4) * SO3d::rot_x(M_PI / 6);
+    lie::SO3d R_true = lie::SO3d::rot_z(M_PI / 4) * lie::SO3d::rot_x(M_PI / 6);
 
     // Generate noisy measurements
     std::mt19937 rng(42);
     std::normal_distribution<double> noise(0.0, 0.05); // ~3 degrees std dev
 
-    std::vector<SO3d> measurements;
+    std::vector<lie::SO3d> measurements;
     const int num_measurements = 10;
 
     std::cout << "Generating " << num_measurements << " noisy rotation measurements...\n";
@@ -138,12 +137,12 @@ void example_rotation_averaging() {
 
     for (int i = 0; i < num_measurements; ++i) {
         simd::Vector<double, 3> noise_omega{noise(rng), noise(rng), noise(rng)};
-        SO3d R_noisy = R_true * SO3d::exp(noise_omega);
+        lie::SO3d R_noisy = R_true * lie::SO3d::exp(noise_omega);
         measurements.push_back(R_noisy);
     }
 
     // Method 1: Use built-in average function
-    auto R_avg = average<SO3d>(measurements);
+    auto R_avg = lie::average<lie::SO3d>(measurements);
     if (R_avg) {
         auto omega_error = (R_true.inverse() * (*R_avg)).log();
         double error_angle = std::sqrt(omega_error[0] * omega_error[0] + omega_error[1] * omega_error[1] +
@@ -153,7 +152,7 @@ void example_rotation_averaging() {
     }
 
     // Method 2: Quaternion averaging (faster, closed-form)
-    SO3d R_quat_avg = average_so3_quaternion(measurements);
+    lie::SO3d R_quat_avg = lie::average_so3_quaternion(measurements);
     {
         auto omega_error = (R_true.inverse() * R_quat_avg).log();
         double error_angle = std::sqrt(omega_error[0] * omega_error[0] + omega_error[1] * omega_error[1] +
@@ -163,7 +162,7 @@ void example_rotation_averaging() {
     }
 
     // Method 3: Chord average (fast approximation)
-    SO3d R_chord_avg = chord_average_so3(measurements);
+    lie::SO3d R_chord_avg = lie::chord_average_so3(measurements);
     {
         auto omega_error = (R_true.inverse() * R_chord_avg).log();
         double error_angle = std::sqrt(omega_error[0] * omega_error[0] + omega_error[1] * omega_error[1] +
@@ -185,7 +184,7 @@ void example_camera_imu_calibration() {
     std::cout << "========================================\n\n";
 
     // True camera-to-IMU rotation
-    SO3d R_cam_imu_true = SO3d::rot_y(M_PI / 8) * SO3d::rot_z(M_PI / 12);
+    lie::SO3d R_cam_imu_true = lie::SO3d::rot_y(M_PI / 8) * lie::SO3d::rot_z(M_PI / 12);
 
     std::cout << "True camera-to-IMU rotation:\n";
     auto q_true = R_cam_imu_true.unit_quaternion();
@@ -197,8 +196,8 @@ void example_camera_imu_calibration() {
     std::normal_distribution<double> noise(0.0, 0.02);
 
     struct RotationPair {
-        SO3d R_cam;
-        SO3d R_imu;
+        lie::SO3d R_cam;
+        lie::SO3d R_imu;
     };
     std::vector<RotationPair> pairs;
 
@@ -206,12 +205,12 @@ void example_camera_imu_calibration() {
 
     for (int i = 0; i < 8; ++i) {
         // Random camera rotation
-        SO3d R_cam = SO3d::sample_uniform(rng);
+        lie::SO3d R_cam = lie::SO3d::sample_uniform(rng);
 
         // Corresponding IMU rotation (with noise)
-        SO3d R_imu_true = R_cam_imu_true * R_cam * R_cam_imu_true.inverse();
+        lie::SO3d R_imu_true = R_cam_imu_true * R_cam * R_cam_imu_true.inverse();
         simd::Vector<double, 3> noise_omega{noise(rng), noise(rng), noise(rng)};
-        SO3d R_imu = R_imu_true * SO3d::exp(noise_omega);
+        lie::SO3d R_imu = R_imu_true * lie::SO3d::exp(noise_omega);
 
         pairs.push_back({R_cam, R_imu});
     }
@@ -219,14 +218,14 @@ void example_camera_imu_calibration() {
     // Hand-eye calibration residual:
     // R_imu * R_cam_imu = R_cam_imu * R_cam
     // Residual: log(R_imu * R_cam_imu * R_cam^{-1} * R_cam_imu^{-1})
-    auto make_calibration_residual = [&](const SO3d &R_current) {
+    auto make_calibration_residual = [&](const lie::SO3d &R_current) {
         return [&, R_current](const simd::Vector<double, 3> &delta) {
-            SO3d R = R_current * SO3d::exp(delta);
+            lie::SO3d R = R_current * lie::SO3d::exp(delta);
             simd::Vector<double, Dynamic> residuals;
             residuals.resize(pairs.size() * 3);
 
             for (std::size_t i = 0; i < pairs.size(); ++i) {
-                SO3d error_rot = pairs[i].R_imu * R * pairs[i].R_cam.inverse() * R.inverse();
+                lie::SO3d error_rot = pairs[i].R_imu * R * pairs[i].R_cam.inverse() * R.inverse();
                 auto omega = error_rot.log();
                 residuals[i * 3 + 0] = omega[0];
                 residuals[i * 3 + 1] = omega[1];
@@ -237,8 +236,8 @@ void example_camera_imu_calibration() {
     };
 
     // Optimize
-    SO3d R_estimate = SO3d::identity();
-    LevenbergMarquardt<double> lm;
+    lie::SO3d R_estimate = lie::SO3d::identity();
+    opti::LevenbergMarquardt<double> lm;
     lm.max_iterations = 10;
     lm.tolerance = 1e-12;
     lm.verbose = false;
@@ -250,7 +249,7 @@ void example_camera_imu_calibration() {
         simd::Vector<double, 3> delta_init{0.0, 0.0, 0.0};
 
         auto result = lm.optimize(residual, delta_init);
-        R_estimate = R_estimate * SO3d::exp(result.x);
+        R_estimate = R_estimate * lie::SO3d::exp(result.x);
 
         auto omega_error = (R_cam_imu_true.inverse() * R_estimate).log();
         double error_angle = std::sqrt(omega_error[0] * omega_error[0] + omega_error[1] * omega_error[1] +

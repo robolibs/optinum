@@ -50,7 +50,7 @@ void example_exponential_curve_fitting() {
     };
 
     // Configure Gauss-Newton optimizer
-    GaussNewton<double> gn;
+    opti::GaussNewton<double> gn;
     gn.max_iterations = 50;
     gn.tolerance = 1e-8;
     gn.min_gradient_norm = 1e-10;
@@ -127,7 +127,7 @@ void example_circle_fitting() {
     };
 
     // Configure optimizer
-    GaussNewton<double> gn;
+    opti::GaussNewton<double> gn;
     gn.max_iterations = 100;
     gn.tolerance = 1e-10;
     gn.use_line_search = true;
@@ -177,7 +177,7 @@ void example_rosenbrock_2d() {
     };
 
     // Configure optimizer
-    GaussNewton<double> gn;
+    opti::GaussNewton<double> gn;
     gn.max_iterations = 100;
     gn.tolerance = 1e-12;
     gn.use_line_search = true; // Important for Rosenbrock!

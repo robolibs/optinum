@@ -17,7 +17,6 @@
 #include <vector>
 
 using namespace optinum;
-using namespace optinum::lie;
 
 // =============================================================================
 // Example 1: Simple Pose Chain
@@ -32,12 +31,12 @@ void example_pose_chain() {
     std::cout << "========================================\n\n";
 
     // Ground truth poses: robot moves forward with slight rotations
-    std::vector<SE3d> poses_true;
-    poses_true.push_back(SE3d::identity());                             // Pose 0: origin
-    poses_true.push_back(SE3d::trans(1.0, 0.0, 0.0));                   // Pose 1
-    poses_true.push_back(SE3d(SO3d::rot_z(M_PI / 8), {2.0, 0.2, 0.0})); // Pose 2
-    poses_true.push_back(SE3d(SO3d::rot_z(M_PI / 6), {2.8, 0.8, 0.0})); // Pose 3
-    poses_true.push_back(SE3d(SO3d::rot_z(M_PI / 4), {3.2, 1.5, 0.0})); // Pose 4
+    std::vector<lie::SE3d> poses_true;
+    poses_true.push_back(lie::SE3d::identity());                                  // Pose 0: origin
+    poses_true.push_back(lie::SE3d::trans(1.0, 0.0, 0.0));                        // Pose 1
+    poses_true.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI / 8), {2.0, 0.2, 0.0})); // Pose 2
+    poses_true.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI / 6), {2.8, 0.8, 0.0})); // Pose 3
+    poses_true.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI / 4), {3.2, 1.5, 0.0})); // Pose 4
 
     const int num_poses = static_cast<int>(poses_true.size());
     std::cout << "True pose chain with " << num_poses << " poses\n\n";
@@ -49,7 +48,7 @@ void example_pose_chain() {
 
     struct RelativeMeasurement {
         int from, to;
-        SE3d T_relative;
+        lie::SE3d T_relative;
     };
     std::vector<RelativeMeasurement> measurements;
 
@@ -57,7 +56,7 @@ void example_pose_chain() {
 
     for (int i = 0; i < num_poses - 1; ++i) {
         // True relative transform
-        SE3d T_rel_true = poses_true[i].inverse() * poses_true[i + 1];
+        lie::SE3d T_rel_true = poses_true[i].inverse() * poses_true[i + 1];
 
         // Add noise
         simd::Vector<double, 6> noise_twist;
@@ -68,13 +67,13 @@ void example_pose_chain() {
         noise_twist[4] = noise_rot(rng);
         noise_twist[5] = noise_rot(rng);
 
-        SE3d T_rel_noisy = T_rel_true * SE3d::exp(noise_twist);
+        lie::SE3d T_rel_noisy = T_rel_true * lie::SE3d::exp(noise_twist);
         measurements.push_back({i, i + 1, T_rel_noisy});
     }
 
     // Initialize poses from odometry (accumulate relative measurements)
-    std::vector<SE3d> poses_estimate(num_poses);
-    poses_estimate[0] = SE3d::identity(); // First pose fixed
+    std::vector<lie::SE3d> poses_estimate(num_poses);
+    poses_estimate[0] = lie::SE3d::identity(); // First pose fixed
     for (int i = 1; i < num_poses; ++i) {
         poses_estimate[i] = poses_estimate[i - 1] * measurements[i - 1].T_relative;
     }
@@ -84,14 +83,14 @@ void example_pose_chain() {
     auto make_residual = [&]() {
         return [&](const simd::Vector<double, Dynamic> &delta) {
             // Apply delta to poses (except first which is fixed)
-            std::vector<SE3d> poses_updated(num_poses);
+            std::vector<lie::SE3d> poses_updated(num_poses);
             poses_updated[0] = poses_estimate[0];
             for (int i = 1; i < num_poses; ++i) {
                 simd::Vector<double, 6> delta_i;
                 for (int j = 0; j < 6; ++j) {
                     delta_i[j] = delta[(i - 1) * 6 + j];
                 }
-                poses_updated[i] = poses_estimate[i] * SE3d::exp(delta_i);
+                poses_updated[i] = poses_estimate[i] * lie::SE3d::exp(delta_i);
             }
 
             // Compute residuals for all edges
@@ -101,7 +100,7 @@ void example_pose_chain() {
             for (std::size_t k = 0; k < measurements.size(); ++k) {
                 int i = measurements[k].from;
                 int j = measurements[k].to;
-                SE3d error = poses_updated[i].inverse() * poses_updated[j] * measurements[k].T_relative.inverse();
+                lie::SE3d error = poses_updated[i].inverse() * poses_updated[j] * measurements[k].T_relative.inverse();
                 auto twist = error.log();
                 for (int d = 0; d < 6; ++d) {
                     residuals[k * 6 + d] = twist[d];
@@ -112,7 +111,7 @@ void example_pose_chain() {
     };
 
     // Compute initial error
-    auto compute_error = [&](const std::vector<SE3d> &poses) {
+    auto compute_error = [&](const std::vector<lie::SE3d> &poses) {
         double total_error = 0.0;
         for (int i = 1; i < num_poses; ++i) {
             auto twist = (poses_true[i].inverse() * poses[i]).log();
@@ -124,7 +123,7 @@ void example_pose_chain() {
     std::cout << "Initial pose error (RMS): " << compute_error(poses_estimate) << "\n\n";
 
     // Optimize using Gauss-Newton
-    GaussNewton<double> gn;
+    opti::GaussNewton<double> gn;
     gn.max_iterations = 10;
     gn.tolerance = 1e-10;
     gn.verbose = false;
@@ -147,7 +146,7 @@ void example_pose_chain() {
             for (int j = 0; j < 6; ++j) {
                 delta_i[j] = result.x[(i - 1) * 6 + j];
             }
-            poses_estimate[i] = poses_estimate[i] * SE3d::exp(delta_i);
+            poses_estimate[i] = poses_estimate[i] * lie::SE3d::exp(delta_i);
         }
 
         double error = compute_error(poses_estimate);
@@ -180,12 +179,12 @@ void example_loop_closure() {
     std::cout << "========================================\n\n";
 
     // Ground truth: square trajectory returning to origin
-    std::vector<SE3d> poses_true;
-    poses_true.push_back(SE3d::identity());                              // 0: origin
-    poses_true.push_back(SE3d::trans(2.0, 0.0, 0.0));                    // 1: move right
-    poses_true.push_back(SE3d(SO3d::rot_z(M_PI / 2), {2.0, 2.0, 0.0}));  // 2: move up, turn left
-    poses_true.push_back(SE3d(SO3d::rot_z(M_PI), {0.0, 2.0, 0.0}));      // 3: move left, turn left
-    poses_true.push_back(SE3d(SO3d::rot_z(-M_PI / 2), {0.0, 0.0, 0.0})); // 4: back to origin
+    std::vector<lie::SE3d> poses_true;
+    poses_true.push_back(lie::SE3d::identity());                                   // 0: origin
+    poses_true.push_back(lie::SE3d::trans(2.0, 0.0, 0.0));                         // 1: move right
+    poses_true.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI / 2), {2.0, 2.0, 0.0}));  // 2: move up, turn left
+    poses_true.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI), {0.0, 2.0, 0.0}));      // 3: move left, turn left
+    poses_true.push_back(lie::SE3d(lie::SO3d::rot_z(-M_PI / 2), {0.0, 0.0, 0.0})); // 4: back to origin
 
     const int num_poses = static_cast<int>(poses_true.size());
     std::cout << "Square trajectory with " << num_poses << " poses (returns to origin)\n\n";
@@ -197,14 +196,14 @@ void example_loop_closure() {
 
     struct Edge {
         int from, to;
-        SE3d T_relative;
+        lie::SE3d T_relative;
         double weight; // Lower weight for loop closure (less certain)
     };
     std::vector<Edge> edges;
 
     // Odometry edges (sequential)
     for (int i = 0; i < num_poses - 1; ++i) {
-        SE3d T_rel_true = poses_true[i].inverse() * poses_true[i + 1];
+        lie::SE3d T_rel_true = poses_true[i].inverse() * poses_true[i + 1];
         simd::Vector<double, 6> noise_twist;
         noise_twist[0] = noise_trans(rng);
         noise_twist[1] = noise_trans(rng);
@@ -212,13 +211,13 @@ void example_loop_closure() {
         noise_twist[3] = noise_rot(rng);
         noise_twist[4] = noise_rot(rng);
         noise_twist[5] = noise_rot(rng);
-        SE3d T_rel_noisy = T_rel_true * SE3d::exp(noise_twist);
+        lie::SE3d T_rel_noisy = T_rel_true * lie::SE3d::exp(noise_twist);
         edges.push_back({i, i + 1, T_rel_noisy, 1.0});
     }
 
     // Loop closure edge: pose 4 sees pose 0 again
     {
-        SE3d T_loop_true = poses_true[num_poses - 1].inverse() * poses_true[0];
+        lie::SE3d T_loop_true = poses_true[num_poses - 1].inverse() * poses_true[0];
         simd::Vector<double, 6> noise_twist;
         noise_twist[0] = noise_trans(rng) * 0.5; // Loop closure often more accurate
         noise_twist[1] = noise_trans(rng) * 0.5;
@@ -226,15 +225,15 @@ void example_loop_closure() {
         noise_twist[3] = noise_rot(rng) * 0.5;
         noise_twist[4] = noise_rot(rng) * 0.5;
         noise_twist[5] = noise_rot(rng) * 0.5;
-        SE3d T_loop_noisy = T_loop_true * SE3d::exp(noise_twist);
+        lie::SE3d T_loop_noisy = T_loop_true * lie::SE3d::exp(noise_twist);
         edges.push_back({num_poses - 1, 0, T_loop_noisy, 2.0}); // Higher weight for loop closure
     }
 
     std::cout << "Generated " << edges.size() << " edges (including loop closure)\n\n";
 
     // Initialize from odometry (will have drift)
-    std::vector<SE3d> poses_estimate(num_poses);
-    poses_estimate[0] = SE3d::identity();
+    std::vector<lie::SE3d> poses_estimate(num_poses);
+    poses_estimate[0] = lie::SE3d::identity();
     for (int i = 1; i < num_poses; ++i) {
         poses_estimate[i] = poses_estimate[i - 1] * edges[i - 1].T_relative;
     }
@@ -248,14 +247,14 @@ void example_loop_closure() {
     // Define weighted residual
     auto make_residual = [&]() {
         return [&](const simd::Vector<double, Dynamic> &delta) {
-            std::vector<SE3d> poses_updated(num_poses);
+            std::vector<lie::SE3d> poses_updated(num_poses);
             poses_updated[0] = poses_estimate[0];
             for (int i = 1; i < num_poses; ++i) {
                 simd::Vector<double, 6> delta_i;
                 for (int j = 0; j < 6; ++j) {
                     delta_i[j] = delta[(i - 1) * 6 + j];
                 }
-                poses_updated[i] = poses_estimate[i] * SE3d::exp(delta_i);
+                poses_updated[i] = poses_estimate[i] * lie::SE3d::exp(delta_i);
             }
 
             simd::Vector<double, Dynamic> residuals;
@@ -264,7 +263,7 @@ void example_loop_closure() {
             for (std::size_t k = 0; k < edges.size(); ++k) {
                 int i = edges[k].from;
                 int j = edges[k].to;
-                SE3d error = poses_updated[i].inverse() * poses_updated[j] * edges[k].T_relative.inverse();
+                lie::SE3d error = poses_updated[i].inverse() * poses_updated[j] * edges[k].T_relative.inverse();
                 auto twist = error.log();
                 double w = std::sqrt(edges[k].weight);
                 for (int d = 0; d < 6; ++d) {
@@ -276,7 +275,7 @@ void example_loop_closure() {
     };
 
     // Optimize
-    LevenbergMarquardt<double> lm;
+    opti::LevenbergMarquardt<double> lm;
     lm.max_iterations = 20;
     lm.tolerance = 1e-12;
     lm.verbose = false;
@@ -298,7 +297,7 @@ void example_loop_closure() {
             for (int j = 0; j < 6; ++j) {
                 delta_i[j] = result.x[(i - 1) * 6 + j];
             }
-            poses_estimate[i] = poses_estimate[i] * SE3d::exp(delta_i);
+            poses_estimate[i] = poses_estimate[i] * lie::SE3d::exp(delta_i);
         }
 
         if (result.final_cost < 1e-10) {
@@ -334,24 +333,24 @@ void example_trajectory_spline() {
     std::cout << "========================================\n\n";
 
     // Create waypoints for a trajectory
-    std::vector<SE3d> waypoints;
-    waypoints.push_back(SE3d::identity());
-    waypoints.push_back(SE3d::trans(1.0, 0.0, 0.0));
-    waypoints.push_back(SE3d(SO3d::rot_z(M_PI / 4), {2.0, 0.5, 0.0}));
-    waypoints.push_back(SE3d(SO3d::rot_z(M_PI / 2), {2.0, 2.0, 0.0}));
-    waypoints.push_back(SE3d(SO3d::rot_z(M_PI), {0.0, 2.0, 0.0}));
+    std::vector<lie::SE3d> waypoints;
+    waypoints.push_back(lie::SE3d::identity());
+    waypoints.push_back(lie::SE3d::trans(1.0, 0.0, 0.0));
+    waypoints.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI / 4), {2.0, 0.5, 0.0}));
+    waypoints.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI / 2), {2.0, 2.0, 0.0}));
+    waypoints.push_back(lie::SE3d(lie::SO3d::rot_z(M_PI), {0.0, 2.0, 0.0}));
 
     std::cout << "Created trajectory with " << waypoints.size() << " waypoints\n\n";
 
     // Create spline
-    LieSpline<SE3d> spline(waypoints);
+    lie::LieSpline<lie::SE3d> spline(waypoints);
 
     // Sample the spline at various points
     std::cout << "Sampling spline at uniform intervals:\n";
     const int num_samples = 9;
     for (int i = 0; i <= num_samples; ++i) {
         double u = static_cast<double>(i) / num_samples;
-        SE3d pose = spline.evaluate_normalized(u);
+        lie::SE3d pose = spline.evaluate_normalized(u);
         auto t = pose.translation();
         auto omega = pose.so3().log();
         double angle = std::sqrt(omega[0] * omega[0] + omega[1] * omega[1] + omega[2] * omega[2]);
@@ -360,7 +359,7 @@ void example_trajectory_spline() {
     }
 
     // Compute arc length
-    double arc_len = arc_length(spline, 0.0, static_cast<double>(waypoints.size() - 1), 100);
+    double arc_len = lie::arc_length(spline, 0.0, static_cast<double>(waypoints.size() - 1), 100);
     std::cout << "\nApproximate arc length: " << arc_len << "\n";
 }
 

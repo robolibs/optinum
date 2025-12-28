@@ -3,6 +3,7 @@
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
+using namespace optinum::opti;
 
 TEST_CASE("Dynamic Optimization - Sphere function") {
     SUBCASE("Runtime size N=5") {
