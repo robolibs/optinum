@@ -37,6 +37,7 @@
 #include <optinum/lie/groups/euler_angles.hpp>
 #include <optinum/lie/groups/angular_velocity.hpp>
 #include <optinum/lie/groups/twist.hpp>
+#include <optinum/lie/groups/wrench.hpp>
 #include <optinum/lie/groups/se2.hpp>
 #include <optinum/lie/groups/se3.hpp>
 
