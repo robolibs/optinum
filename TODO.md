@@ -216,6 +216,7 @@ All operations use vectorized instructions via the `simd::pack<T,W>` abstraction
 | RMSprop | First-order | `rmsprop_update.hpp` | 90 | 5.8x |
 | Adam | First-order | `adam_update.hpp` | 125 | 3.6x |
 | AMSGrad | First-order | `amsgrad_update.hpp` | 135 | ~3.5x |
+| Yogi | First-order | `yogi_update.hpp` | 135 | ~3.5x |
 | Gauss-Newton | Second-order | `gauss_newton.hpp` | 609 | - |
 | Levenberg-Marquardt | Second-order | `levenberg_marquardt.hpp` | 452 | - |
 
@@ -262,7 +263,7 @@ struct NesterovUpdate {
 | `optinum-bbn` | **Line Search** (Armijo, Wolfe) | Medium | ~200 |
 | `optinum-8zj` | **Lookahead** meta-optimizer | Easy | ~80 |
 | ~~`optinum-hi6`~~ | ~~**AdaBound**~~ | ~~Easy~~ | ~~160~~ | **DONE** - Luo 2019 |
-| `optinum-aak` | **Yogi** | Easy | ~90 |
+| ~~`optinum-aak`~~ | ~~**Yogi**~~ | ~~Easy~~ | ~~90~~ | **DONE** - Zaheer 2018 |
 | `optinum-m0v` | **Metaheuristic Module** (MPPI, PSO, CEM) | Large | ~1500 |
 
 ### Priority 3 (P3) - Nice to Have

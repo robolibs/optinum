@@ -19,6 +19,7 @@
 #include <optinum/opti/gradient/update_policies/nesterov_update.hpp>
 #include <optinum/opti/gradient/update_policies/rmsprop_update.hpp>
 #include <optinum/opti/gradient/update_policies/vanilla_update.hpp>
+#include <optinum/opti/gradient/update_policies/yogi_update.hpp>
 
 // Quasi-Newton methods
 #include <optinum/opti/quasi_newton/gauss_newton.hpp>
