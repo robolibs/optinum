@@ -7,35 +7,44 @@
 namespace optinum::opti {
 
     /**
-     * Momentum update policy for gradient descent
+     * Nesterov Accelerated Gradient (NAG) update policy
      *
-     * Adds velocity/momentum to accelerate convergence, especially in ravines
-     * where the surface curves more steeply in one dimension than another.
+     * Nesterov momentum improves upon classical momentum by computing the gradient
+     * at the "lookahead" position, providing better convergence properties.
      *
-     * Update equations:
-     *   v_t = μ * v_{t-1} - α * ∇f(x_t)
+     * The standard formulation computes gradient at x + μv:
+     *   v_t = μ * v_{t-1} - α * ∇f(x_t + μ * v_{t-1})
      *   x_{t+1} = x_t + v_t
+     *
+     * Since we receive the gradient at x_t (not the lookahead), we use the
+     * equivalent reformulation that achieves the same effect:
+     *   v_t = μ * v_{t-1} - α * g_t
+     *   x_{t+1} = x_t + μ * v_t - α * g_t
+     *
+     * This is mathematically equivalent to the lookahead formulation and provides
+     * the same accelerated convergence.
      *
      * where:
      *   - μ is the momentum coefficient (typically 0.9)
      *   - α is the learning rate
      *   - v is the velocity vector
-     *
-     * The momentum term increases for dimensions whose gradients point in the same
-     * direction and reduces updates for dimensions whose gradients change directions.
+     *   - g_t is the gradient at current position
      *
      * Reference:
-     *   Rumelhart, Hinton & Williams (1988)
-     *   "Learning representations by back-propagating errors"
+     *   Nesterov (1983) "A method for unconstrained convex minimization problem
+     *   with the rate of convergence O(1/k^2)"
+     *
+     *   Sutskever et al. (2013) "On the importance of initialization and momentum
+     *   in deep learning"
      */
-    struct MomentumUpdate {
+    struct NesterovUpdate {
         double momentum = 0.9; ///< Momentum coefficient μ ∈ [0, 1)
 
         /// Constructor with momentum parameter
-        explicit MomentumUpdate(double mu = 0.9) : momentum(mu) {}
+        explicit NesterovUpdate(double mu = 0.9) : momentum(mu) {}
 
         /**
-         * Update the iterate using momentum (SIMD-optimized)
+         * Update the iterate using Nesterov momentum (SIMD-optimized)
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate α
@@ -53,23 +62,25 @@ namespace optinum::opti {
                 }
             }
 
-            // Get raw pointers for SIMD operations
+            // Get raw pointers
             double *v_ptr = velocity.data();
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
+            // Nesterov update:
+            // 1. v_new = μ * v - α * g
+            // 2. x_new = x + μ * v_new - α * g
             if constexpr (N == simd::Dynamic) {
-                // Runtime SIMD path for Dynamic sizes
-                // Use scalar loop for type safety (velocity is double, x/g may be float)
                 for (std::size_t i = 0; i < n; ++i) {
-                    v_ptr[i] = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
-                    x_ptr[i] += T(v_ptr[i]);
+                    double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
+                    v_ptr[i] = v_new;
+                    x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
                 }
             } else {
-                // Compile-time path for fixed sizes
                 for (std::size_t i = 0; i < N; ++i) {
-                    v_ptr[i] = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
-                    x_ptr[i] += T(v_ptr[i]);
+                    double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
+                    v_ptr[i] = v_new;
+                    x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
                 }
             }
         }

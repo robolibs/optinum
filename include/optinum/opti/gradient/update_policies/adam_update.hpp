@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <limits>
-#include <vector>
 
 #include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
@@ -55,182 +54,74 @@ namespace optinum::opti {
          */
         template <typename T, std::size_t N>
         void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
-            // Lazy initialization on first use (use runtime size for Dynamic)
             const std::size_t n = x.size();
+
+            // Lazy initialization on first use
             if (m.size() != n) {
-                m.resize(n, T{0});
-                v.resize(n, T{0});
+                m.resize(n);
+                v.resize(n);
+                for (std::size_t i = 0; i < n; ++i) {
+                    m[i] = 0.0;
+                    v[i] = 0.0;
+                }
                 iteration = 0;
             }
 
             // Increment iteration counter
             ++iteration;
 
-            T beta1_t = T(beta1);
-            T beta2_t = T(beta2);
-            T eps_t = T(epsilon);
-            T one_minus_beta1 = T{1} - beta1_t;
-            T one_minus_beta2 = T{1} - beta2_t;
+            double one_minus_beta1 = 1.0 - beta1;
+            double one_minus_beta2 = 1.0 - beta2;
 
-            // Catch underflow
-            if (eps_t == T{0} && epsilon != 0.0) {
-                eps_t = T{10} * std::numeric_limits<T>::epsilon();
-            }
+            // Compute bias correction terms
+            double bias_correction1 = 1.0 - std::pow(beta1, double(iteration));
+            double bias_correction2 = 1.0 - std::pow(beta2, double(iteration));
+            double step_correction = double(step_size) * std::sqrt(bias_correction2) / bias_correction1;
 
             // Get raw pointers
-            T *m_ptr = m.data();
-            T *v_ptr = v.data();
+            double *m_ptr = m.data();
+            double *v_ptr = v.data();
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            // Choose SIMD path based on whether N is Dynamic or fixed
             if constexpr (N == simd::Dynamic) {
-                // RUNTIME SIMD for Dynamic size
-                const std::size_t n = x.size();
-                const std::size_t W = simd::backend::preferred_simd_lanes_runtime<T>();
-                const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
-
-                constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-                using pack_t = simd::pack<T, pack_width>;
-
-                const pack_t beta1_vec(beta1_t);
-                const pack_t beta2_vec(beta2_t);
-                const pack_t one_minus_beta1_vec(one_minus_beta1);
-                const pack_t one_minus_beta2_vec(one_minus_beta2);
-
-                // Update biased first moment: m = beta1 * m + (1 - beta1) * g (SIMD)
-                for (std::size_t i = 0; i < main; i += W) {
-                    auto m_val = pack_t::loadu(m_ptr + i);
-                    auto g_val = pack_t::loadu(g_ptr + i);
-                    auto result = beta1_vec * m_val + one_minus_beta1_vec * g_val;
-                    result.storeu(m_ptr + i);
-                }
-                // Tail
-                for (std::size_t i = main; i < n; ++i) {
-                    m_ptr[i] = beta1_t * m_ptr[i] + one_minus_beta1 * g_ptr[i];
-                }
-
-                // Update biased second moment: v = beta2 * v + (1 - beta2) * g² (SIMD)
-                for (std::size_t i = 0; i < main; i += W) {
-                    auto v_val = pack_t::loadu(v_ptr + i);
-                    auto g_val = pack_t::loadu(g_ptr + i);
-                    auto g_squared = g_val * g_val;
-                    auto result = beta2_vec * v_val + one_minus_beta2_vec * g_squared;
-                    result.storeu(v_ptr + i);
-                }
-                // Tail
-                for (std::size_t i = main; i < n; ++i) {
-                    T g_i = g_ptr[i];
-                    v_ptr[i] = beta2_t * v_ptr[i] + one_minus_beta2 * g_i * g_i;
-                }
-
-                // Compute bias correction terms
-                T bias_correction1 = T{1} - std::pow(beta1_t, T(iteration));
-                T bias_correction2 = T{1} - std::pow(beta2_t, T(iteration));
-                T step_correction = step_size * std::sqrt(bias_correction2) / bias_correction1;
-
-                const pack_t step_correction_vec(step_correction);
-                const pack_t eps_vec(eps_t);
-
-                // Update iterate: x = x - step_correction * m / (sqrt(v) + eps) (SIMD)
-                for (std::size_t i = 0; i < main; i += W) {
-                    auto x_val = pack_t::loadu(x_ptr + i);
-                    auto m_val = pack_t::loadu(m_ptr + i);
-                    auto v_val = pack_t::loadu(v_ptr + i);
-
-                    auto sqrt_v = simd::sqrt(v_val);
-                    auto denom = sqrt_v + eps_vec;
-                    auto update = step_correction_vec * m_val / denom;
-                    auto result = x_val - update;
-                    result.storeu(x_ptr + i);
-                }
-                // Tail
-                for (std::size_t i = main; i < n; ++i) {
-                    x_ptr[i] -= step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + eps_t);
+                for (std::size_t i = 0; i < n; ++i) {
+                    double g_i = double(g_ptr[i]);
+                    // Update biased first moment: m = beta1 * m + (1 - beta1) * g
+                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                    // Update biased second moment: v = beta2 * v + (1 - beta2) * g²
+                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                    // Update iterate: x = x - step_correction * m / (sqrt(v) + eps)
+                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
                 }
             } else {
-                // COMPILE-TIME SIMD for fixed size
-                constexpr std::size_t W = simd::backend::preferred_simd_lanes<T, N>();
-                constexpr std::size_t main = simd::backend::main_loop_count<N, W>();
-
-                using pack_t = simd::pack<T, W>;
-
-                const pack_t beta1_vec(beta1_t);
-                const pack_t beta2_vec(beta2_t);
-                const pack_t one_minus_beta1_vec(one_minus_beta1);
-                const pack_t one_minus_beta2_vec(one_minus_beta2);
-
-                // Update biased first moment: m = beta1 * m + (1 - beta1) * g (SIMD)
-                for (std::size_t i = 0; i < main; i += W) {
-                    auto m_val = pack_t::loadu(m_ptr + i);
-                    auto g_val = pack_t::loadu(g_ptr + i);
-                    auto result = beta1_vec * m_val + one_minus_beta1_vec * g_val;
-                    result.storeu(m_ptr + i);
-                }
-                // Tail
-                for (std::size_t i = main; i < N; ++i) {
-                    m_ptr[i] = beta1_t * m_ptr[i] + one_minus_beta1 * g_ptr[i];
-                }
-
-                // Update biased second moment: v = beta2 * v + (1 - beta2) * g² (SIMD)
-                for (std::size_t i = 0; i < main; i += W) {
-                    auto v_val = pack_t::loadu(v_ptr + i);
-                    auto g_val = pack_t::loadu(g_ptr + i);
-                    auto g_squared = g_val * g_val;
-                    auto result = beta2_vec * v_val + one_minus_beta2_vec * g_squared;
-                    result.storeu(v_ptr + i);
-                }
-                // Tail
-                for (std::size_t i = main; i < N; ++i) {
-                    T g_i = g_ptr[i];
-                    v_ptr[i] = beta2_t * v_ptr[i] + one_minus_beta2 * g_i * g_i;
-                }
-
-                // Compute bias correction terms
-                T bias_correction1 = T{1} - std::pow(beta1_t, T(iteration));
-                T bias_correction2 = T{1} - std::pow(beta2_t, T(iteration));
-                T step_correction = step_size * std::sqrt(bias_correction2) / bias_correction1;
-
-                const pack_t step_correction_vec(step_correction);
-                const pack_t eps_vec(eps_t);
-
-                // Update iterate: x = x - step_correction * m / (sqrt(v) + eps) (SIMD)
-                for (std::size_t i = 0; i < main; i += W) {
-                    auto x_val = pack_t::loadu(x_ptr + i);
-                    auto m_val = pack_t::loadu(m_ptr + i);
-                    auto v_val = pack_t::loadu(v_ptr + i);
-
-                    auto sqrt_v = simd::sqrt(v_val);
-                    auto denom = sqrt_v + eps_vec;
-                    auto update = step_correction_vec * m_val / denom;
-                    auto result = x_val - update;
-                    result.storeu(x_ptr + i);
-                }
-                // Tail
-                for (std::size_t i = main; i < N; ++i) {
-                    x_ptr[i] -= step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + eps_t);
+                for (std::size_t i = 0; i < N; ++i) {
+                    double g_i = double(g_ptr[i]);
+                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
                 }
             }
         }
 
         /// Reset moments and iteration counter
         void reset() noexcept {
-            m.clear();
-            v.clear();
+            m.resize(0);
+            v.resize(0);
             iteration = 0;
         }
 
         /// Initialize (for compatibility with GradientDescent interface)
-        template <typename T, std::size_t N> void initialize(std::size_t n) noexcept {
-            m.clear();
-            v.clear();
+        template <typename T, std::size_t N> void initialize(std::size_t) noexcept {
+            m.resize(0);
+            v.resize(0);
             iteration = 0;
         }
 
       private:
-        std::vector<double> m;     ///< First moment estimate (momentum)
-        std::vector<double> v;     ///< Second moment estimate (variance)
-        std::size_t iteration = 0; ///< Iteration counter for bias correction
+        simd::Vector<double, simd::Dynamic> m; ///< First moment estimate (momentum)
+        simd::Vector<double, simd::Dynamic> v; ///< Second moment estimate (variance)
+        std::size_t iteration = 0;             ///< Iteration counter for bias correction
     };
 
 } // namespace optinum::opti

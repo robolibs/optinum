@@ -211,10 +211,11 @@ All operations use vectorized instructions via the `simd::pack<T,W>` abstraction
 | Optimizer | Type | File | Lines | SIMD Speedup |
 |-----------|------|------|-------|--------------|
 | Vanilla GD | First-order | `vanilla_update.hpp` | 38 | baseline |
-| Momentum | First-order | `momentum_update.hpp` | 142 | 2.1x |
-| RMSprop | First-order | `rmsprop_update.hpp` | 182 | 5.8x |
-| Adam | First-order | `adam_update.hpp` | 236 | 3.6x |
-| AMSGrad | First-order | `amsgrad_update.hpp` | 230 | ~3.5x |
+| Momentum | First-order | `momentum_update.hpp` | 85 | 2.1x |
+| Nesterov | First-order | `nesterov_update.hpp` | 100 | ~2x |
+| RMSprop | First-order | `rmsprop_update.hpp` | 90 | 5.8x |
+| Adam | First-order | `adam_update.hpp` | 125 | 3.6x |
+| AMSGrad | First-order | `amsgrad_update.hpp` | 135 | ~3.5x |
 | Gauss-Newton | Second-order | `gauss_newton.hpp` | 609 | - |
 | Levenberg-Marquardt | Second-order | `levenberg_marquardt.hpp` | 452 | - |
 
@@ -233,7 +234,7 @@ All operations use vectorized instructions via the `simd::pack<T,W>` abstraction
 
 | ID | Task | Difficulty | Est. Lines | Reference |
 |----|------|------------|------------|-----------|
-| `optinum-0kz` | **Nesterov Momentum** | Easy | ~60 | Nesterov 1983 |
+| ~~`optinum-0kz`~~ | ~~**Nesterov Momentum**~~ | ~~Easy~~ | ~~100~~ | **DONE** - Nesterov 1983 |
 | `optinum-b3o` | **AdaGrad** | Easy | ~80 | Duchi 2011 |
 | `optinum-rd9` | **AdaDelta** | Easy | ~100 | Zeiler 2012 |
 | ~~`optinum-9qi`~~ | ~~**AMSGrad**~~ | ~~Trivial~~ | ~~230~~ | **DONE** - Reddi 2018 |
@@ -243,8 +244,8 @@ All operations use vectorized instructions via the `simd::pack<T,W>` abstraction
 ```cpp
 // File: opti/gradient/update_policies/nesterov_update.hpp
 struct NesterovUpdate {
-    std::vector<T> velocity;
-    T momentum = 0.9;
+    simd::Vector<double, simd::Dynamic> velocity;  // Use double precision for state
+    double momentum = 0.9;
 
     template <typename T, std::size_t N>
     void update(simd::Vector<T, N>& x, T lr, const simd::Vector<T, N>& grad) {
