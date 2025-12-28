@@ -31,6 +31,9 @@
 #include <optinum/opti/quasi_newton/levenberg_marquardt.hpp>
 
 // Test problems
+#include <optinum/opti/problem/ackley.hpp>
+#include <optinum/opti/problem/rastrigin.hpp>
+#include <optinum/opti/problem/rosenbrock.hpp>
 #include <optinum/opti/problem/sphere.hpp>
 
 namespace optinum::opti {} // namespace optinum::opti
