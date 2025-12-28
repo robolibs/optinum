@@ -1,5 +1,5 @@
 set_project("optinum")
-set_version("0.0.5")
+set_version("0.0.6")
 set_xmakever("2.7.0")
 
 -- Set C++ standard
