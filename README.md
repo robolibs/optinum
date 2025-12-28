@@ -40,16 +40,16 @@ Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ow
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                              optinum (on::)                                  │
 │                                                                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌───────────────┐ │
-│  │on::meta  │  │on::opti  │  │on::lina  │  │ on::lie   │  │   on::simd    │ │
-│  │(meta-    │─▶│(gradient │─▶│(linear   │─▶│(Lie       │─▶│(SIMD views +  │ │
-│  │heuristic)│  │  based)  │  │  algebra)│  │ groups)   │  │  algorithms)  │ │
-│  │          │  │          │  │          │  │           │  │               │ │
-│  │• PSO     │  │• Adam    │  │• LU, QR  │  │• SO2/SO3  │  │• pack<T,W>    │ │
-│  │• CEM     │  │• L-BFGS  │  │• SVD     │  │• SE2/SE3  │  │• 40+ math     │ │
-│  │• CMA-ES  │  │• Gauss-  │  │• Cholesky│  │• Sim2/3   │  │• views        │ │
-│  │• MPPI    │  │  Newton  │  │• solve   │  │• batched  │  │• algorithms   │ │
-│  └──────────┘  └──────────┘  └──────────┘  └───────────┘  └───────────────┘ │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌───────────────┐  │
+│  │on::meta  │  │on::opti  │  │on::lina  │  │ on::lie   │  │   on::simd    │  │
+│  │(meta-    │─▶│(gradient │─▶│(linear   │─▶│(Lie       │─▶│(SIMD views +  │  │
+│  │heuristic)│  │  based)  │  │  algebra)│  │ groups)   │  │  algorithms)  │  │
+│  │          │  │          │  │          │  │           │  │               │  │
+│  │• PSO     │  │• Adam    │  │• LU, QR  │  │• SO2/SO3  │  │• pack<T,W>    │  │
+│  │• CEM     │  │• L-BFGS  │  │• SVD     │  │• SE2/SE3  │  │• 40+ math     │  │
+│  │• CMA-ES  │  │• Gauss-  │  │• Cholesky│  │• Sim2/3   │  │• views        │  │
+│  │• MPPI    │  │  Newton  │  │• solve   │  │• batched  │  │• algorithms   │  │
+│  └──────────┘  └──────────┘  └──────────┘  └───────────┘  └───────────────┘  │
 └────────────────────────────────────┬─────────────────────────────────────────┘
                                      │ wraps (zero-copy)
                                      ▼
@@ -57,16 +57,18 @@ Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ow
 │                            datapod (dp::)                                    │
 │                      (POD data storage - owns memory)                        │
 │                                                                              │
-│  dp::mat::scalar<T>    dp::mat::vector<T,N>    dp::mat::matrix<T,R,C>       │
-│       (rank-0)              (rank-1)                 (rank-2)                │
+│  dp::mat::scalar<T>      dp::mat::vector<T,N>    dp::mat::matrix<T,R,C>      │
+│       (rank-0)                (rank-1)                 (rank-2)              │
 │                                                                              │
-│  • Serializable for ROS2    • Cache-aligned    • Column-major (BLAS-like)   │
+│• Serializable for ROS2    • Cache-aligned      • Column-major (BLAS-like)    │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Data flow:**
 ```
 dp::mat::vector<float, N>   (owns memory - serializable for ROS2)
+         ↓
+op::vector<float, N>           (a view over on::simd::pack<float,W>)
          ↓
 on::simd::view<W>(dp_vector)    (non-owning view - zero copy)
          ↓
@@ -163,15 +165,15 @@ void process_sensor_data() {
     // State vector: [x, y, theta, vx, vy]
     dp::mat::vector<float, 5> state;
     dp::mat::matrix<float, 5, 5> covariance;
-    
+
     // Create SIMD views (zero-copy, no allocation)
     auto x = on::simd::view<8>(state);
     auto P = on::simd::view<8>(covariance);
-    
+
     // SIMD-accelerated operations
     on::simd::scale(0.99f, x);              // Prediction step
     on::simd::axpy(1.0f, sensor_data, x);   // Measurement update
-    
+
     // Result already in 'state' - ready for serialization
 }
 ```
@@ -184,10 +186,10 @@ void process_sensor_data() {
 void solve_dynamics() {
     on::Matrix<double, 6, 6> A;  // Dynamics matrix
     on::Vector<double, 6> b;     // Target state
-    
+
     // Solve Ax = b using LU decomposition (SIMD-accelerated)
     auto result = on::lina::try_solve(A, b);
-    
+
     if (result.is_ok()) {
         auto x = result.unwrap();
         // Apply solution
@@ -203,11 +205,11 @@ void solve_dynamics() {
 void transform_points() {
     // Create SE3 pose from rotation and translation
     on::lie::SE3d pose = on::lie::SE3d::exp({0.1, 0.2, 0.3, 1.0, 2.0, 3.0});
-    
+
     // Transform a point
     on::Vector<double, 3> point{1.0, 0.0, 0.0};
     auto transformed = pose.act(point);
-    
+
     // Batched operations for point clouds
     on::lie::SE3Batch<double, 100> poses;  // 100 poses processed in parallel
 }
@@ -223,14 +225,14 @@ void optimize_trajectory() {
     auto objective = [](const auto& x) {
         return on::lina::dot(x, x);  // Sphere function
     };
-    
+
     // Configure Adam optimizer
     on::opti::Adam<double> optimizer({
         .learning_rate = 0.01,
         .beta1 = 0.9,
         .beta2 = 0.999
     });
-    
+
     on::Vector<double, 10> x;  // Initial guess
     auto result = optimizer.optimize(objective, x);
 }
@@ -247,7 +249,7 @@ void global_search() {
         .population_size = 50,
         .max_iterations = 1000
     });
-    
+
     auto result = optimizer.optimize(rastrigin_function, lower_bounds, upper_bounds);
 }
 ```
