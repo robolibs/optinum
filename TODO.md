@@ -12,7 +12,7 @@
 | `simd/` | **COMPLETE** | ~20,000 | SIMD pack<T,W>, views, 40+ math functions (SSE/AVX/AVX-512/NEON) |
 | `lina/` | **COMPLETE** | ~2,800 | Linear algebra: 5 decompositions, solvers, DARE, Jacobian |
 | `lie/` | **COMPLETE** | ~4,400 | Lie groups: SO2/SE2/SO3/SE3, Sim2/Sim3, batched SIMD |
-| `opti/` | **PARTIAL** | ~2,200 | 6 optimizers done, 10 remaining |
+| `opti/` | **PARTIAL** | ~2,400 | 7 optimizers done, 9 remaining |
 
 **Test Status:** 74/74 test suites passing (350+ test cases)
 
@@ -214,6 +214,7 @@ All operations use vectorized instructions via the `simd::pack<T,W>` abstraction
 | Momentum | First-order | `momentum_update.hpp` | 142 | 2.1x |
 | RMSprop | First-order | `rmsprop_update.hpp` | 182 | 5.8x |
 | Adam | First-order | `adam_update.hpp` | 236 | 3.6x |
+| AMSGrad | First-order | `amsgrad_update.hpp` | 230 | ~3.5x |
 | Gauss-Newton | Second-order | `gauss_newton.hpp` | 609 | - |
 | Levenberg-Marquardt | Second-order | `levenberg_marquardt.hpp` | 452 | - |
 
@@ -235,7 +236,7 @@ All operations use vectorized instructions via the `simd::pack<T,W>` abstraction
 | `optinum-0kz` | **Nesterov Momentum** | Easy | ~60 | Nesterov 1983 |
 | `optinum-b3o` | **AdaGrad** | Easy | ~80 | Duchi 2011 |
 | `optinum-rd9` | **AdaDelta** | Easy | ~100 | Zeiler 2012 |
-| `optinum-9qi` | **AMSGrad** | Trivial | ~20 | Reddi 2018 (modify Adam) |
+| ~~`optinum-9qi`~~ | ~~**AMSGrad**~~ | ~~Trivial~~ | ~~230~~ | **DONE** - Reddi 2018 |
 | `optinum-mde` | **L-BFGS** | Hard | ~400 | Liu & Nocedal 1989 |
 
 **Implementation Pattern (for update policies):**

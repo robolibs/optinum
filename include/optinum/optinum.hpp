@@ -250,6 +250,7 @@ namespace optinum {
 
     // Update policies
     using opti::AdamUpdate;
+    using opti::AMSGradUpdate;
     using opti::MomentumUpdate;
     using opti::RMSPropUpdate;
     using opti::VanillaUpdate;
@@ -258,6 +259,7 @@ namespace optinum {
     using Momentum = GradientDescent<opti::MomentumUpdate>;
     using RMSprop = GradientDescent<opti::RMSPropUpdate>;
     using Adam = GradientDescent<opti::AdamUpdate>;
+    using AMSGrad = GradientDescent<opti::AMSGradUpdate>;
 
     // Second-order optimizers (quasi-Newton methods)
     template <typename T = double> using GaussNewton = opti::GaussNewton<T>;

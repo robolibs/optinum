@@ -11,6 +11,7 @@
 // Gradient descent and update policies
 #include <optinum/opti/gradient/gradient_descent.hpp>
 #include <optinum/opti/gradient/update_policies/adam_update.hpp>
+#include <optinum/opti/gradient/update_policies/amsgrad_update.hpp>
 #include <optinum/opti/gradient/update_policies/momentum_update.hpp>
 #include <optinum/opti/gradient/update_policies/rmsprop_update.hpp>
 #include <optinum/opti/gradient/update_policies/vanilla_update.hpp>
