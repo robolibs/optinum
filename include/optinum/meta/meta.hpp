@@ -21,9 +21,9 @@
 // Sampling-based optimizers
 #include "cem.hpp"
 #include "mppi.hpp"
+#include "sa.hpp"
 
 // TODO: Add includes as methods are implemented
-// #include "sa.hpp"
 // #include "de.hpp"
 // #include "cmaes.hpp"
 // #include "ga.hpp"
