@@ -26,11 +26,11 @@
 
 // Meta-optimizer wrappers
 #include "lookahead.hpp"
+#include "swats.hpp"
 
 // TODO: Add includes as methods are implemented
 // #include "cmaes.hpp"
 // #include "ga.hpp"
-// #include "swats.hpp"
 
 namespace optinum::meta {
 
