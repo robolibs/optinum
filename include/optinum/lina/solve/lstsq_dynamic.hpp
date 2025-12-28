@@ -3,12 +3,16 @@
 // =============================================================================
 // optinum/lina/solve/lstsq_dynamic.hpp
 // Least squares solver for dynamic/runtime-sized matrices
+// Uses SIMD for matrix-vector operations.
 // =============================================================================
 
 #include <datapod/adapters/error.hpp>
 #include <datapod/adapters/result.hpp>
 #include <optinum/lina/decompose/qr_dynamic.hpp>
+#include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
+#include <optinum/simd/pack/pack.hpp>
 #include <optinum/simd/vector.hpp>
 
 #include <cmath>
@@ -19,10 +23,27 @@ namespace optinum::lina {
 
     namespace dp = ::datapod;
 
+    namespace lstsq_dynamic_detail {
+
+        // SIMD matrix-vector product for column-major matrix: y = A^T * x
+        // A is m x m, x is m x 1, y is m x 1
+        // y[i] = sum_j A[j,i] * x[j] = sum_j A^T[i,j] * x[j]
+        // A[:,i] is contiguous at A.data() + i*m
+        template <typename T>
+        inline void mat_transpose_vec_simd(T *y, const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &a, const T *x,
+                                           std::size_t m) noexcept {
+            for (std::size_t i = 0; i < m; ++i) {
+                // y[i] = dot(A[:,i], x) = dot(A.data() + i*m, x, m)
+                y[i] = simd::backend::dot_runtime<T>(a.data() + i * m, x, m);
+            }
+        }
+
+    } // namespace lstsq_dynamic_detail
+
     /**
      * @brief Solve least squares problem min ||Ax - b||_2 for dynamic-size matrices
      *
-     * Uses QR decomposition to solve the overdetermined system.
+     * Uses QR decomposition with SIMD-accelerated operations.
      * Requires m >= n (more equations than unknowns).
      *
      * @tparam T Scalar type (float, double)
@@ -46,17 +67,11 @@ namespace optinum::lina {
 
         const auto f = qr_dynamic(a);
 
-        // Compute y = Q^T * b
-        // y[i] = sum_j Q[j, i] * b[j] = sum_j Q^T[i, j] * b[j]
+        // Compute y = Q^T * b using SIMD
+        // Q is m x m column-major, so Q[:,i] is contiguous
+        // y[i] = sum_j Q[j,i] * b[j] = dot(Q[:,i], b)
         simd::Vector<T, simd::Dynamic> y(m);
-        for (std::size_t i = 0; i < m; ++i) {
-            T sum{};
-            for (std::size_t j = 0; j < m; ++j) {
-                // Q^T[i,j] = Q[j,i]
-                sum += f.q(j, i) * b[j];
-            }
-            y[i] = sum;
-        }
+        lstsq_dynamic_detail::mat_transpose_vec_simd(y.data(), f.q, b.data(), m);
 
         // Solve R(0:n-1, 0:n-1) * x = y(0:n-1) via back substitution
         simd::Vector<T, simd::Dynamic> x(n);
@@ -129,21 +144,12 @@ namespace optinum::lina {
 
         // Solve for each column of B
         for (std::size_t col = 0; col < k; ++col) {
-            // Extract column from B
-            simd::Vector<T, simd::Dynamic> b_col(m);
-            for (std::size_t i = 0; i < m; ++i) {
-                b_col[i] = b(i, col);
-            }
+            // Extract column from B (column-major: B[:,col] is contiguous)
+            const T *b_col = b.data() + col * m;
 
-            // Compute y = Q^T * b_col
+            // Compute y = Q^T * b_col using SIMD
             simd::Vector<T, simd::Dynamic> y(m);
-            for (std::size_t i = 0; i < m; ++i) {
-                T sum{};
-                for (std::size_t j = 0; j < m; ++j) {
-                    sum += f.q(j, i) * b_col[j];
-                }
-                y[i] = sum;
-            }
+            lstsq_dynamic_detail::mat_transpose_vec_simd(y.data(), f.q, b_col, m);
 
             // Back substitution
             simd::Vector<T, simd::Dynamic> x_col(n);
@@ -161,9 +167,10 @@ namespace optinum::lina {
                 x_col[i] = sum / diag;
             }
 
-            // Store in X
+            // Store in X (column-major: X[:,col] is contiguous)
+            T *x_col_ptr = x.data() + col * n;
             for (std::size_t i = 0; i < n; ++i) {
-                x(i, col) = x_col[i];
+                x_col_ptr[i] = x_col[i];
             }
         }
 
@@ -191,6 +198,8 @@ namespace optinum::lina {
     /**
      * @brief Compute residual ||Ax - b||_2 for least squares solution
      *
+     * Uses SIMD for matrix-vector product and norm computation.
+     *
      * @tparam T Scalar type
      * @param a Coefficient matrix (m x n)
      * @param x Solution vector (n elements)
@@ -204,16 +213,38 @@ namespace optinum::lina {
         const std::size_t m = a.rows();
         const std::size_t n = a.cols();
 
-        T sum_sq{};
-        for (std::size_t i = 0; i < m; ++i) {
-            T ax_i{};
-            for (std::size_t j = 0; j < n; ++j) {
-                ax_i += a(i, j) * x[j];
+        // Compute r = Ax - b
+        simd::Vector<T, simd::Dynamic> r(m);
+
+        // Ax: for column-major A, A[:,j] is contiguous
+        // (Ax)[i] = sum_j A[i,j] * x[j]
+        // = sum_j (column j of A)[i] * x[j]
+        r.fill(T{});
+        constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+        for (std::size_t j = 0; j < n; ++j) {
+            const T xj = x[j];
+            const T *a_col = a.data() + j * m;
+
+            // SIMD: r += xj * A[:,j]
+            const std::size_t main = (m / W) * W;
+            const simd::pack<T, W> vxj(xj);
+
+            for (std::size_t i = 0; i < main; i += W) {
+                auto vr = simd::pack<T, W>::loadu(r.data() + i);
+                auto va = simd::pack<T, W>::loadu(a_col + i);
+                (simd::pack<T, W>::fma(vxj, va, vr)).storeu(r.data() + i);
             }
-            const T diff = ax_i - b[i];
-            sum_sq += diff * diff;
+            for (std::size_t i = main; i < m; ++i) {
+                r[i] += xj * a_col[i];
+            }
         }
-        return std::sqrt(sum_sq);
+
+        // r = r - b using SIMD
+        simd::backend::sub_runtime<T>(r.data(), r.data(), b.data(), m);
+
+        // ||r||_2 using SIMD dot
+        T norm_sq = simd::backend::dot_runtime<T>(r.data(), r.data(), m);
+        return std::sqrt(norm_sq);
     }
 
 } // namespace optinum::lina

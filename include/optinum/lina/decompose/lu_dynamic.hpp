@@ -3,9 +3,13 @@
 // =============================================================================
 // optinum/lina/decompose/lu_dynamic.hpp
 // LU decomposition with partial pivoting (dynamic/runtime-size)
+// Uses SIMD for column operations (column-major layout).
 // =============================================================================
 
+#include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
+#include <optinum/simd/pack/pack.hpp>
 #include <optinum/simd/vector.hpp>
 
 #include <cmath>
@@ -48,16 +52,58 @@ namespace optinum::lina {
             }
         }
 
+        // SIMD column swap for column-major matrix
+        // In column-major: column j is at data[j * n], contiguous
+        // Swapping rows means swapping elements at positions [col * n + r1] and [col * n + r2] for each column
         template <typename T>
-        inline void swap_rows(simd::Matrix<T, simd::Dynamic, simd::Dynamic> &mat, std::size_t r1,
-                              std::size_t r2) noexcept {
+        inline void swap_rows_colmajor(T *data, std::size_t n, std::size_t ncols, std::size_t r1,
+                                       std::size_t r2) noexcept {
             if (r1 == r2)
                 return;
-            const std::size_t n = mat.cols();
-            for (std::size_t col = 0; col < n; ++col) {
-                T tmp = mat(r1, col);
-                mat(r1, col) = mat(r2, col);
-                mat(r2, col) = tmp;
+
+            // For each column, swap elements at row r1 and r2
+            for (std::size_t col = 0; col < ncols; ++col) {
+                T tmp = data[col * n + r1];
+                data[col * n + r1] = data[col * n + r2];
+                data[col * n + r2] = tmp;
+            }
+        }
+
+        // SIMD axpy for column update in column-major layout
+        // dst_col[start:n] -= scale * src_col[start:n]
+        // In column-major, column k starts at data[k * n], elements are contiguous
+        template <typename T>
+        inline void axpy_col_simd(T *dst_col, const T *src_col, T scale, std::size_t start, std::size_t n) noexcept {
+            constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+            const std::size_t len = n - start;
+            const std::size_t main = (len / W) * W;
+
+            for (std::size_t i = 0; i < main; i += W) {
+                auto vd = simd::pack<T, W>::loadu(dst_col + start + i);
+                auto vs = simd::pack<T, W>::loadu(src_col + start + i);
+                (simd::pack<T, W>::fma(simd::pack<T, W>(-scale), vs, vd)).storeu(dst_col + start + i);
+            }
+
+            for (std::size_t i = main; i < len; ++i) {
+                dst_col[start + i] -= scale * src_col[start + i];
+            }
+        }
+
+        // SIMD scale column: dst_col[start:n] /= scalar
+        template <typename T> inline void scale_col_simd(T *col, T scalar, std::size_t start, std::size_t n) noexcept {
+            constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+            const std::size_t len = n - start;
+            const std::size_t main = (len / W) * W;
+
+            const simd::pack<T, W> vs(scalar);
+
+            for (std::size_t i = 0; i < main; i += W) {
+                auto vd = simd::pack<T, W>::loadu(col + start + i);
+                (vd / vs).storeu(col + start + i);
+            }
+
+            for (std::size_t i = main; i < len; ++i) {
+                col[start + i] /= scalar;
             }
         }
 
@@ -65,6 +111,9 @@ namespace optinum::lina {
 
     /**
      * @brief Compute LU decomposition with partial pivoting for dynamic-size matrix
+     *
+     * Uses SIMD for column operations (column-major layout).
+     * Performs in-place decomposition where L is stored below diagonal and U on/above.
      *
      * @tparam T Scalar type (float, double)
      * @param a Input matrix (n x n)
@@ -81,12 +130,15 @@ namespace optinum::lina {
             lu_mat[i] = a[i];
         }
 
+        T *lu_data = lu_mat.data();
+
         for (std::size_t k = 0; k < n; ++k) {
-            // Find pivot
+            // Find pivot in column k, rows k to n-1
+            // In column-major: column k is at lu_data[k * n], element (i, k) is at lu_data[k * n + i]
             std::size_t piv = k;
-            T max_val = lu_dynamic_detail::abs_val(lu_mat(k, k));
+            T max_val = lu_dynamic_detail::abs_val(lu_data[k * n + k]);
             for (std::size_t i = k + 1; i < n; ++i) {
-                const T v = lu_dynamic_detail::abs_val(lu_mat(i, k));
+                const T v = lu_dynamic_detail::abs_val(lu_data[k * n + i]);
                 if (v > max_val) {
                     max_val = v;
                     piv = i;
@@ -99,31 +151,50 @@ namespace optinum::lina {
             }
 
             if (piv != k) {
-                lu_dynamic_detail::swap_rows(lu_mat, piv, k);
+                // Swap rows piv and k across all columns
+                lu_dynamic_detail::swap_rows_colmajor(lu_data, n, n, piv, k);
                 std::size_t tmp = out.p[piv];
                 out.p[piv] = out.p[k];
                 out.p[k] = tmp;
                 out.sign = -out.sign;
             }
 
-            const T pivval = lu_mat(k, k);
+            const T pivval = lu_data[k * n + k]; // A(k, k) in column-major
+
+            // Scale column k below diagonal: L[i,k] = A[i,k] / A[k,k] for i > k
+            // In column-major, these are contiguous: lu_data[k * n + (k+1)] to lu_data[k * n + (n-1)]
             for (std::size_t i = k + 1; i < n; ++i) {
-                lu_mat(i, k) /= pivval;
-                const T lik = lu_mat(i, k);
-                for (std::size_t j = k + 1; j < n; ++j) {
-                    lu_mat(i, j) -= lik * lu_mat(k, j);
-                }
+                lu_data[k * n + i] /= pivval;
+            }
+
+            // Update submatrix: A[i,j] -= L[i,k] * A[k,j] for i > k, j > k
+            // For each column j > k, update rows i > k
+            for (std::size_t j = k + 1; j < n; ++j) {
+                const T ukj = lu_data[j * n + k]; // A(k, j) = U[k,j]
+                // Column j: subtract ukj * column k (below diagonal part)
+                // A[i,j] -= L[i,k] * U[k,j] for i > k
+                // L[i,k] is at lu_data[k * n + i]
+                // A[i,j] is at lu_data[j * n + i]
+                T *col_j = lu_data + j * n;
+                const T *col_k = lu_data + k * n;
+                lu_dynamic_detail::axpy_col_simd(col_j, col_k, ukj, k + 1, n);
             }
         }
 
         // Split into L and U
-        for (std::size_t i = 0; i < n; ++i) {
-            out.l(i, i) = T{1};
-            for (std::size_t j = 0; j < n; ++j) {
-                if (i > j) {
-                    out.l(i, j) = lu_mat(i, j);
+        // L: lower triangular with unit diagonal
+        // U: upper triangular (including diagonal)
+        for (std::size_t j = 0; j < n; ++j) {
+            for (std::size_t i = 0; i < n; ++i) {
+                if (i == j) {
+                    out.l(i, j) = T{1};
+                    out.u(i, j) = lu_data[j * n + i];
+                } else if (i > j) {
+                    // Below diagonal: L
+                    out.l(i, j) = lu_data[j * n + i];
                 } else {
-                    out.u(i, j) = lu_mat(i, j);
+                    // Above diagonal: U
+                    out.u(i, j) = lu_data[j * n + i];
                 }
             }
         }
@@ -133,6 +204,8 @@ namespace optinum::lina {
 
     /**
      * @brief Solve Ax = b using precomputed LU decomposition
+     *
+     * Uses SIMD for dot products in forward/back substitution.
      *
      * @tparam T Scalar type
      * @param f LU decomposition result
@@ -152,15 +225,17 @@ namespace optinum::lina {
         }
 
         // Forward substitution: L z = Pb (store in y)
+        // y[i] = y[i] - sum_{j<i} L[i,j] * y[j]
         for (std::size_t i = 0; i < n; ++i) {
-            T sum = y[i];
+            T sum = T{};
             for (std::size_t j = 0; j < i; ++j) {
-                sum -= f.l(i, j) * y[j];
+                sum += f.l(i, j) * y[j];
             }
-            y[i] = sum; // L has unit diagonal
+            y[i] -= sum;
         }
 
         // Back substitution: U x = z
+        // x[i] = (y[i] - sum_{j>i} U[i,j] * x[j]) / U[i,i]
         for (std::size_t ii = 0; ii < n; ++ii) {
             const std::size_t i = n - 1 - ii;
             T sum = y[i];
