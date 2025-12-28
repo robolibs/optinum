@@ -82,11 +82,21 @@ run:
 
 r: run
 
+TEST ?=
+
 test:
 ifeq ($(BUILD_SYSTEM),xmake)
-	@xmake test
+	@if [ -n "$(TEST)" ]; then \
+		./build/linux/$$(uname -m)/release/$(TEST); \
+	else \
+		xmake test; \
+	fi
 else
-	@cd $(BUILD_DIR) && ctest --verbose --output-on-failure || true
+	@if [ -n "$(TEST)" ]; then \
+		$(BUILD_DIR)/$(TEST); \
+	else \
+		cd $(BUILD_DIR) && ctest --verbose --output-on-failure; \
+	fi
 endif
 
 t: test
@@ -100,7 +110,7 @@ help:
 	@echo "  config       Configure and generate build files (preserves cache)"
 	@echo "  reconfig     Full reconfigure (cleans everything including cache)"
 	@echo "  run          Run the main executable"
-	@echo "  test         Run tests"
+	@echo "  test         Run tests (TEST=<name> to run specific test)"
 	@echo "  docs         Build documentation (TYPE=mdbook|doxygen)"
 	@echo "  release      Create a new release (TYPE=patch|minor|major)"
 	@echo

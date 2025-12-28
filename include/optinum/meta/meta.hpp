@@ -15,9 +15,11 @@
 
 #include "../simd/simd.hpp"
 
+// Population-based optimizers
+#include "pso.hpp"
+
 // TODO: Add includes as methods are implemented
 // #include "mppi.hpp"
-// #include "pso.hpp"
 // #include "cem.hpp"
 // #include "sa.hpp"
 // #include "de.hpp"

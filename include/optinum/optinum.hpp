@@ -7,6 +7,7 @@
 
 #include <optinum/lie/lie.hpp>
 #include <optinum/lina/lina.hpp>
+#include <optinum/meta/meta.hpp>
 #include <optinum/opti/opti.hpp>
 #include <optinum/simd/simd.hpp>
 
@@ -279,6 +280,14 @@ namespace optinum {
 
     // Test problems
     using opti::Sphere;
+
+    // =========================================================================
+    // Metaheuristic Optimizers (from meta::)
+    // =========================================================================
+
+    // Particle Swarm Optimization
+    template <typename T = double> using PSO = meta::PSO<T>;
+    template <typename T> using PSOResult = meta::PSOResult<T>;
 
     // =========================================================================
     // Lie Groups (from lie::)
