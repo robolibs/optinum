@@ -16,6 +16,7 @@
 #include "../simd/simd.hpp"
 
 // Population-based optimizers
+#include "cmaes.hpp"
 #include "de.hpp"
 #include "pso.hpp"
 
@@ -29,7 +30,6 @@
 #include "swats.hpp"
 
 // TODO: Add includes as methods are implemented
-// #include "cmaes.hpp"
 // #include "ga.hpp"
 
 namespace optinum::meta {
