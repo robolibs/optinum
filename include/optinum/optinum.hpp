@@ -297,6 +297,11 @@ namespace optinum {
     using SO3f = lie::SO3f;
     using SO3d = lie::SO3d;
 
+    // 3D rigid transform group (rotation + translation)
+    template <typename T = double> using SE3 = lie::SE3<T>;
+    using SE3f = lie::SE3f;
+    using SE3d = lie::SE3d;
+
     // Lie group utilities
     using lie::interpolate;
     // using lie::average;  // Has template deduction issues, use lie::average directly

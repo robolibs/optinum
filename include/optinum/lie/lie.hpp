@@ -21,11 +21,13 @@
 #include <optinum/lie/core/concepts.hpp>
 #include <optinum/lie/core/constants.hpp>
 
-// Groups (order matters: SO2 before SE2, SO3 before SE3)
-#include <optinum/lie/groups/se2.hpp>
+// Groups (order matters: SO before SE since SE depends on SO)
+// clang-format off
 #include <optinum/lie/groups/so2.hpp>
 #include <optinum/lie/groups/so3.hpp>
-// #include <optinum/lie/groups/se3.hpp>  // TODO
+#include <optinum/lie/groups/se2.hpp>
+#include <optinum/lie/groups/se3.hpp>
+// clang-format on
 
 namespace optinum::lie {
 
