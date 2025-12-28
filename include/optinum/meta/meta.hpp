@@ -19,10 +19,10 @@
 #include "pso.hpp"
 
 // Sampling-based optimizers
+#include "cem.hpp"
 #include "mppi.hpp"
 
 // TODO: Add includes as methods are implemented
-// #include "cem.hpp"
 // #include "sa.hpp"
 // #include "de.hpp"
 // #include "cmaes.hpp"
