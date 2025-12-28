@@ -16,6 +16,7 @@
 #include "../simd/simd.hpp"
 
 // Population-based optimizers
+#include "de.hpp"
 #include "pso.hpp"
 
 // Sampling-based optimizers
@@ -24,7 +25,6 @@
 #include "sa.hpp"
 
 // TODO: Add includes as methods are implemented
-// #include "de.hpp"
 // #include "cmaes.hpp"
 // #include "ga.hpp"
 // #include "lookahead.hpp"
