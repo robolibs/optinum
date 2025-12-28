@@ -12,6 +12,11 @@
 // - SO3Batch<T, N>: N rotations processed in parallel
 // - SE3Batch<T, N>: N rigid transforms processed in parallel
 //
+// Algorithms:
+// - average: Biinvariant (Frechet/Karcher) mean on Lie groups
+// - LieSpline: C1-smooth spline interpolation through control points
+// - geodesic, bezier, catmull_rom: Interpolation functions
+//
 // All groups provide:
 // - exp/log maps (tangent space <-> group)
 // - Group composition (operator*)
@@ -41,6 +46,10 @@
 // Batched operations (SIMD-accelerated)
 #include <optinum/lie/batch/so3_batch.hpp>
 #include <optinum/lie/batch/se3_batch.hpp>
+
+// Algorithms
+#include <optinum/lie/algorithms/average.hpp>
+#include <optinum/lie/algorithms/spline.hpp>
 // clang-format on
 
 namespace optinum::lie {
