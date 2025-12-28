@@ -14,6 +14,7 @@
 #include <optinum/lina/basic/cond.hpp>
 #include <optinum/lina/basic/determinant.hpp>
 #include <optinum/lina/basic/expmat.hpp>
+#include <optinum/lina/basic/hessian.hpp>
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/is_finite.hpp>
 #include <optinum/lina/basic/jacobian.hpp>
