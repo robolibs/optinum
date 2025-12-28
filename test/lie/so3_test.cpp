@@ -483,6 +483,219 @@ TEST_CASE("SO3 sample_uniform produces valid rotations") {
     }
 }
 
+// ===== FROM TWO VECTORS =====
+
+TEST_CASE("SO3 from_two_vectors") {
+    SUBCASE("basic rotation from x to y axis") {
+        simd::Vector<double, 3> v1{1.0, 0.0, 0.0};
+        simd::Vector<double, 3> v2{0.0, 1.0, 0.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        CHECK(approx_equal(rotated[0], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[1], 1.0, 1e-10));
+        CHECK(approx_equal(rotated[2], 0.0, 1e-10));
+    }
+
+    SUBCASE("basic rotation from y to z axis") {
+        simd::Vector<double, 3> v1{0.0, 1.0, 0.0};
+        simd::Vector<double, 3> v2{0.0, 0.0, 1.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        CHECK(approx_equal(rotated[0], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[1], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[2], 1.0, 1e-10));
+    }
+
+    SUBCASE("basic rotation from z to x axis") {
+        simd::Vector<double, 3> v1{0.0, 0.0, 1.0};
+        simd::Vector<double, 3> v2{1.0, 0.0, 0.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        CHECK(approx_equal(rotated[0], 1.0, 1e-10));
+        CHECK(approx_equal(rotated[1], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[2], 0.0, 1e-10));
+    }
+
+    SUBCASE("parallel vectors (same direction) returns identity") {
+        simd::Vector<double, 3> v1{1.0, 2.0, 3.0};
+        simd::Vector<double, 3> v2{2.0, 4.0, 6.0}; // Same direction, different magnitude
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        CHECK(R.is_identity(1e-10));
+    }
+
+    SUBCASE("anti-parallel vectors (opposite direction) - x axis") {
+        simd::Vector<double, 3> v1{1.0, 0.0, 0.0};
+        simd::Vector<double, 3> v2{-1.0, 0.0, 0.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        // Should rotate to opposite direction
+        CHECK(approx_equal(rotated[0], -1.0, 1e-10));
+        CHECK(approx_equal(rotated[1], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[2], 0.0, 1e-10));
+
+        // Rotation angle should be pi
+        CHECK(approx_equal(R.angle(), std::numbers::pi, 1e-10));
+    }
+
+    SUBCASE("anti-parallel vectors (opposite direction) - y axis") {
+        simd::Vector<double, 3> v1{0.0, 1.0, 0.0};
+        simd::Vector<double, 3> v2{0.0, -1.0, 0.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        CHECK(approx_equal(rotated[0], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[1], -1.0, 1e-10));
+        CHECK(approx_equal(rotated[2], 0.0, 1e-10));
+    }
+
+    SUBCASE("anti-parallel vectors (opposite direction) - z axis") {
+        simd::Vector<double, 3> v1{0.0, 0.0, 1.0};
+        simd::Vector<double, 3> v2{0.0, 0.0, -1.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        CHECK(approx_equal(rotated[0], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[1], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[2], -1.0, 1e-10));
+    }
+
+    SUBCASE("anti-parallel vectors (opposite direction) - arbitrary") {
+        simd::Vector<double, 3> v1{1.0, 1.0, 1.0};
+        simd::Vector<double, 3> v2{-1.0, -1.0, -1.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        // Normalize v1 for comparison
+        const double norm = std::sqrt(3.0);
+        CHECK(approx_equal(rotated[0], -1.0 / norm * norm, 1e-10));
+        CHECK(approx_equal(rotated[1], -1.0 / norm * norm, 1e-10));
+        CHECK(approx_equal(rotated[2], -1.0 / norm * norm, 1e-10));
+    }
+
+    SUBCASE("arbitrary vectors") {
+        simd::Vector<double, 3> v1{1.0, 2.0, 3.0};
+        simd::Vector<double, 3> v2{-2.0, 1.0, 0.5};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        // Normalize both for comparison
+        const double norm1 = std::sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+        const double norm2 = std::sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
+
+        // Rotated v1 should be parallel to v2 (same direction)
+        const double rotated_norm =
+            std::sqrt(rotated[0] * rotated[0] + rotated[1] * rotated[1] + rotated[2] * rotated[2]);
+        CHECK(approx_equal(rotated[0] / rotated_norm, v2[0] / norm2, 1e-10));
+        CHECK(approx_equal(rotated[1] / rotated_norm, v2[1] / norm2, 1e-10));
+        CHECK(approx_equal(rotated[2] / rotated_norm, v2[2] / norm2, 1e-10));
+
+        // Magnitude should be preserved
+        CHECK(approx_equal(rotated_norm, norm1, 1e-10));
+    }
+
+    SUBCASE("non-unit vectors are handled correctly") {
+        simd::Vector<double, 3> v1{10.0, 0.0, 0.0};
+        simd::Vector<double, 3> v2{0.0, 5.0, 0.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        // Should rotate to y direction, preserving magnitude
+        CHECK(approx_equal(rotated[0], 0.0, 1e-10));
+        CHECK(approx_equal(rotated[1], 10.0, 1e-10));
+        CHECK(approx_equal(rotated[2], 0.0, 1e-10));
+    }
+
+    SUBCASE("result is valid SO3") {
+        std::mt19937 rng(42);
+        std::uniform_real_distribution<double> dist(-10.0, 10.0);
+
+        for (int i = 0; i < 100; ++i) {
+            simd::Vector<double, 3> v1{dist(rng), dist(rng), dist(rng)};
+            simd::Vector<double, 3> v2{dist(rng), dist(rng), dist(rng)};
+
+            auto R = SO3d::from_two_vectors(v1, v2);
+
+            // Check quaternion is unit
+            const auto &q = R.unit_quaternion();
+            const double norm = std::sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
+            CHECK(approx_equal(norm, 1.0, 1e-10));
+
+            // Check rotation matrix is orthogonal with det = 1
+            auto M = R.matrix();
+            const double det = M(0, 0) * (M(1, 1) * M(2, 2) - M(1, 2) * M(2, 1)) -
+                               M(0, 1) * (M(1, 0) * M(2, 2) - M(1, 2) * M(2, 0)) +
+                               M(0, 2) * (M(1, 0) * M(2, 1) - M(1, 1) * M(2, 0));
+            CHECK(approx_equal(det, 1.0, 1e-10));
+        }
+    }
+
+    SUBCASE("rotation maps v1 direction to v2 direction") {
+        std::mt19937 rng(123);
+        std::uniform_real_distribution<double> dist(-10.0, 10.0);
+
+        for (int i = 0; i < 100; ++i) {
+            simd::Vector<double, 3> v1{dist(rng), dist(rng), dist(rng)};
+            simd::Vector<double, 3> v2{dist(rng), dist(rng), dist(rng)};
+
+            // Skip if either vector is too small
+            const double norm1 = std::sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+            const double norm2 = std::sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
+            if (norm1 < 1e-6 || norm2 < 1e-6)
+                continue;
+
+            auto R = SO3d::from_two_vectors(v1, v2);
+            auto rotated = R * v1;
+
+            // Normalize for direction comparison
+            const double rotated_norm =
+                std::sqrt(rotated[0] * rotated[0] + rotated[1] * rotated[1] + rotated[2] * rotated[2]);
+
+            // Dot product of normalized vectors should be 1 (same direction)
+            const double dot = (rotated[0] / rotated_norm) * (v2[0] / norm2) +
+                               (rotated[1] / rotated_norm) * (v2[1] / norm2) +
+                               (rotated[2] / rotated_norm) * (v2[2] / norm2);
+            CHECK(approx_equal(dot, 1.0, 1e-9));
+        }
+    }
+
+    SUBCASE("zero vector returns identity") {
+        simd::Vector<double, 3> v1{0.0, 0.0, 0.0};
+        simd::Vector<double, 3> v2{1.0, 0.0, 0.0};
+
+        auto R = SO3d::from_two_vectors(v1, v2);
+        CHECK(R.is_identity(1e-10));
+
+        R = SO3d::from_two_vectors(v2, v1);
+        CHECK(R.is_identity(1e-10));
+    }
+
+    SUBCASE("float type works correctly") {
+        simd::Vector<float, 3> v1{1.0f, 0.0f, 0.0f};
+        simd::Vector<float, 3> v2{0.0f, 1.0f, 0.0f};
+
+        auto R = SO3f::from_two_vectors(v1, v2);
+        auto rotated = R * v1;
+
+        CHECK(approx_equal(rotated[0], 0.0f, 1e-5f));
+        CHECK(approx_equal(rotated[1], 1.0f, 1e-5f));
+        CHECK(approx_equal(rotated[2], 0.0f, 1e-5f));
+    }
+}
+
 // ===== EDGE CASES =====
 
 TEST_CASE("SO3 edge cases") {

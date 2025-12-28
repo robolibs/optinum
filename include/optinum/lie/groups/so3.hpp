@@ -155,6 +155,84 @@ namespace optinum::lie {
             return SO3(M);
         }
 
+        /// Compute rotation that maps vector v1 to vector v2.
+        ///
+        /// Given two 3D vectors, computes the rotation R such that R * v1 is parallel to v2.
+        /// The vectors do not need to be normalized - the method handles normalization internally.
+        ///
+        /// Edge cases:
+        /// - Parallel vectors (same direction): returns identity rotation
+        /// - Anti-parallel vectors (opposite direction): returns 180° rotation around an orthogonal axis
+        ///
+        /// @param v1 Source vector (will be rotated)
+        /// @param v2 Target vector (rotation destination)
+        /// @return SO3 rotation that maps v1 direction to v2 direction
+        [[nodiscard]] static SO3 from_two_vectors(const Point &v1, const Point &v2) noexcept {
+            // Compute norms
+            const T norm1 = std::sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+            const T norm2 = std::sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
+
+            // Handle degenerate cases (zero vectors)
+            if (norm1 < epsilon<T> || norm2 < epsilon<T>) {
+                return identity();
+            }
+
+            // Normalize vectors
+            const T inv_norm1 = T(1) / norm1;
+            const T inv_norm2 = T(1) / norm2;
+            const Point u1{v1[0] * inv_norm1, v1[1] * inv_norm1, v1[2] * inv_norm1};
+            const Point u2{v2[0] * inv_norm2, v2[1] * inv_norm2, v2[2] * inv_norm2};
+
+            // Compute dot product (cosine of angle)
+            const T dot = u1[0] * u2[0] + u1[1] * u2[1] + u1[2] * u2[2];
+
+            // Compute cross product (axis of rotation, scaled by sin(angle))
+            const T cx = u1[1] * u2[2] - u1[2] * u2[1];
+            const T cy = u1[2] * u2[0] - u1[0] * u2[2];
+            const T cz = u1[0] * u2[1] - u1[1] * u2[0];
+            const T cross_norm = std::sqrt(cx * cx + cy * cy + cz * cz);
+
+            // Case 1: Vectors are nearly parallel (same direction)
+            if (dot > T(1) - epsilon<T>) {
+                return identity();
+            }
+
+            // Case 2: Vectors are nearly anti-parallel (opposite direction)
+            // Need to find an orthogonal axis for 180° rotation
+            if (dot < T(-1) + epsilon<T>) {
+                // Find an axis orthogonal to v1
+                // Try cross product with x-axis first, if too small use y-axis
+                Point ortho;
+                if (std::abs(u1[0]) < T(0.9)) {
+                    // Cross with x-axis: [1,0,0] x u1 = [0, u1[2], -u1[1]]
+                    ortho = Point{T(0), u1[2], -u1[1]};
+                } else {
+                    // Cross with y-axis: [0,1,0] x u1 = [-u1[2], 0, u1[0]]
+                    ortho = Point{-u1[2], T(0), u1[0]};
+                }
+
+                // Normalize the orthogonal axis
+                const T ortho_norm = std::sqrt(ortho[0] * ortho[0] + ortho[1] * ortho[1] + ortho[2] * ortho[2]);
+                const T inv_ortho_norm = T(1) / ortho_norm;
+                const Point axis{ortho[0] * inv_ortho_norm, ortho[1] * inv_ortho_norm, ortho[2] * inv_ortho_norm};
+
+                // 180° rotation around the orthogonal axis
+                return from_axis_angle(axis, pi<T>);
+            }
+
+            // Case 3: General case - use Rodrigues' rotation formula via quaternion
+            // The rotation quaternion from v1 to v2 can be computed as:
+            // q = [1 + dot, cross] normalized
+            // This is equivalent to half-angle formula
+            const T w = T(1) + dot;
+            Quaternion q{w, cx, cy, cz};
+
+            // Normalize the quaternion
+            const T qnorm = std::sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
+            const T inv_qnorm = T(1) / qnorm;
+            return SO3(q.w * inv_qnorm, q.x * inv_qnorm, q.y * inv_qnorm, q.z * inv_qnorm);
+        }
+
         // ===== CORE OPERATIONS =====
 
         // Logarithmic map: SO3 -> omega (axis-angle)
