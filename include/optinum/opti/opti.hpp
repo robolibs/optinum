@@ -8,6 +8,9 @@
 // Decay policies
 #include <optinum/opti/decay/no_decay.hpp>
 
+// Line search algorithms
+#include <optinum/opti/line_search/line_search.hpp>
+
 // Gradient descent and update policies
 #include <optinum/opti/gradient/gradient_descent.hpp>
 #include <optinum/opti/gradient/update_policies/adabound_update.hpp>
