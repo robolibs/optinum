@@ -26,6 +26,7 @@
 
 // Quasi-Newton methods
 #include <optinum/opti/quasi_newton/gauss_newton.hpp>
+#include <optinum/opti/quasi_newton/lbfgs.hpp>
 #include <optinum/opti/quasi_newton/levenberg_marquardt.hpp>
 
 // Test problems
