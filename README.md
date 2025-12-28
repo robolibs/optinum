@@ -10,13 +10,14 @@ See [TODO.md](./TODO.md) for the complete development plan and current progress.
 
 ## Overview
 
-**Optinum** is a header-only C++ library that combines SIMD-accelerated tensor operations with numerical optimization algorithms, specifically designed for robotics applications requiring real-time performance and deterministic behavior.
+**Optinum** is a header-only C++20 library that combines SIMD-accelerated tensor operations with numerical optimization algorithms, specifically designed for applications requiring real-time performance and deterministic behavior.
 
-Perfect for robotics tasks such as:
-- **Real-time sensor fusion** - Fast matrix operations for Kalman filters and SLAM
-- **Trajectory optimization** - Efficient gradient-based optimization for motion planning
-- **Model predictive control** - High-frequency linear algebra for control loops
-- **Neural network inference** - SIMD-accelerated tensor operations for onboard AI
+The library provides five integrated modules:
+- **`simd/`** - SIMD-accelerated operations (SSE/AVX/AVX-512/NEON) with 40+ vectorized math functions
+- **`lina/`** - Linear algebra (LU, QR, SVD, Cholesky, eigendecomposition, solvers)
+- **`lie/`** - Lie groups (SO2, SE2, SO3, SE3, Sim2, Sim3) with batched SIMD operations
+- **`opti/`** - Gradient-based optimization (12 optimizers, L-BFGS, Gauss-Newton, Levenberg-Marquardt)
+- **`meta/`** - Metaheuristic optimization (PSO, CEM, CMA-ES, DE, GA, SA, MPPI)
 
 Key design principles:
 - **Header-only** - Zero compilation, just include and use
@@ -25,36 +26,33 @@ Key design principles:
 - **POD-compatible** - Easy serialization for ROS2 message passing
 - **Deterministic** - Predictable performance for control loops
 
-Built on top of [datapod](https://github.com/robolibs/datapod) for POD data ownership and provides three main modules:
-1. **`simd/`** - SIMD-accelerated operations (AVX/SSE/NEON)
-2. **`lina/`** - Linear algebra (LU, QR, SVD, solvers)
-3. **`opti/`** - Optimization algorithms (planned)
+Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ownership.
 
 ### Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                           ROBOTICS APPLICATION                               │
-│                    (SLAM, Navigation, Control, etc.)                         │
-└────────────────────────────────┬─────────────────────────────────────────────┘
-                                 │
-                                 ▼
+│                              APPLICATION LAYER                               │
+│                    (SLAM, Navigation, Control, Planning)                     │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │
+                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                              optinum (on::)                                  │
 │                                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────────────┐    │
-│  │   on::opti   │  │   on::lina   │  │         on::simd                │    │
-│  │ (optimizers) │─▶│ (linear alg) │─▶│  (views + algorithms)           │    │
-│  │              │  │              │  │                                 │    │
-│  │ • GD, SGD    │  │ • LU, QR     │  │  • view<W>(dp_obj)  [factory]   │    │
-│  │ • Adam       │  │ • SVD        │  │  • axpy, dot, norm  [BLAS-like] │    │
-│  │ • L-BFGS     │  │ • solve      │  │  • exp, sin, cos    [math]      │    │
-│  │ • CMA-ES     │  │ • lstsq      │  │  • pack<T,W>        [SIMD reg]  │    │
-│  │ (PLANNED)    │  │ • einsum     │  │                                 │    │
-│  └──────────────┘  └──────────────┘  └─────────────────────────────────┘    │
-└────────────────────────────────┬─────────────────────────────────────────────┘
-                                 │ wraps (zero-copy)
-                                 ▼
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌───────────────┐ │
+│  │on::meta  │  │on::opti  │  │on::lina  │  │ on::lie   │  │   on::simd    │ │
+│  │(meta-    │─▶│(gradient │─▶│(linear   │─▶│(Lie       │─▶│(SIMD views +  │ │
+│  │heuristic)│  │  based)  │  │  algebra)│  │ groups)   │  │  algorithms)  │ │
+│  │          │  │          │  │          │  │           │  │               │ │
+│  │• PSO     │  │• Adam    │  │• LU, QR  │  │• SO2/SO3  │  │• pack<T,W>    │ │
+│  │• CEM     │  │• L-BFGS  │  │• SVD     │  │• SE2/SE3  │  │• 40+ math     │ │
+│  │• CMA-ES  │  │• Gauss-  │  │• Cholesky│  │• Sim2/3   │  │• views        │ │
+│  │• MPPI    │  │  Newton  │  │• solve   │  │• batched  │  │• algorithms   │ │
+│  └──────────┘  └──────────┘  └──────────┘  └───────────┘  └───────────────┘ │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │ wraps (zero-copy)
+                                     ▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                            datapod (dp::)                                    │
 │                      (POD data storage - owns memory)                        │
@@ -85,12 +83,12 @@ simd::exp(pack<float,8>)    (intrinsic layer - AVX/SSE/NEON)
 include(FetchContent)
 FetchContent_Declare(
   optinum
-  GIT_REPOSITORY https://github.com/robolibs/optinum
+  GIT_REPOSITORY https://codeberg.org/robolibs/optinum
   GIT_TAG main
 )
 FetchContent_MakeAvailable(optinum)
 
-target_link_libraries(your_robot_node PRIVATE optinum)
+target_link_libraries(your_target PRIVATE optinum)
 ```
 
 ### Recommended: XMake
@@ -106,7 +104,7 @@ curl -fsSL https://xmake.io/shget.text | bash
 ```lua
 add_requires("optinum")
 
-target("your_robot_node")
+target("your_target")
     set_kind("binary")
     add_packages("optinum")
     add_files("src/*.cpp")
@@ -156,7 +154,7 @@ make test
 
 ## Usage
 
-### Basic Usage: Sensor Fusion with Kalman Filter
+### Basic Usage: SIMD-Accelerated Operations
 
 ```cpp
 #include <optinum/optinum.hpp>
@@ -164,8 +162,7 @@ make test
 namespace dp = datapod;
 namespace on = optinum;
 
-// Real-time Kalman filter update for robot odometry
-void kalman_update() {
+void process_sensor_data() {
     // State vector: [x, y, theta, vx, vy]
     dp::mat::vector<float, 5> state;
     dp::mat::matrix<float, 5, 5> covariance;
@@ -174,26 +171,23 @@ void kalman_update() {
     auto x = on::simd::view<8>(state);
     auto P = on::simd::view<8>(covariance);
     
-    // SIMD-accelerated operations for sensor fusion
-    on::simd::scale(0.99f, x);           // Prediction step
-    on::simd::axpy(1.0f, sensor_data, x); // Measurement update
+    // SIMD-accelerated operations
+    on::simd::scale(0.99f, x);              // Prediction step
+    on::simd::axpy(1.0f, sensor_data, x);   // Measurement update
     
-    // Result already in 'state' - ready for ROS2 publish
+    // Result already in 'state' - ready for serialization
 }
 ```
 
-### Advanced Usage: Trajectory Optimization
+### Linear Algebra: Solving Systems
 
 ```cpp
 #include <optinum/lina/lina.hpp>
-#include <optinum/simd/simd.hpp>
 
 namespace on = optinum;
 
-// Solve quadratic program for robot trajectory
-void optimize_trajectory() {
-    // Dynamics matrix A (linearized around operating point)
-    on::simd::Matrix<double, 6, 6> A;  // 6-DOF state
+void solve_dynamics() {
+    on::simd::Matrix<double, 6, 6> A;  // Dynamics matrix
     on::simd::Vector<double, 6> b;     // Target state
     
     // Solve Ax = b using LU decomposition (SIMD-accelerated)
@@ -201,73 +195,125 @@ void optimize_trajectory() {
     
     if (result.is_ok()) {
         auto x = result.unwrap();
-        // Apply control to robot actuators
-    } else {
-        // Handle singular matrix (infeasible trajectory)
-        auto err = result.unwrap_err();
-        ROS_ERROR("Optimization failed: %s", err.message().c_str());
+        // Apply solution
     }
 }
 ```
 
-### ROS2 Integration Example
+### Lie Groups: 3D Transformations
 
 ```cpp
-#include <optinum/optinum.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <optinum/lie/lie.hpp>
 
-class SLAMNode : public rclcpp::Node {
-    dp::mat::matrix<float, 3, 3> rotation_;  // POD - can serialize
-    dp::mat::vector<float, 3> translation_;
+namespace on = optinum;
+
+void transform_points() {
+    // Create SE3 pose from rotation and translation
+    on::lie::SE3<double> pose = on::lie::SE3<double>::exp({0.1, 0.2, 0.3, 1.0, 2.0, 3.0});
     
-public:
-    void process_lidar_scan(const sensor_msgs::msg::LaserScan& scan) {
-        // Create SIMD views for fast ICP alignment
-        auto R = on::simd::view<8>(rotation_);
-        auto t = on::simd::view<8>(translation_);
-        
-        // SIMD-accelerated point cloud transformation
-        for (const auto& point : scan.ranges) {
-            // Fast matrix-vector multiply using SIMD
-            on::lina::matmul(R, point_vec, transformed);
-        }
-    }
-};
+    // Transform a point
+    on::simd::Vector<double, 3> point{1.0, 0.0, 0.0};
+    auto transformed = pose.act(point);
+    
+    // Batched operations for point clouds
+    on::lie::SE3Batch<double, 100> poses;  // 100 poses processed in parallel
+}
+```
+
+### Optimization: Gradient-Based
+
+```cpp
+#include <optinum/opti/opti.hpp>
+
+namespace on = optinum;
+
+void optimize_trajectory() {
+    // Define objective function
+    auto objective = [](const auto& x) {
+        return on::simd::dot(x, x);  // Sphere function
+    };
+    
+    // Configure Adam optimizer
+    on::opti::Adam<double> optimizer({
+        .learning_rate = 0.01,
+        .beta1 = 0.9,
+        .beta2 = 0.999
+    });
+    
+    on::simd::Vector<double, 10> x;  // Initial guess
+    auto result = optimizer.optimize(objective, x);
+}
+```
+
+### Metaheuristic: Global Optimization
+
+```cpp
+#include <optinum/meta/meta.hpp>
+
+namespace on = optinum;
+
+void global_search() {
+    // CMA-ES for non-convex optimization
+    on::meta::CMAES<double> optimizer({
+        .population_size = 50,
+        .max_iterations = 1000
+    });
+    
+    auto result = optimizer.optimize(rastrigin_function, lower_bounds, upper_bounds);
+}
 ```
 
 ## Features
 
-- **SIMD Math Functions** - Vectorized exp, log, sin, cos, tanh, sqrt (7-27x faster than scalar)
+- **SIMD Math Functions** - 40+ vectorized functions (exp, log, sin, cos, tanh, sqrt, erf, gamma)
   ```cpp
-  auto x = on::simd::view<8>(sensor_data);  // AVX: 8 floats at once
-  on::simd::exp(x);  // 7.94x speedup - perfect for activation functions
-  on::simd::tanh(x); // 27.55x speedup - fast neural network inference
+  auto x = on::simd::view<8>(data);  // AVX: 8 floats at once
+  on::simd::exp(x);   // 7.94x speedup
+  on::simd::tanh(x);  // 27.55x speedup
   ```
 
-- **Non-Owning Views** - Zero-copy SIMD operations over `dp::mat::*` types. Ideal for ROS2 callbacks where data arrives from publishers - no allocations in the critical path.
+- **Linear Algebra Suite** - LU, QR, SVD, Cholesky, eigendecomposition with SIMD-accelerated solvers
+  ```cpp
+  auto [L, U, P] = on::lina::lu(A);
+  auto [Q, R] = on::lina::qr(A);
+  auto [U, S, V] = on::lina::svd(A);
+  ```
 
-- **Linear Algebra Suite** - LU, QR, SVD, Cholesky decompositions with SIMD-accelerated solvers. Essential for sensor fusion (Kalman filters), SLAM (bundle adjustment), and control (MPC).
+- **Lie Groups** - SO2, SE2, SO3, SE3, Sim2, Sim3 with exp/log maps, adjoints, and Jacobians
+  ```cpp
+  auto rotation = on::lie::SO3<double>::exp({0.1, 0.2, 0.3});
+  auto pose = on::lie::SE3<double>::from_rotation_translation(rotation, translation);
+  ```
 
-- **Type-Safe Error Handling** - Uses `dp::Result<T, dp::Error>` instead of exceptions. Perfect for real-time systems where exception overhead is unacceptable.
+- **12 Gradient Optimizers** - Adam, AdaGrad, AdaDelta, RMSprop, NAdam, AdaBound, Yogi, Nesterov, Momentum, and more
 
-- **POD-Compatible** - All data types from datapod are Plain Old Data, making serialization trivial for:
-  - ROS2 message passing (zero-copy shared memory transport)
-  - Logging to disk (replay sensor data for testing)
-  - Network transmission (multi-robot coordination)
+- **Quasi-Newton Methods** - L-BFGS, Gauss-Newton, Levenberg-Marquardt for nonlinear least squares
 
-- **Header-Only Design** - No compilation required, just `#include <optinum/optinum.hpp>`. Simplifies ROS2 package dependencies and cross-compilation for embedded targets.
+- **7 Metaheuristics** - PSO, CEM, CMA-ES, DE, GA, SA, MPPI for global and black-box optimization
 
-- **Platform SIMD Support** - Automatic detection and dispatch:
-  - x86: SSE, AVX, AVX-512
-  - ARM: NEON (planned)
-  - Scalar fallback for portability
+- **Non-Owning Views** - Zero-copy SIMD operations over `dp::mat::*` types
 
-- **Real-Time Performance Characteristics:**
+- **Type-Safe Error Handling** - Uses `dp::Result<T, dp::Error>` instead of exceptions
+
+- **Platform SIMD Support** - Automatic detection: SSE, AVX, AVX-512 (x86), NEON (ARM), scalar fallback
+
+- **Real-Time Characteristics:**
   - Deterministic SIMD paths (no dynamic dispatch in hot loops)
   - Fixed-size containers (compile-time dimensions)
   - No hidden allocations (views are non-owning)
   - Cache-friendly column-major layout (BLAS/LAPACK compatible)
+
+## Module Summary
+
+| Module | Files | Lines | Description |
+|--------|-------|-------|-------------|
+| `simd/` | 89 | ~20,000 | SIMD pack types, views, 40+ math functions |
+| `lina/` | 28 | ~2,800 | 5 decompositions, solvers, DARE, Jacobian, Hessian |
+| `lie/` | 15 | ~4,400 | 8 Lie groups, batched SIMD, splines, averaging |
+| `opti/` | 25 | ~3,500 | 12 optimizers, 7 decay policies, line search |
+| `meta/` | 10 | ~2,000 | 7 metaheuristics, 2 meta-optimizers |
+
+**Test Status:** 87/87 test suites passing (400+ test cases)
 
 ## License
 
