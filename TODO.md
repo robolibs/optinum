@@ -13,7 +13,7 @@
 | `opti/` | **✅ PHASE 0+0.5 DONE** | 6 optimizers (GD, Momentum, RMSprop, Adam, GN, LM) + optimal control |
 | **API** | **✅ COMPLETE** | Unified optinum:: namespace (85+ functions) |
 
-**Test Status:** 73/73 test suites, 300+ test cases passing ✅
+**Test Status:** 74/74 test suites, 350+ test cases passing ✅
 
 ---
 
@@ -1463,8 +1463,9 @@ Matrix<double, 3, 8> rotated = Rs.rotate(points);  // All 8 rotated in parallel
 | 0.7c | **SO3** | 2-3 days | ⭐⭐⭐⭐⭐ | ✅ DONE - 600 lines, 22 tests, 728 assertions |
 | 0.7d | **SE3** | 2-3 days | ⭐⭐⭐⭐⭐ | ✅ DONE - 700 lines, 18 tests, 497 assertions |
 | 0.7e | **RxSO2/3, Sim2/3** | 3-4 days | ⭐⭐⭐ | ✅ DONE - 1440 lines, 39 tests, 102 assertions |
-| 0.7f | **Algorithms** | 2 days | ⭐⭐⭐⭐ | 🔲 TODO |
+| 0.7f | **Algorithms** | 2 days | ⭐⭐⭐⭐ | ✅ DONE - average.hpp + spline.hpp, 29 tests |
 | 0.7g | **Batched SIMD** | 1-2 days | ⭐⭐⭐⭐⭐ | ✅ DONE - SO3Batch + SE3Batch, 29 tests, 582 assertions |
+| 0.7h | **Examples** | 1 day | ⭐⭐⭐ | ✅ DONE - 3 demos (lie_groups, rotation_optimization, pose_graph) |
 
 **Total Estimate:** 2-3 weeks (reduced from original due to SIMD foundation being ready)
 
@@ -1528,6 +1529,8 @@ All major Sophus functions will be implemented:
 6. ✅ Implement SE3 + tests - **DONE Dec 28, 2025**
 7. ✅ Implement SO3Batch/SE3Batch - **DONE Dec 28, 2025** (29 tests, 582 assertions)
 8. ✅ Implement Similarity Groups (RxSO2, RxSO3, Sim2, Sim3) - **DONE Dec 28, 2025** (39 tests, 102 assertions)
-9. 🔲 Implement algorithms (average, spline)
-10. 🔲 Create examples and documentation
+9. ✅ Implement algorithms (average, spline) - **DONE Dec 28, 2025** (29 tests)
+10. ✅ Create examples and documentation - **DONE Dec 28, 2025** (3 example demos)
+
+**🎉 PHASE 0.7 COMPLETE! Lie Groups Module Fully Implemented!**
 
