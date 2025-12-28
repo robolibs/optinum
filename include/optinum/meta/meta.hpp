@@ -24,10 +24,12 @@
 #include "mppi.hpp"
 #include "sa.hpp"
 
+// Meta-optimizer wrappers
+#include "lookahead.hpp"
+
 // TODO: Add includes as methods are implemented
 // #include "cmaes.hpp"
 // #include "ga.hpp"
-// #include "lookahead.hpp"
 // #include "swats.hpp"
 
 namespace optinum::meta {
