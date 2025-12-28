@@ -26,7 +26,7 @@ Key design principles:
 - **POD-compatible** - Easy serialization for ROS2 message passing
 - **Deterministic** - Predictable performance for control loops
 
-Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ownership.
+Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ownership. Uses `on::` as short namespace alias (enabled by default in examples/tests via `-DSHORT_NAMESPACE`).
 
 ### Architecture
 
@@ -68,11 +68,11 @@ Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ow
 ```
 dp::mat::vector<float, N>   (owns memory - serializable for ROS2)
          ↓
-simd::view<W>(dp_vector)    (non-owning view - zero copy)
+on::simd::view<W>(dp_vector)    (non-owning view - zero copy)
          ↓
-simd::exp(view)             (algorithm layer - generic over view types)
+on::simd::exp(view)             (algorithm layer - generic over view types)
          ↓
-simd::exp(pack<float,8>)    (intrinsic layer - AVX/SSE/NEON)
+on::simd::exp(pack<float,8>)    (intrinsic layer - AVX/SSE/NEON)
 ```
 
 ## Installation
@@ -159,9 +159,6 @@ make test
 ```cpp
 #include <optinum/optinum.hpp>
 
-namespace dp = datapod;
-namespace on = optinum;
-
 void process_sensor_data() {
     // State vector: [x, y, theta, vx, vy]
     dp::mat::vector<float, 5> state;
@@ -184,11 +181,9 @@ void process_sensor_data() {
 ```cpp
 #include <optinum/lina/lina.hpp>
 
-namespace on = optinum;
-
 void solve_dynamics() {
-    on::simd::Matrix<double, 6, 6> A;  // Dynamics matrix
-    on::simd::Vector<double, 6> b;     // Target state
+    on::Matrix<double, 6, 6> A;  // Dynamics matrix
+    on::Vector<double, 6> b;     // Target state
     
     // Solve Ax = b using LU decomposition (SIMD-accelerated)
     auto result = on::lina::try_solve(A, b);
@@ -205,14 +200,12 @@ void solve_dynamics() {
 ```cpp
 #include <optinum/lie/lie.hpp>
 
-namespace on = optinum;
-
 void transform_points() {
     // Create SE3 pose from rotation and translation
-    on::lie::SE3<double> pose = on::lie::SE3<double>::exp({0.1, 0.2, 0.3, 1.0, 2.0, 3.0});
+    on::lie::SE3d pose = on::lie::SE3d::exp({0.1, 0.2, 0.3, 1.0, 2.0, 3.0});
     
     // Transform a point
-    on::simd::Vector<double, 3> point{1.0, 0.0, 0.0};
+    on::Vector<double, 3> point{1.0, 0.0, 0.0};
     auto transformed = pose.act(point);
     
     // Batched operations for point clouds
@@ -225,12 +218,10 @@ void transform_points() {
 ```cpp
 #include <optinum/opti/opti.hpp>
 
-namespace on = optinum;
-
 void optimize_trajectory() {
     // Define objective function
     auto objective = [](const auto& x) {
-        return on::simd::dot(x, x);  // Sphere function
+        return on::lina::dot(x, x);  // Sphere function
     };
     
     // Configure Adam optimizer
@@ -240,7 +231,7 @@ void optimize_trajectory() {
         .beta2 = 0.999
     });
     
-    on::simd::Vector<double, 10> x;  // Initial guess
+    on::Vector<double, 10> x;  // Initial guess
     auto result = optimizer.optimize(objective, x);
 }
 ```
@@ -249,8 +240,6 @@ void optimize_trajectory() {
 
 ```cpp
 #include <optinum/meta/meta.hpp>
-
-namespace on = optinum;
 
 void global_search() {
     // CMA-ES for non-convex optimization
@@ -274,15 +263,15 @@ void global_search() {
 
 - **Linear Algebra Suite** - LU, QR, SVD, Cholesky, eigendecomposition with SIMD-accelerated solvers
   ```cpp
-  auto [L, U, P] = on::lina::lu(A);
-  auto [Q, R] = on::lina::qr(A);
-  auto [U, S, V] = on::lina::svd(A);
+  auto [L, U, P] = on::lina::lu(A);   // LU decomposition with pivoting
+  auto [Q, R] = on::lina::qr(A);      // QR decomposition
+  auto [U, S, V] = on::lina::svd(A);  // Singular value decomposition
   ```
 
 - **Lie Groups** - SO2, SE2, SO3, SE3, Sim2, Sim3 with exp/log maps, adjoints, and Jacobians
   ```cpp
-  auto rotation = on::lie::SO3<double>::exp({0.1, 0.2, 0.3});
-  auto pose = on::lie::SE3<double>::from_rotation_translation(rotation, translation);
+  auto rotation = on::lie::SO3d::exp({0.1, 0.2, 0.3});
+  auto pose = on::lie::SE3d::from_rotation_translation(rotation, translation);
   ```
 
 - **12 Gradient Optimizers** - Adam, AdaGrad, AdaDelta, RMSprop, NAdam, AdaBound, Yogi, Nesterov, Momentum, and more
