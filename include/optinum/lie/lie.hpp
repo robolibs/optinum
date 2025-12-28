@@ -22,8 +22,8 @@
 #include <optinum/lie/core/constants.hpp>
 
 // Groups
+#include <optinum/lie/groups/se2.hpp>
 #include <optinum/lie/groups/so2.hpp>
-// #include <optinum/lie/groups/se2.hpp>  // TODO
 // #include <optinum/lie/groups/so3.hpp>  // TODO
 // #include <optinum/lie/groups/se3.hpp>  // TODO
 

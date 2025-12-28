@@ -1458,8 +1458,8 @@ Matrix<double, 3, 8> rotated = Rs.rotate(points);  // All 8 rotated in parallel
 | | `pack<quaternion>` | - | - | ✅ 636 lines, 20 tests |
 | | `quaternion_view` | - | - | ✅ 380 lines, 19 tests |
 | | `bridge.hpp` quaternion support | - | - | ✅ 110 lines added |
-| 0.7a | **SO2** | 1 day | ⭐⭐⭐⭐⭐ | 🔲 TODO |
-| 0.7b | **SE2** | 1-2 days | ⭐⭐⭐⭐ | 🔲 TODO |
+| 0.7a | **SO2** | 1 day | ⭐⭐⭐⭐⭐ | ✅ DONE - 320 lines, 21 tests, 687 assertions |
+| 0.7b | **SE2** | 1-2 days | ⭐⭐⭐⭐ | ✅ DONE - 450 lines, 22 tests, 724 assertions |
 | 0.7c | **SO3** | 2-3 days | ⭐⭐⭐⭐⭐ | 🔲 TODO |
 | 0.7d | **SE3** | 2-3 days | ⭐⭐⭐⭐⭐ | 🔲 TODO |
 | 0.7e | **RxSO2/3, Sim2/3** | 3-4 days | ⭐⭐⭐ | 🔲 TODO |
@@ -1522,8 +1522,8 @@ All major Sophus functions will be implemented:
 
 1. ✅ Finalize plan (this document)
 2. ✅ Quaternion SIMD infrastructure (`quaternion_view`, `pack<quaternion>`, bridge)
-3. 🔲 Implement SO2 + tests
-4. 🔲 Implement SE2 + tests
+3. ✅ Implement SO2 + tests - **DONE Dec 28, 2025**
+4. ✅ Implement SE2 + tests - **DONE Dec 28, 2025**
 5. 🔲 Implement SO3 + tests (use `dp::mat::quaternion<T>` + `quaternion_view` for batched)
 6. 🔲 Implement SE3 + tests
 7. 🔲 Implement algorithms (interpolate, average)

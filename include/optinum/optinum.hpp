@@ -287,6 +287,11 @@ namespace optinum {
     using SO2f = lie::SO2f;
     using SO2d = lie::SO2d;
 
+    // 2D rigid transform group (rotation + translation)
+    template <typename T = double> using SE2 = lie::SE2<T>;
+    using SE2f = lie::SE2f;
+    using SE2d = lie::SE2d;
+
     // Lie group utilities
     using lie::interpolate;
     // using lie::average;  // Has template deduction issues, use lie::average directly
