@@ -261,7 +261,7 @@ struct NesterovUpdate {
 |----|------|------------|------------|
 | `optinum-bbn` | **Line Search** (Armijo, Wolfe) | Medium | ~200 |
 | `optinum-8zj` | **Lookahead** meta-optimizer | Easy | ~80 |
-| `optinum-hi6` | **AdaBound** | Easy | ~100 |
+| ~~`optinum-hi6`~~ | ~~**AdaBound**~~ | ~~Easy~~ | ~~160~~ | **DONE** - Luo 2019 |
 | `optinum-aak` | **Yogi** | Easy | ~90 |
 | `optinum-m0v` | **Metaheuristic Module** (MPPI, PSO, CEM) | Large | ~1500 |
 

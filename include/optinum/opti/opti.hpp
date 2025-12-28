@@ -10,6 +10,7 @@
 
 // Gradient descent and update policies
 #include <optinum/opti/gradient/gradient_descent.hpp>
+#include <optinum/opti/gradient/update_policies/adabound_update.hpp>
 #include <optinum/opti/gradient/update_policies/adadelta_update.hpp>
 #include <optinum/opti/gradient/update_policies/adagrad_update.hpp>
 #include <optinum/opti/gradient/update_policies/adam_update.hpp>
