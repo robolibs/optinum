@@ -2,7 +2,7 @@
 
 // =============================================================================
 // optinum/lina/lina.hpp
-// Linear algebra (fixed-size) on optinum::simd types
+// Linear algebra on optinum::simd types (fixed-size and dynamic)
 // =============================================================================
 
 #include <optinum/lina/algebra/contraction.hpp>
@@ -31,14 +31,18 @@
 #include <optinum/lina/decompose/cholesky.hpp>
 #include <optinum/lina/decompose/eigen.hpp>
 #include <optinum/lina/decompose/lu.hpp>
+#include <optinum/lina/decompose/lu_dynamic.hpp>
 #include <optinum/lina/decompose/qr.hpp>
+#include <optinum/lina/decompose/qr_dynamic.hpp>
 #include <optinum/lina/decompose/svd.hpp>
 
 #include <optinum/lina/expr/expr.hpp>
 
 #include <optinum/lina/solve/dare.hpp>
 #include <optinum/lina/solve/lstsq.hpp>
+#include <optinum/lina/solve/lstsq_dynamic.hpp>
 #include <optinum/lina/solve/solve.hpp>
+#include <optinum/lina/solve/solve_dynamic.hpp>
 #include <optinum/lina/solve/triangular_solve.hpp>
 
 namespace optinum::lina {}
