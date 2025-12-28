@@ -235,7 +235,7 @@ All operations use vectorized instructions via the `simd::pack<T,W>` abstraction
 | ID | Task | Difficulty | Est. Lines | Reference |
 |----|------|------------|------------|-----------|
 | ~~`optinum-0kz`~~ | ~~**Nesterov Momentum**~~ | ~~Easy~~ | ~~100~~ | **DONE** - Nesterov 1983 |
-| `optinum-b3o` | **AdaGrad** | Easy | ~80 | Duchi 2011 |
+| ~~`optinum-b3o`~~ | ~~**AdaGrad**~~ | ~~Easy~~ | ~~90~~ | **DONE** - Duchi 2011 |
 | `optinum-rd9` | **AdaDelta** | Easy | ~100 | Zeiler 2012 |
 | ~~`optinum-9qi`~~ | ~~**AMSGrad**~~ | ~~Trivial~~ | ~~230~~ | **DONE** - Reddi 2018 |
 | `optinum-mde` | **L-BFGS** | Hard | ~400 | Liu & Nocedal 1989 |
