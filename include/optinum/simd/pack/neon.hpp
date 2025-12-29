@@ -9,6 +9,7 @@
 
 #ifdef OPTINUM_HAS_NEON
 
+#include <cstring>
 #include <optinum/simd/mask.hpp>
 
 namespace optinum::simd {
@@ -358,26 +359,70 @@ namespace optinum::simd {
         }
 
         // Gather/Scatter - NEON doesn't have native gather/scatter, use scalar fallback
-        static OPTINUM_INLINE pack gather(const float *base, const pack<int32_t, 4> &indices) noexcept {
-            alignas(16) int32_t idx[4];
-            vst1q_s32(idx, indices.native());
-            alignas(16) float result[4];
-            for (int i = 0; i < 4; ++i)
-                result[i] = base[idx[i]];
-            return pack(vld1q_f32(result));
+
+        // Support both int and int32_t types for gather
+        template <typename IndexType>
+        static OPTINUM_INLINE auto gather(const float *base, const pack<IndexType, 4> &indices) noexcept
+            -> std::enable_if_t<std::is_integral_v<IndexType> && sizeof(IndexType) == 4, pack> {
+            if constexpr (std::is_same_v<IndexType, int32_t>) {
+                // Use NEON optimization for int32_t
+                alignas(16) int32_t idx[4];
+                vst1q_s32(idx, indices.native());
+                alignas(16) float result[4];
+                for (int i = 0; i < 4; ++i)
+                    result[i] = base[idx[i]];
+                return pack(vld1q_f32(result));
+            } else {
+                // Fallback for other 4-byte int types
+                alignas(16) float result[4];
+                for (int i = 0; i < 4; ++i)
+                    result[i] = base[indices[i]];
+                return pack(vld1q_f32(result));
+            }
         }
 
-        OPTINUM_INLINE void scatter(float *base, const pack<int32_t, 4> &indices) const noexcept {
-            alignas(16) int32_t idx[4];
-            alignas(16) float values[4];
-            vst1q_s32(idx, indices.native());
-            vst1q_f32(values, data_);
-            for (int i = 0; i < 4; ++i)
-                base[idx[i]] = values[i];
+        // Support both int and int32_t types for scatter
+        template <typename IndexType>
+        OPTINUM_INLINE auto scatter(float *base, const pack<IndexType, 4> &indices) const noexcept
+            -> std::enable_if_t<std::is_integral_v<IndexType> && sizeof(IndexType) == 4> {
+            if constexpr (std::is_same_v<IndexType, int32_t>) {
+                // Use NEON optimization for int32_t
+                alignas(16) int32_t idx[4];
+                alignas(16) float values[4];
+                vst1q_s32(idx, indices.native());
+                vst1q_f32(values, data_);
+                for (int i = 0; i < 4; ++i)
+                    base[idx[i]] = values[i];
+            } else {
+                // Fallback for other 4-byte int types
+                alignas(16) float values[4];
+                vst1q_f32(values, data_);
+                for (int i = 0; i < 4; ++i)
+                    base[indices[i]] = values[i];
+            }
         }
 
-        // Cast to int
-        OPTINUM_INLINE pack<int32_t, 4> cast_to_int() const noexcept { return pack<int32_t, 4>(vcvtq_s32_f32(data_)); }
+        // Cast to int - support both int and int32_t return types
+        template <typename IntType = int>
+        OPTINUM_INLINE auto cast_to_int() const noexcept
+            -> std::enable_if_t<std::is_integral_v<IntType> && sizeof(IntType) == 4, pack<IntType, 4>> {
+            if constexpr (std::is_same_v<IntType, int32_t>) {
+                pack<IntType, 4> result;
+                // Use memcpy to avoid constructor issues
+                int32x4_t temp = vcvtq_s32_f32(data_);
+                std::memcpy(&result, &temp, sizeof(temp));
+                return result;
+            } else {
+                // For int (which should be same as int32_t on this platform)
+                alignas(16) IntType result[4];
+                alignas(16) int32_t temp[4];
+                vst1q_s32(temp, vcvtq_s32_f32(data_));
+                for (int i = 0; i < 4; ++i) {
+                    result[i] = static_cast<IntType>(temp[i]);
+                }
+                return pack<IntType, 4>::load_aligned(result);
+            }
+        }
     };
 
 #ifdef __aarch64__
@@ -531,23 +576,61 @@ namespace optinum::simd {
         }
 
         // Gather/Scatter - scalar fallback
-        static OPTINUM_INLINE pack gather(const double *base, const pack<int64_t, 2> &indices) noexcept {
-            alignas(16) int64_t idx[2];
-            vst1q_s64(idx, indices.native());
-            return pack(base[idx[0]], base[idx[1]]);
+        template <typename IndexType>
+        static OPTINUM_INLINE auto gather(const double *base, const pack<IndexType, 2> &indices) noexcept
+            -> std::enable_if_t<std::is_integral_v<IndexType> && sizeof(IndexType) == 8, pack> {
+            if constexpr (std::is_same_v<IndexType, int64_t>) {
+                // Use NEON optimization for int64_t
+                alignas(16) int64_t idx[2];
+                vst1q_s64(idx, indices.native());
+                return pack(base[idx[0]], base[idx[1]]);
+            } else {
+                // Fallback for other 8-byte int types
+                return pack(base[indices[0]], base[indices[1]]);
+            }
         }
 
-        OPTINUM_INLINE void scatter(double *base, const pack<int64_t, 2> &indices) const noexcept {
-            alignas(16) int64_t idx[2];
-            alignas(16) double values[2];
-            vst1q_s64(idx, indices.native());
-            vst1q_f64(values, data_);
-            base[idx[0]] = values[0];
-            base[idx[1]] = values[1];
+        template <typename IndexType>
+        OPTINUM_INLINE auto scatter(double *base, const pack<IndexType, 2> &indices) const noexcept
+            -> std::enable_if_t<std::is_integral_v<IndexType> && sizeof(IndexType) == 8> {
+            if constexpr (std::is_same_v<IndexType, int64_t>) {
+                // Use NEON optimization for int64_t
+                alignas(16) int64_t idx[2];
+                alignas(16) double values[2];
+                vst1q_s64(idx, indices.native());
+                vst1q_f64(values, data_);
+                base[idx[0]] = values[0];
+                base[idx[1]] = values[1];
+            } else {
+                // Fallback for other 8-byte int types
+                alignas(16) double values[2];
+                vst1q_f64(values, data_);
+                base[indices[0]] = values[0];
+                base[indices[1]] = values[1];
+            }
         }
 
-        // Cast to int
-        OPTINUM_INLINE pack<int64_t, 2> cast_to_int() const noexcept { return pack<int64_t, 2>(vcvtq_s64_f64(data_)); }
+        // Cast to int - support both long and int64_t return types
+        template <typename IntType = long>
+        OPTINUM_INLINE auto cast_to_int() const noexcept
+            -> std::enable_if_t<std::is_integral_v<IntType> && sizeof(IntType) == 8, pack<IntType, 2>> {
+            if constexpr (std::is_same_v<IntType, int64_t>) {
+                pack<IntType, 2> result;
+                // Use memcpy to avoid constructor issues
+                int64x2_t temp = vcvtq_s64_f64(data_);
+                std::memcpy(&result, &temp, sizeof(temp));
+                return result;
+            } else {
+                // For long (which should be same as int64_t on this platform)
+                alignas(16) IntType result[2];
+                alignas(16) int64_t temp[2];
+                vst1q_s64(temp, vcvtq_s64_f64(data_));
+                for (int i = 0; i < 2; ++i) {
+                    result[i] = static_cast<IntType>(temp[i]);
+                }
+                return pack<IntType, 2>::load_aligned(result);
+            }
+        }
     };
 #endif // __aarch64__
 
@@ -631,15 +714,15 @@ namespace optinum::simd {
 
         OPTINUM_INLINE pack operator~() const noexcept { return pack(vmvnq_s32(data_)); }
 
-        // Bit shifts
-        OPTINUM_INLINE pack operator<<(int n) const noexcept { return pack(vshlq_n_s32(data_, n)); }
+        // Bit shifts - use variable shift intrinsics
+        OPTINUM_INLINE pack operator<<(int n) const noexcept { return pack(vshlq_s32(data_, vdupq_n_s32(n))); }
 
         OPTINUM_INLINE pack operator>>(int n) const noexcept {
-            return pack(vshrq_n_s32(data_, n)); // Arithmetic shift
+            return pack(vshlq_s32(data_, vdupq_n_s32(-n))); // Arithmetic shift using negative shift
         }
 
         OPTINUM_INLINE pack shr_logical(int n) const noexcept {
-            return pack(vreinterpretq_s32_u32(vshrq_n_u32(vreinterpretq_u32_s32(data_), n)));
+            return pack(vreinterpretq_s32_u32(vshlq_u32(vreinterpretq_u32_s32(data_), vdupq_n_s32(-n))));
         }
 
         // Horizontal operations
@@ -797,11 +880,14 @@ namespace optinum::simd {
         OPTINUM_INLINE pack operator^(const pack &other) const noexcept { return pack(veorq_s64(data_, other.data_)); }
 
         OPTINUM_INLINE pack operator~() const noexcept {
-            return pack(vreinterpretq_s64_u64(vmvnq_u64(vreinterpretq_u64_s64(data_))));
+            // Use vectorized complement - since vmvnq_u64 may not be available, use two 32-bit operations
+            uint32x4_t temp = vreinterpretq_u32_s64(data_);
+            temp = vmvnq_u32(temp);
+            return pack(vreinterpretq_s64_u32(temp));
         }
 
-        // Bit shifts
-        OPTINUM_INLINE pack operator<<(int n) const noexcept { return pack(vshlq_n_s64(data_, n)); }
+        // Bit shifts - use variable shift intrinsics
+        OPTINUM_INLINE pack operator<<(int n) const noexcept { return pack(vshlq_s64(data_, vdupq_n_s64(n))); }
 
         OPTINUM_INLINE pack operator>>(int n) const noexcept {
             // NEON doesn't have native 64-bit arithmetic right shift - scalar fallback
@@ -813,7 +899,8 @@ namespace optinum::simd {
         }
 
         OPTINUM_INLINE pack shr_logical(int n) const noexcept {
-            return pack(vreinterpretq_s64_u64(vshrq_n_u64(vreinterpretq_u64_s64(data_), n)));
+            // Use variable shift for logical right shift
+            return pack(vreinterpretq_s64_u64(vshlq_u64(vreinterpretq_u64_s64(data_), vdupq_n_s64(-n))));
         }
 
         // Horizontal operations
