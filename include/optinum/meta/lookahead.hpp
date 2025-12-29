@@ -31,8 +31,8 @@
 
 #include <cstddef>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -57,8 +57,8 @@ namespace optinum::meta {
      * gd.step_size = 0.001;
      *
      * // Or use standalone
-     * simd::Vector<double, 3> x{1.0, 2.0, 3.0};
-     * simd::Vector<double, 3> grad{0.1, 0.2, 0.3};
+     * dp::mat::vector<double, 3> x{1.0, 2.0, 3.0};
+     * dp::mat::vector<double, 3> grad{0.1, 0.2, 0.3};
      * lookahead_adam.update(x, 0.001, grad);
      * @endcode
      *
@@ -100,7 +100,7 @@ namespace optinum::meta {
          * @param gradient Current gradient
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization of slow weights

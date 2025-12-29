@@ -8,7 +8,7 @@ using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam") {
-    using Vec2 = Vector<double, 2>;
+    using Vec_old2 = Vector<double, 2>;
 
     Sphere<double, 2> sphere;
 
@@ -20,7 +20,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             vanilla_gd.max_iterations = 1000;
             vanilla_gd.tolerance = 1e-6;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = vanilla_gd.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -37,7 +37,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             momentum_gd.tolerance = 1e-6;
             momentum_gd.get_update_policy().momentum = 0.9;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = momentum_gd.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -54,7 +54,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             rmsprop_gd.tolerance = 1e-6;
             rmsprop_gd.get_update_policy().alpha = 0.99;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = rmsprop_gd.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -72,7 +72,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             adam_gd.get_update_policy().beta1 = 0.9;
             adam_gd.get_update_policy().beta2 = 0.999;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = adam_gd.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -90,7 +90,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             amsgrad_gd.get_update_policy().beta1 = 0.9;
             amsgrad_gd.get_update_policy().beta2 = 0.999;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = amsgrad_gd.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -108,7 +108,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             momentum.max_iterations = 1000;
             momentum.tolerance = 1e-6;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = momentum.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -121,7 +121,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             rmsprop.max_iterations = 1000;
             rmsprop.tolerance = 1e-6;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = rmsprop.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -134,7 +134,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             adam.max_iterations = 1000;
             adam.tolerance = 1e-6;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = adam.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -147,7 +147,7 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
             amsgrad.max_iterations = 1000;
             amsgrad.tolerance = 1e-6;
 
-            Vec2 x(dp::mat::vector<double, 2>{5.0, 3.0});
+            dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{5.0, 3.0});
             auto result = amsgrad.optimize(sphere, x);
 
             CHECK(result.converged);
@@ -157,11 +157,11 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
 }
 
 TEST_CASE("Optimizer Comparison - 10D Sphere") {
-    using Vec10 = Vector<double, 10>;
+    using Vec_old10 = Vector<double, 10>;
 
     Sphere<double, 10> sphere;
 
-    Vec10 x_init;
+    dp::mat::vector<double, 10> x_init;
     for (std::size_t i = 0; i < 10; ++i) {
         x_init[i] = static_cast<double>(i) - 5.0; // Initialize to [-5, -4, ..., 4]
     }
@@ -172,7 +172,7 @@ TEST_CASE("Optimizer Comparison - 10D Sphere") {
         vanilla_gd.max_iterations = 2000;
         vanilla_gd.tolerance = 1e-6;
 
-        Vec10 x = x_init;
+        dp::mat::vector<double, 10> x = x_init;
         auto result = vanilla_gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -186,7 +186,7 @@ TEST_CASE("Optimizer Comparison - 10D Sphere") {
         momentum.tolerance = 1e-6;
         momentum.get_update_policy().momentum = 0.9;
 
-        Vec10 x = x_init;
+        dp::mat::vector<double, 10> x = x_init;
         auto result = momentum.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -199,7 +199,7 @@ TEST_CASE("Optimizer Comparison - 10D Sphere") {
         rmsprop.max_iterations = 2000;
         rmsprop.tolerance = 1e-6;
 
-        Vec10 x = x_init;
+        dp::mat::vector<double, 10> x = x_init;
         auto result = rmsprop.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -212,7 +212,7 @@ TEST_CASE("Optimizer Comparison - 10D Sphere") {
         adam.max_iterations = 2000;
         adam.tolerance = 1e-6;
 
-        Vec10 x = x_init;
+        dp::mat::vector<double, 10> x = x_init;
         auto result = adam.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -225,7 +225,7 @@ TEST_CASE("Optimizer Comparison - 10D Sphere") {
         amsgrad.max_iterations = 2000;
         amsgrad.tolerance = 1e-6;
 
-        Vec10 x = x_init;
+        dp::mat::vector<double, 10> x = x_init;
         auto result = amsgrad.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -234,7 +234,7 @@ TEST_CASE("Optimizer Comparison - 10D Sphere") {
 }
 
 TEST_CASE("Optimizer state reset") {
-    using Vec2 = Vector<double, 2>;
+    using Vec_old2 = Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Momentum automatic reset") {
@@ -243,11 +243,11 @@ TEST_CASE("Optimizer state reset") {
         momentum.max_iterations = 500;
 
         // First optimization
-        Vec2 x1(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x1(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result1 = momentum.optimize(sphere, x1);
 
         // Run again (optimizer automatically resets with reset_policy = true by default)
-        Vec2 x2(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x2(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result2 = momentum.optimize(sphere, x2);
 
         // Both should converge similarly
@@ -262,11 +262,11 @@ TEST_CASE("Optimizer state reset") {
         rmsprop.max_iterations = 500;
 
         // First optimization
-        Vec2 x1(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x1(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result1 = rmsprop.optimize(sphere, x1);
 
         // Run again (optimizer automatically resets with reset_policy = true by default)
-        Vec2 x2(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x2(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result2 = rmsprop.optimize(sphere, x2);
 
         // Both should converge similarly
@@ -281,11 +281,11 @@ TEST_CASE("Optimizer state reset") {
         adam.max_iterations = 500;
 
         // First optimization
-        Vec2 x1(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x1(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result1 = adam.optimize(sphere, x1);
 
         // Run again (optimizer automatically resets with reset_policy = true by default)
-        Vec2 x2(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x2(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result2 = adam.optimize(sphere, x2);
 
         // Both should converge similarly
@@ -300,11 +300,11 @@ TEST_CASE("Optimizer state reset") {
         amsgrad.max_iterations = 500;
 
         // First optimization
-        Vec2 x1(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x1(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result1 = amsgrad.optimize(sphere, x1);
 
         // Run again (optimizer automatically resets with reset_policy = true by default)
-        Vec2 x2(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x2(dp::mat::vector<double, 2>{5.0, 3.0});
         auto result2 = amsgrad.optimize(sphere, x2);
 
         // Both should converge similarly
@@ -315,7 +315,7 @@ TEST_CASE("Optimizer state reset") {
 }
 
 TEST_CASE("AMSGrad specific behavior") {
-    using Vec2 = Vector<double, 2>;
+    using Vec_old2 = Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("AMSGrad v_hat is non-decreasing") {
@@ -328,7 +328,7 @@ TEST_CASE("AMSGrad specific behavior") {
         amsgrad.max_iterations = 1000;
         amsgrad.tolerance = 1e-8;
 
-        Vec2 x(dp::mat::vector<double, 2>{10.0, 10.0});
+        dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{10.0, 10.0});
         auto result = amsgrad.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -337,8 +337,8 @@ TEST_CASE("AMSGrad specific behavior") {
 
     SUBCASE("AMSGrad vs Adam comparison") {
         // Both should converge, but AMSGrad should be more stable
-        Vec2 x_adam(dp::mat::vector<double, 2>{5.0, 3.0});
-        Vec2 x_amsgrad(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x_adam(dp::mat::vector<double, 2>{5.0, 3.0});
+        dp::mat::vector<double, 2> x_amsgrad(dp::mat::vector<double, 2>{5.0, 3.0});
 
         Adam adam;
         adam.step_size = 0.1;

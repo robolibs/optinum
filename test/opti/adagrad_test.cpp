@@ -2,14 +2,13 @@
 
 #include <datapod/matrix/vector.hpp>
 #include <optinum/opti/opti.hpp>
-#include <optinum/simd/vector.hpp>
 
 using namespace optinum;
 using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("AdaGradUpdate - Sphere function 2D") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
 
     Sphere<double, 2> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -50,7 +49,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 2D") {
 }
 
 TEST_CASE("AdaGradUpdate - Sphere function 3D") {
-    using Vec3 = simd::Vector<double, 3>;
+    using Vec3 = dp::mat::vector<double, 3>;
 
     Sphere<double, 3> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -70,7 +69,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 3D") {
 }
 
 TEST_CASE("AdaGradUpdate - Sphere function 10D") {
-    using Vec10 = simd::Vector<double, 10>;
+    using Vec10 = dp::mat::vector<double, 10>;
 
     Sphere<double, 10> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -95,7 +94,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 10D") {
 }
 
 TEST_CASE("AdaGradUpdate - Adaptive learning rate behavior") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaGrad should work well even with large initial learning rate
@@ -128,7 +127,7 @@ TEST_CASE("AdaGradUpdate - Adaptive learning rate behavior") {
 }
 
 TEST_CASE("AdaGradUpdate - Different epsilon values") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Default epsilon (1e-8)") {
@@ -158,7 +157,7 @@ TEST_CASE("AdaGradUpdate - Different epsilon values") {
 }
 
 TEST_CASE("AdaGradUpdate - Float precision") {
-    using Vec2 = simd::Vector<float, 2>;
+    using Vec2 = dp::mat::vector<float, 2>;
 
     Sphere<float, 2> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -180,7 +179,7 @@ TEST_CASE("AdaGradUpdate - Custom quadratic function") {
     // Custom quadratic: f(x, y) = (x - 2)^2 + (y + 3)^2
     // Minimum at (2, -3)
     struct CustomQuadratic {
-        using tensor_type = simd::Vector<double, 2>;
+        using tensor_type = dp::mat::vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -206,7 +205,7 @@ TEST_CASE("AdaGradUpdate - Custom quadratic function") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    simd::Vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
+    dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
     auto result = gd.optimize(func, x);
 
     CHECK(result.converged);
@@ -216,7 +215,7 @@ TEST_CASE("AdaGradUpdate - Custom quadratic function") {
 }
 
 TEST_CASE("AdaGradUpdate - Reset behavior") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<AdaGradUpdate> gd;
@@ -240,7 +239,7 @@ TEST_CASE("AdaGradUpdate - Reset behavior") {
 }
 
 TEST_CASE("AdaGradUpdate - Comparison with vanilla GD") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaGrad
@@ -267,7 +266,7 @@ TEST_CASE("AdaGradUpdate - Comparison with vanilla GD") {
 }
 
 TEST_CASE("AdaGradUpdate - Accumulated gradient behavior") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // Without reset, accumulated gradients persist

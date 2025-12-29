@@ -95,23 +95,24 @@ namespace optinum::simd {
 
     template <std::size_t W, typename T, std::size_t N>
     OPTINUM_INLINE vector_view<T, W> view(datapod::mat::vector<T, N> &v) noexcept {
-        return vector_view<T, W>(v.data(), N);
+        // Use v.size() for runtime size (handles both fixed and Dynamic)
+        return vector_view<T, W>(v.data(), v.size());
     }
 
     template <std::size_t W, typename T, std::size_t N>
     OPTINUM_INLINE vector_view<const T, W> view(const datapod::mat::vector<T, N> &v) noexcept {
-        return vector_view<const T, W>(v.data(), N);
+        return vector_view<const T, W>(v.data(), v.size());
     }
 
     // Auto-detect width for vector
     template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::vector<T, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return vector_view<T, W>(v.data(), N);
+        return vector_view<T, W>(v.data(), v.size());
     }
 
     template <typename T, std::size_t N> OPTINUM_INLINE auto view(const datapod::mat::vector<T, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return vector_view<const T, W>(v.data(), N);
+        return vector_view<const T, W>(v.data(), v.size());
     }
 
     // -------------------------------------------------------------------------
@@ -120,25 +121,26 @@ namespace optinum::simd {
 
     template <std::size_t W, typename T, std::size_t R, std::size_t C>
     OPTINUM_INLINE matrix_view<T, W> view(datapod::mat::matrix<T, R, C> &m) noexcept {
-        return matrix_view<T, W>(m.data(), R, C);
+        // Use m.rows()/m.cols() for runtime size (handles both fixed and Dynamic)
+        return matrix_view<T, W>(m.data(), m.rows(), m.cols());
     }
 
     template <std::size_t W, typename T, std::size_t R, std::size_t C>
     OPTINUM_INLINE matrix_view<const T, W> view(const datapod::mat::matrix<T, R, C> &m) noexcept {
-        return matrix_view<const T, W>(m.data(), R, C);
+        return matrix_view<const T, W>(m.data(), m.rows(), m.cols());
     }
 
     // Auto-detect width for matrix
     template <typename T, std::size_t R, std::size_t C>
     OPTINUM_INLINE auto view(datapod::mat::matrix<T, R, C> &m) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return matrix_view<T, W>(m.data(), R, C);
+        return matrix_view<T, W>(m.data(), m.rows(), m.cols());
     }
 
     template <typename T, std::size_t R, std::size_t C>
     OPTINUM_INLINE auto view(const datapod::mat::matrix<T, R, C> &m) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return matrix_view<const T, W>(m.data(), R, C);
+        return matrix_view<const T, W>(m.data(), m.rows(), m.cols());
     }
 
     // -------------------------------------------------------------------------

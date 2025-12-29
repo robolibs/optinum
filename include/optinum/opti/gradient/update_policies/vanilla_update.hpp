@@ -1,7 +1,6 @@
 #pragma once
 
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -26,9 +25,11 @@ namespace optinum::opti {
          * @param gradient Current gradient ∇f(x)
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) const noexcept {
-            // x = x - step_size * gradient (SIMD-optimized via operator overloads)
-            x -= step_size * gradient;
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) const noexcept {
+            // x = x - step_size * gradient (element-wise)
+            for (std::size_t i = 0; i < x.size(); ++i) {
+                x[i] -= step_size * gradient[i];
+            }
         }
 
         /// Reset state (vanilla has no state)

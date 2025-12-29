@@ -2,9 +2,11 @@
 
 #include <cmath>
 
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Rastrigin function - highly multimodal benchmark for optimization
@@ -31,7 +33,7 @@ namespace optinum::opti {
      *   Rastrigin<double, Dynamic> - Dynamic size
      */
     template <typename T, std::size_t N> struct Rastrigin {
-        using tensor_type = simd::Vector<T, N>;
+        using tensor_type = dp::mat::vector<T, N>;
 
         static constexpr T A = T{10};                              ///< Amplitude of cosine modulation
         static constexpr T TWO_PI = T{2} * T{3.14159265358979323}; ///< 2*pi constant
@@ -72,7 +74,7 @@ namespace optinum::opti {
         /// Get the global minimum location (all zeros)
         static tensor_type minimum_location(std::size_t dim = N) {
             tensor_type x;
-            if constexpr (N == simd::Dynamic) {
+            if constexpr (N == dp::mat::Dynamic) {
                 x.resize(dim);
             }
             for (std::size_t i = 0; i < x.size(); ++i) {

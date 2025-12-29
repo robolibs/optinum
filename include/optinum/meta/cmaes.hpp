@@ -40,9 +40,8 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -52,12 +51,12 @@ namespace optinum::meta {
      * Result of CMA-ES optimization
      */
     template <typename T> struct CMAESResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t generations;                      ///< Number of generations performed
-        std::size_t function_evaluations;             ///< Total function evaluations
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per generation
+        dp::mat::vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t generations;                            ///< Number of generations performed
+        std::size_t function_evaluations;                   ///< Total function evaluations
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per generation
     };
 
     /**
@@ -117,8 +116,8 @@ namespace optinum::meta {
          * @return CMAESResult with best solution and convergence info
          */
         template <typename F>
-        CMAESResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                                const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CMAESResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                                const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t n = lower_bounds.size();
 
             // Validate inputs
@@ -130,7 +129,7 @@ namespace optinum::meta {
             }
 
             // Initialize mean at center of bounds
-            simd::Vector<T, simd::Dynamic> mean(n);
+            dp::mat::vector<T, dp::mat::Dynamic> mean(n);
             for (std::size_t i = 0; i < n; ++i) {
                 mean[i] = (lower_bounds[i] + upper_bounds[i]) / T{2};
             }
@@ -149,9 +148,9 @@ namespace optinum::meta {
          * @return CMAESResult with best solution and convergence info
          */
         template <typename F>
-        CMAESResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                                const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                                const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CMAESResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
+                                const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                                const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t n = initial.size();
 
             // Validate inputs
@@ -170,9 +169,9 @@ namespace optinum::meta {
          * Core CMA-ES optimization implementation
          */
         template <typename F>
-        CMAESResult<T> optimize_impl(F &&objective, const simd::Vector<T, simd::Dynamic> &initial_mean,
-                                     const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                                     const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CMAESResult<T> optimize_impl(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial_mean,
+                                     const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                                     const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t n = initial_mean.size();
 
             // Random number generator
@@ -233,7 +232,7 @@ namespace optinum::meta {
             // ============================================================
 
             // Mean of distribution
-            simd::Vector<T, simd::Dynamic> m(initial_mean.size());
+            dp::mat::vector<T, dp::mat::Dynamic> m(initial_mean.size());
             for (std::size_t i = 0; i < initial_mean.size(); ++i) {
                 m[i] = initial_mean[i];
             }
@@ -254,8 +253,8 @@ namespace optinum::meta {
             }
 
             // Evolution paths
-            simd::Vector<T, simd::Dynamic> p_sigma(n); // For step-size control
-            simd::Vector<T, simd::Dynamic> p_c(n);     // For covariance adaptation
+            dp::mat::vector<T, dp::mat::Dynamic> p_sigma(n); // For step-size control
+            dp::mat::vector<T, dp::mat::Dynamic> p_c(n);     // For covariance adaptation
             for (std::size_t i = 0; i < n; ++i) {
                 p_sigma[i] = T{0};
                 p_c[i] = T{0};
@@ -273,7 +272,7 @@ namespace optinum::meta {
             }
 
             // Best solution tracking
-            simd::Vector<T, simd::Dynamic> best_position = m;
+            dp::mat::vector<T, dp::mat::Dynamic> best_position = m;
             T best_value = objective(m);
             std::size_t total_evals = 1;
 
@@ -290,7 +289,7 @@ namespace optinum::meta {
             T last_best = best_value;
 
             // Population storage
-            std::vector<simd::Vector<T, simd::Dynamic>> population(lambda);
+            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> population(lambda);
             std::vector<T> fitness(lambda);
             std::vector<std::size_t> ranking(lambda);
 
@@ -308,7 +307,7 @@ namespace optinum::meta {
             for (; generation < config.max_generations; ++generation) {
                 // Generate and evaluate lambda offspring
                 for (std::size_t k = 0; k < lambda; ++k) {
-                    population[k] = simd::Vector<T, simd::Dynamic>(n);
+                    population[k] = dp::mat::vector<T, dp::mat::Dynamic>(n);
 
                     // Sample z ~ N(0, I)
                     for (std::size_t i = 0; i < n; ++i) {

@@ -3,14 +3,17 @@
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/rxso2.hpp>
 #include <optinum/lie/groups/se2.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
 
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== Sim2: 2D Similarity Group =====
     //
@@ -37,12 +40,12 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = simd::Vector<T, 4>; // [sigma, theta, vx, vy]
-        using Translation = simd::Vector<T, 2>;
-        using Point = simd::Vector<T, 2>;
-        using Params = simd::Vector<T, 4>; // [s*cos, s*sin, tx, ty]
-        using HomogeneousMatrix = simd::Matrix<T, 3, 3>;
-        using AdjointMatrix = simd::Matrix<T, 4, 4>;
+        using Tangent = dp::mat::vector<T, 4>; // [sigma, theta, vx, vy]
+        using Translation = dp::mat::vector<T, 2>;
+        using Point = dp::mat::vector<T, 2>;
+        using Params = dp::mat::vector<T, 4>; // [s*cos, s*sin, tx, ty]
+        using HomogeneousMatrix = dp::mat::matrix<T, 3, 3>;
+        using AdjointMatrix = dp::mat::matrix<T, 4, 4>;
         using ScaledRotation = RxSO2<T>;
         using Rotation = SO2<T>;
 
@@ -176,7 +179,7 @@ namespace optinum::lie {
 
             // Compute v = V^-1 * t where V is the left Jacobian for Sim(2)
             // We need to invert the V matrix from exp()
-            simd::Vector<T, 2> v;
+            dp::mat::vector<T, 2> v;
             const T s = rxso2_.scale();
             const T theta_sq = theta * theta;
             const T sigma_sq = sigma * sigma;
@@ -275,8 +278,8 @@ namespace optinum::lie {
         }
 
         // Return 2x3 compact form [sR | t]
-        [[nodiscard]] simd::Matrix<T, 2, 3> matrix2x3() const noexcept {
-            simd::Matrix<T, 2, 3> M;
+        [[nodiscard]] dp::mat::matrix<T, 2, 3> matrix2x3() const noexcept {
+            dp::mat::matrix<T, 2, 3> M;
             auto sR = rxso2_.matrix();
             M(0, 0) = sR(0, 0);
             M(0, 1) = sR(0, 1);

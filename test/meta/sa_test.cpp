@@ -1,9 +1,11 @@
+#include <datapod/matrix.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/sa.hpp>
 
 #include <cmath>
 
 using namespace optinum;
+namespace dp = datapod;
 
 TEST_CASE("SA: Sphere function optimization") {
     meta::SimulatedAnnealing<double> sa;
@@ -13,7 +15,7 @@ TEST_CASE("SA: Sphere function optimization") {
     sa.config.tolerance = 1e-6;
 
     // 2D Sphere: f(x) = x[0]^2 + x[1]^2, minimum at (0, 0)
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -21,12 +23,12 @@ TEST_CASE("SA: Sphere function optimization") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> initial(2);
+    dp::mat::vector<double, dp::mat::Dynamic> initial(2);
     initial[0] = 3.0;
     initial[1] = -2.0;
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -49,7 +51,7 @@ TEST_CASE("SA: Higher dimensional Sphere") {
 
     constexpr std::size_t dim = 5;
 
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -57,8 +59,8 @@ TEST_CASE("SA: Higher dimensional Sphere") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(dim);
-    simd::Vector<double, simd::Dynamic> upper(dim);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(dim);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(dim);
     for (std::size_t i = 0; i < dim; ++i) {
         lower[i] = -10.0;
         upper[i] = 10.0;
@@ -78,18 +80,18 @@ TEST_CASE("SA: Rosenbrock function") {
     sa.config.tolerance = 1e-8;
 
     // 2D Rosenbrock: f(x,y) = (1-x)^2 + 100*(y-x^2)^2, minimum at (1, 1)
-    auto rosenbrock = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto rosenbrock = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double a = 1.0 - x[0];
         double b = x[1] - x[0] * x[0];
         return a * a + 100.0 * b * b;
     };
 
-    simd::Vector<double, simd::Dynamic> initial(2);
+    dp::mat::vector<double, dp::mat::Dynamic> initial(2);
     initial[0] = -1.0;
     initial[1] = 1.0;
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -109,7 +111,7 @@ TEST_CASE("SA: Rastrigin function (multimodal)") {
     sa.config.tolerance = 1e-6;
 
     // 2D Rastrigin: highly multimodal, global minimum at (0, 0) = 0
-    auto rastrigin = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto rastrigin = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         const double A = 10.0;
         const double pi = 3.14159265358979323846;
         double sum = A * static_cast<double>(x.size());
@@ -119,8 +121,8 @@ TEST_CASE("SA: Rastrigin function (multimodal)") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.12;
     lower[1] = -5.12;
     upper[0] = 5.12;
@@ -153,9 +155,9 @@ TEST_CASE("SA: Configuration options") {
         sa.config.max_iterations = 500;
         sa.config.track_history = true;
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-        simd::Vector<double, simd::Dynamic> initial(2);
+        dp::mat::vector<double, dp::mat::Dynamic> initial(2);
         initial[0] = 2.0;
         initial[1] = 2.0;
 
@@ -174,14 +176,14 @@ TEST_CASE("SA: Configuration options") {
         sa.config.initial_temperature = 100.0;
         sa.config.cooling_rate = 0.995;
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-        simd::Vector<double, simd::Dynamic> initial(2);
+        dp::mat::vector<double, dp::mat::Dynamic> initial(2);
         initial[0] = 2.0;
         initial[1] = 2.0;
 
-        simd::Vector<double, simd::Dynamic> lower(2);
-        simd::Vector<double, simd::Dynamic> upper(2);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(2);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
@@ -196,7 +198,7 @@ TEST_CASE("SA: Configuration options") {
 }
 
 TEST_CASE("SA: Cooling schedules") {
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -204,12 +206,12 @@ TEST_CASE("SA: Cooling schedules") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> initial(2);
+    dp::mat::vector<double, dp::mat::Dynamic> initial(2);
     initial[0] = 3.0;
     initial[1] = -2.0;
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -266,9 +268,9 @@ TEST_CASE("SA: Edge cases") {
     meta::SimulatedAnnealing<double> sa;
 
     SUBCASE("Empty initial returns invalid result") {
-        simd::Vector<double, simd::Dynamic> initial(0);
+        dp::mat::vector<double, dp::mat::Dynamic> initial(0);
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
             (void)x;
             return 0.0;
         };
@@ -278,13 +280,13 @@ TEST_CASE("SA: Edge cases") {
     }
 
     SUBCASE("1D optimization") {
-        auto quadratic = [](const simd::Vector<double, simd::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
+        auto quadratic = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
 
-        simd::Vector<double, simd::Dynamic> initial(1);
+        dp::mat::vector<double, dp::mat::Dynamic> initial(1);
         initial[0] = 0.0;
 
-        simd::Vector<double, simd::Dynamic> lower(1);
-        simd::Vector<double, simd::Dynamic> upper(1);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(1);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(1);
         lower[0] = -10.0;
         upper[0] = 10.0;
 
@@ -297,19 +299,19 @@ TEST_CASE("SA: Edge cases") {
     }
 
     SUBCASE("Mismatched bounds size returns invalid") {
-        simd::Vector<double, simd::Dynamic> initial(2);
+        dp::mat::vector<double, dp::mat::Dynamic> initial(2);
         initial[0] = 0.0;
         initial[1] = 0.0;
 
-        simd::Vector<double, simd::Dynamic> lower(2);
-        simd::Vector<double, simd::Dynamic> upper(3);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(3);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
         upper[1] = 5.0;
         upper[2] = 5.0;
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
             (void)x;
             return 0.0;
         };
@@ -325,7 +327,7 @@ TEST_CASE("SA: Adaptive step size") {
     sa.config.adaptive_step = true;
     sa.config.target_acceptance = 0.44;
 
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -333,12 +335,12 @@ TEST_CASE("SA: Adaptive step size") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> initial(2);
+    dp::mat::vector<double, dp::mat::Dynamic> initial(2);
     initial[0] = 3.0;
     initial[1] = -2.0;
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -357,7 +359,7 @@ TEST_CASE("SA: Float type") {
     sa.config.cooling_rate = 0.999f;
     sa.config.tolerance = 1e-4f;
 
-    auto sphere = [](const simd::Vector<float, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<float, dp::mat::Dynamic> &x) {
         float sum = 0.0f;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -365,12 +367,12 @@ TEST_CASE("SA: Float type") {
         return sum;
     };
 
-    simd::Vector<float, simd::Dynamic> initial(2);
+    dp::mat::vector<float, dp::mat::Dynamic> initial(2);
     initial[0] = 3.0f;
     initial[1] = -2.0f;
 
-    simd::Vector<float, simd::Dynamic> lower(2);
-    simd::Vector<float, simd::Dynamic> upper(2);
+    dp::mat::vector<float, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<float, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0f;
     lower[1] = -5.0f;
     upper[0] = 5.0f;
@@ -387,7 +389,7 @@ TEST_CASE("SA: Optimize without initial (from bounds center)") {
     sa.config.max_iterations = 3000;
     sa.config.cooling_rate = 0.995;
 
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -395,8 +397,8 @@ TEST_CASE("SA: Optimize without initial (from bounds center)") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;

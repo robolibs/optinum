@@ -1,9 +1,6 @@
 #pragma once
 
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -47,14 +44,14 @@ namespace optinum::opti {
         explicit NesterovUpdate(double mu = 0.9) : momentum(mu) {}
 
         /**
-         * Update the iterate using Nesterov momentum (SIMD-optimized)
+         * Update the iterate using Nesterov momentum
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate α
          * @param gradient Current gradient ∇f(x)
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization of velocity on first use
@@ -73,18 +70,10 @@ namespace optinum::opti {
             // Nesterov update:
             // 1. v_new = μ * v - α * g
             // 2. x_new = x + μ * v_new - α * g
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
-                    v_ptr[i] = v_new;
-                    x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
-                }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
-                    v_ptr[i] = v_new;
-                    x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
-                }
+            for (std::size_t i = 0; i < n; ++i) {
+                double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
+                v_ptr[i] = v_new;
+                x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
             }
         }
 

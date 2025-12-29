@@ -275,10 +275,10 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] LocalTwist<NewScalar> cast() const noexcept {
             return LocalTwist<NewScalar>(
-                simd::Vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
-                                           static_cast<NewScalar>(linear_[2])},
-                simd::Vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
-                                           static_cast<NewScalar>(angular_[2])});
+                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
+                                              static_cast<NewScalar>(linear_[2])},
+                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
+                                              static_cast<NewScalar>(angular_[2])});
         }
 
       private:
@@ -536,10 +536,10 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] GlobalTwist<NewScalar> cast() const noexcept {
             return GlobalTwist<NewScalar>(
-                simd::Vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
-                                           static_cast<NewScalar>(linear_[2])},
-                simd::Vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
-                                           static_cast<NewScalar>(angular_[2])});
+                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
+                                              static_cast<NewScalar>(linear_[2])},
+                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
+                                              static_cast<NewScalar>(angular_[2])});
         }
 
       private:

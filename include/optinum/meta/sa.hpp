@@ -30,9 +30,8 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -73,7 +72,7 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> initial{1.0, 1.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> initial{1.0, 1.0};
      * auto result = sa.optimize(objective, initial);
      * @endcode
      *
@@ -115,7 +114,7 @@ namespace optinum::meta {
          * @param initial Starting point
          * @return SAResult with best solution and convergence info
          */
-        template <typename F> SAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial) {
+        template <typename F> SAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial) {
             const std::size_t dim = initial.size();
 
             if (dim == 0) {
@@ -142,9 +141,9 @@ namespace optinum::meta {
          * @return SAResult with best solution and convergence info
          */
         template <typename F>
-        SAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                             const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        SAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
 
             if (dim == 0 || lower_bounds.size() != dim || upper_bounds.size() != dim) {
@@ -164,8 +163,8 @@ namespace optinum::meta {
          * @return SAResult with best solution and convergence info
          */
         template <typename F>
-        SAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        SAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
 
             if (dim == 0 || upper_bounds.size() != dim) {
@@ -186,9 +185,9 @@ namespace optinum::meta {
          * Core optimization implementation
          */
         template <typename F>
-        SAResult<T> optimize_impl(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                                  const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                                  const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        SAResult<T> optimize_impl(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
+                                  const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                                  const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
 
             // Random number generator

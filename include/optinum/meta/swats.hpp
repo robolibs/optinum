@@ -31,8 +31,8 @@
 #include <cstddef>
 #include <limits>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -56,8 +56,8 @@ namespace optinum::meta {
      * gd.step_size = 0.001;
      *
      * // Or use standalone
-     * simd::Vector<double, 3> x{1.0, 2.0, 3.0};
-     * simd::Vector<double, 3> grad{0.1, 0.2, 0.3};
+     * dp::mat::vector<double, 3> x{1.0, 2.0, 3.0};
+     * dp::mat::vector<double, 3> grad{0.1, 0.2, 0.3};
      * swats.update(x, 0.001, grad);
      *
      * // Check if switched
@@ -102,7 +102,7 @@ namespace optinum::meta {
          * @param gradient Current gradient
          */
         template <std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization
@@ -179,7 +179,7 @@ namespace optinum::meta {
          * Adam update step
          */
         template <std::size_t N>
-        void update_adam(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update_adam(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             T one_minus_beta1 = T{1} - config.beta1;
@@ -235,7 +235,8 @@ namespace optinum::meta {
         /**
          * SGD update step (after switching)
          */
-        template <std::size_t N> void update_sgd(simd::Vector<T, N> &x, const simd::Vector<T, N> &gradient) noexcept {
+        template <std::size_t N>
+        void update_sgd(dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
             T *x_ptr = x.data();
             const T *g_ptr = gradient.data();
@@ -252,7 +253,8 @@ namespace optinum::meta {
          * learning rate. When the variance of the learning rate becomes small,
          * we switch to SGD.
          */
-        template <std::size_t N> void check_switch_criterion(T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        template <std::size_t N>
+        void check_switch_criterion(T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = gradient.size();
 
             // Compute current effective learning rate
@@ -280,13 +282,13 @@ namespace optinum::meta {
             }
         }
 
-        simd::Vector<T, simd::Dynamic> m_; ///< First moment estimate
-        simd::Vector<T, simd::Dynamic> v_; ///< Second moment estimate
-        std::size_t iteration_ = 0;        ///< Current iteration
-        bool switched_ = false;            ///< Whether we've switched to SGD
-        std::size_t switch_iter_ = 0;      ///< Iteration at which we switched
-        T sgd_lr_ = T{0};                  ///< Learning rate for SGD phase
-        T lr_avg_ = T{0};                  ///< Exponential moving average of learning rate
+        dp::mat::vector<T, dp::mat::Dynamic> m_; ///< First moment estimate
+        dp::mat::vector<T, dp::mat::Dynamic> v_; ///< Second moment estimate
+        std::size_t iteration_ = 0;              ///< Current iteration
+        bool switched_ = false;                  ///< Whether we've switched to SGD
+        std::size_t switch_iter_ = 0;            ///< Iteration at which we switched
+        T sgd_lr_ = T{0};                        ///< Learning rate for SGD phase
+        T lr_avg_ = T{0};                        ///< Exponential moving average of learning rate
     };
 
 } // namespace optinum::meta

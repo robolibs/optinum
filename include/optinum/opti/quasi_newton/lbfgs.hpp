@@ -9,10 +9,11 @@
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/types.hpp>
 #include <optinum/opti/line_search/line_search.hpp>
-#include <optinum/simd/vector.hpp>
+#include <optinum/simd/bridge.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -84,16 +85,16 @@ namespace optinum::opti {
      * @example
      * // Define objective function
      * struct Rosenbrock {
-     *     double evaluate(const simd::Vector<double, 2>& x) const {
+     *     double evaluate(const dp::mat::vector<double, 2>& x) const {
      *         double a = 1.0 - x[0];
      *         double b = x[1] - x[0] * x[0];
      *         return a * a + 100.0 * b * b;
      *     }
-     *     void gradient(const simd::Vector<double, 2>& x, simd::Vector<double, 2>& g) const {
+     *     void gradient(const dp::mat::vector<double, 2>& x, dp::mat::vector<double, 2>& g) const {
      *         g[0] = -2.0 * (1.0 - x[0]) - 400.0 * x[0] * (x[1] - x[0] * x[0]);
      *         g[1] = 200.0 * (x[1] - x[0] * x[0]);
      *     }
-     *     double evaluate_with_gradient(const simd::Vector<double, 2>& x, simd::Vector<double, 2>& g) const {
+     *     double evaluate_with_gradient(const dp::mat::vector<double, 2>& x, dp::mat::vector<double, 2>& g) const {
      *         gradient(x, g);
      *         return evaluate(x);
      *     }
@@ -104,7 +105,7 @@ namespace optinum::opti {
      * optimizer.tolerance = 1e-8;
      * optimizer.history_size = 10;
      *
-     * simd::Vector<double, 2> x0{-1.0, 1.0};
+     * dp::mat::vector<double, 2> x0{-1.0, 1.0};
      * Rosenbrock func;
      * auto result = optimizer.optimize(func, x0);
      * // result.x should be close to (1, 1)
@@ -168,9 +169,9 @@ namespace optinum::opti {
          * - T evaluate_with_gradient(const Vector& x, Vector& g) - both (optional but efficient)
          */
         template <typename FunctionType, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(FunctionType &function, const simd::Vector<T, N> &x_init,
+        OptimizationResult<T, N> optimize(FunctionType &function, const dp::mat::vector<T, N> &x_init,
                                           CallbackType callback = NoCallback{}) {
-            using vector_type = simd::Vector<T, N>;
+            using vector_type = dp::mat::vector<T, N>;
 
             const std::size_t n = x_init.size();
 
@@ -183,7 +184,7 @@ namespace optinum::opti {
             vector_type gradient_new;
 
             // Allocate for Dynamic vectors
-            if constexpr (N == simd::Dynamic) {
+            if constexpr (N == dp::mat::Dynamic) {
                 gradient.resize(n);
                 gradient_prev.resize(n);
                 direction.resize(n);
@@ -206,9 +207,9 @@ namespace optinum::opti {
             alpha.resize(history_size);
 
             // Initialize history to zero
-            s_flat.fill(T(0));
-            y_flat.fill(T(0));
-            rho.fill(T(0));
+            simd::view(s_flat).fill(T(0));
+            simd::view(y_flat).fill(T(0));
+            simd::view(rho).fill(T(0));
 
             std::size_t history_count = 0; // Number of stored pairs
             std::size_t history_start = 0; // Circular buffer start index
@@ -217,7 +218,7 @@ namespace optinum::opti {
             T f_current = function.evaluate_with_gradient(x, gradient);
             T f_prev = std::numeric_limits<T>::max();
 
-            T grad_norm = simd::norm(gradient);
+            T grad_norm = simd::view(gradient).norm();
 
             if (verbose) {
                 std::cout << "=== L-BFGS Optimization ===" << std::endl;
@@ -260,7 +261,7 @@ namespace optinum::opti {
                 compute_direction(gradient, s_flat, y_flat, rho, alpha, history_count, history_start, n, direction);
 
                 // Check if direction is descent
-                T directional_derivative = simd::dot(gradient, direction);
+                T directional_derivative = simd::view(gradient).dot(simd::view(direction));
                 if (directional_derivative >= T(0)) {
                     // Not a descent direction - reset to steepest descent
                     if (verbose) {
@@ -288,7 +289,9 @@ namespace optinum::opti {
 
                     if (line_search_success) {
                         // x_new = x + alpha * direction
-                        x_new = x + direction * alpha_step;
+                        for (std::size_t i = 0; i < n; ++i) {
+                            x_new[i] = x[i] + direction[i] * alpha_step;
+                        }
                         // gradient_new already computed by Wolfe line search
                     }
                 } else {
@@ -301,7 +304,9 @@ namespace optinum::opti {
                     line_search_success = ls_result.success;
 
                     if (line_search_success) {
-                        x_new = x + direction * alpha_step;
+                        for (std::size_t i = 0; i < n; ++i) {
+                            x_new[i] = x[i] + direction[i] * alpha_step;
+                        }
                         function.gradient(x_new, gradient_new);
                     }
                 }
@@ -364,7 +369,7 @@ namespace optinum::opti {
                 }
 
                 // Step 4: Check convergence
-                T step_norm = alpha_step * simd::norm(direction);
+                T step_norm = alpha_step * simd::view(direction).norm();
                 T f_decrease = f_current - f_new;
 
                 // Update state
@@ -372,7 +377,7 @@ namespace optinum::opti {
                 gradient = gradient_new;
                 f_prev = f_current;
                 f_current = f_new;
-                grad_norm = simd::norm(gradient);
+                grad_norm = simd::view(gradient).norm();
 
                 // Convergence checks
                 if (grad_norm < gradient_tolerance) {
@@ -387,7 +392,7 @@ namespace optinum::opti {
                     break;
                 }
 
-                if (step_norm < step_tolerance * (T(1) + simd::norm(x))) {
+                if (step_norm < step_tolerance * (T(1) + simd::view(x).norm())) {
                     converged = true;
                     termination_reason = "Converged: step size < tolerance";
                     break;
@@ -439,11 +444,12 @@ namespace optinum::opti {
          * @param direction Output: search direction d = -H_k * g_k
          */
         template <std::size_t N>
-        void compute_direction(const simd::Vector<T, N> &gradient, const dp::mat::vector<T, dp::mat::Dynamic> &s_flat,
+        void compute_direction(const dp::mat::vector<T, N> &gradient,
+                               const dp::mat::vector<T, dp::mat::Dynamic> &s_flat,
                                const dp::mat::vector<T, dp::mat::Dynamic> &y_flat,
                                const dp::mat::vector<T, dp::mat::Dynamic> &rho,
                                dp::mat::vector<T, dp::mat::Dynamic> &alpha, std::size_t history_count,
-                               std::size_t history_start, std::size_t n, simd::Vector<T, N> &direction) const {
+                               std::size_t history_start, std::size_t n, dp::mat::vector<T, N> &direction) const {
             // If no history, use steepest descent
             if (history_count == 0) {
                 for (std::size_t i = 0; i < n; ++i) {

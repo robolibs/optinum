@@ -1,13 +1,8 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -48,14 +43,14 @@ namespace optinum::opti {
             : beta1(b1), beta2(b2), epsilon(eps) {}
 
         /**
-         * Update the iterate using Yogi (SIMD-optimized)
+         * Update the iterate using Yogi
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate η
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -86,45 +81,26 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    double g_sq = g_i * g_i;
+            for (std::size_t i = 0; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
+                double g_sq = g_i * g_i;
 
-                    // Update biased first moment: m = beta1 * m + (1 - beta1) * g
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                // Update biased first moment: m = beta1 * m + (1 - beta1) * g
+                m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
 
-                    // Yogi update for second moment: v = v + (1 - beta2) * sign(g² - v) * g²
-                    // sign(g² - v) determines whether to increase or decrease v
-                    double diff = g_sq - v_ptr[i];
-                    double sign_diff = (diff > 0.0) ? 1.0 : ((diff < 0.0) ? -1.0 : 0.0);
-                    v_ptr[i] = v_ptr[i] + one_minus_beta2 * sign_diff * g_sq;
+                // Yogi update for second moment: v = v + (1 - beta2) * sign(g² - v) * g²
+                // sign(g² - v) determines whether to increase or decrease v
+                double diff = g_sq - v_ptr[i];
+                double sign_diff = (diff > 0.0) ? 1.0 : ((diff < 0.0) ? -1.0 : 0.0);
+                v_ptr[i] = v_ptr[i] + one_minus_beta2 * sign_diff * g_sq;
 
-                    // Ensure v stays non-negative (numerical stability)
-                    if (v_ptr[i] < 0.0) {
-                        v_ptr[i] = 0.0;
-                    }
-
-                    // Update iterate: x = x - step_correction * m / (sqrt(v) + eps)
-                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
+                // Ensure v stays non-negative (numerical stability)
+                if (v_ptr[i] < 0.0) {
+                    v_ptr[i] = 0.0;
                 }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    double g_sq = g_i * g_i;
 
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
-
-                    double diff = g_sq - v_ptr[i];
-                    double sign_diff = (diff > 0.0) ? 1.0 : ((diff < 0.0) ? -1.0 : 0.0);
-                    v_ptr[i] = v_ptr[i] + one_minus_beta2 * sign_diff * g_sq;
-
-                    if (v_ptr[i] < 0.0) {
-                        v_ptr[i] = 0.0;
-                    }
-
-                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
-                }
+                // Update iterate: x = x - step_correction * m / (sqrt(v) + eps)
+                x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
             }
         }
 

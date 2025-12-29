@@ -3,14 +3,17 @@
 #include <cmath>
 #include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/function.hpp>
 #include <optinum/opti/core/types.hpp>
 #include <optinum/opti/decay/no_decay.hpp>
 #include <optinum/opti/gradient/update_policies/vanilla_update.hpp>
-#include <optinum/simd/vector.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Gradient Descent optimizer
@@ -32,7 +35,7 @@ namespace optinum::opti {
      * gd.tolerance = 1e-6;
      *
      * // Initial point
-     * simd::Vector<double, 3> x0{1.0, 2.0, 3.0};
+     * dp::mat::vector<double, 3> x0{1.0, 2.0, 3.0};
      *
      * // Optimize
      * auto result = gd.optimize(func, x0);
@@ -65,16 +68,16 @@ namespace optinum::opti {
          * @return OptimizationResult with solution and convergence info
          */
         template <typename FunctionType, typename T, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(FunctionType &function, simd::Vector<T, N> &x_init,
+        OptimizationResult<T, N> optimize(FunctionType &function, dp::mat::vector<T, N> &x_init,
                                           CallbackType callback = NoCallback{}) {
-            using vector_type = simd::Vector<T, N>;
+            using vector_type = dp::mat::vector<T, N>;
 
             // Working variables
             vector_type x = x_init; // Current iterate
             vector_type gradient;   // Gradient storage
 
             // For Dynamic vectors, allocate gradient with same size as x
-            if constexpr (N == simd::Dynamic) {
+            if constexpr (N == dp::mat::Dynamic) {
                 gradient.resize(x.size());
             }
 
@@ -104,7 +107,7 @@ namespace optinum::opti {
                 current_objective = function.evaluate_with_gradient(x, gradient);
 
                 // Compute gradient norm for monitoring
-                T grad_norm = simd::norm(gradient);
+                T grad_norm = simd::view(gradient).norm();
 
                 // Create iteration info for callback
                 IterationInfo<T> info(iteration, current_objective, grad_norm, current_step);
@@ -148,7 +151,7 @@ namespace optinum::opti {
             }
 
             // Compute final gradient for result
-            T final_grad_norm = (iteration > 0) ? simd::norm(gradient) : std::numeric_limits<T>::max();
+            T final_grad_norm = (iteration > 0) ? simd::view(gradient).norm() : std::numeric_limits<T>::max();
 
             // Create result
             OptimizationResult<T, N> result(x, current_objective, final_grad_norm, iteration, converged,
@@ -167,7 +170,7 @@ namespace optinum::opti {
          * Optimize with default-constructed function (for stateless functions)
          */
         template <typename FunctionType, typename T, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(simd::Vector<T, N> &x_init, CallbackType callback = NoCallback{}) {
+        OptimizationResult<T, N> optimize(dp::mat::vector<T, N> &x_init, CallbackType callback = NoCallback{}) {
             FunctionType function;
             return optimize(function, x_init, callback);
         }

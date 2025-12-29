@@ -5,6 +5,8 @@
 // Finite-difference Jacobian and gradient computation
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -12,6 +14,8 @@
 #include <type_traits>
 
 namespace optinum::lina {
+
+    namespace dp = ::datapod;
 
     /**
      * @brief Compute Jacobian matrix using finite differences
@@ -201,6 +205,108 @@ namespace optinum::lina {
         }
 
         return max_error;
+    }
+
+    // =============================================================================
+    // Overloads for dp::mat::vector (used by opti module)
+    // =============================================================================
+
+    /**
+     * @brief Compute Jacobian matrix using finite differences (dp::mat::vector version)
+     */
+    template <typename Function, typename T, std::size_t N>
+    dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>
+    jacobian(const Function &f, const dp::mat::vector<T, N> &x, T h = (std::is_same_v<T, float> ? T(1e-5) : T(1e-8)),
+             bool central = true) {
+        const std::size_t n = x.size();
+
+        // Evaluate at x to get output dimension
+        auto fx = f(x);
+        const std::size_t m = fx.size();
+
+        // Allocate Jacobian matrix
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> J(m, n);
+
+        // Temporary vectors for perturbations
+        dp::mat::vector<T, N> x_plus = x;
+        dp::mat::vector<T, N> x_minus = x;
+
+        // Compute each column of Jacobian (one per variable)
+        for (std::size_t j = 0; j < n; ++j) {
+            if (central) {
+                // Central difference: (f(x+h) - f(x-h)) / (2h)
+                x_plus[j] = x[j] + h;
+                x_minus[j] = x[j] - h;
+
+                auto f_plus = f(x_plus);
+                auto f_minus = f(x_minus);
+
+                for (std::size_t i = 0; i < m; ++i) {
+                    J(i, j) = (f_plus[i] - f_minus[i]) / (T(2) * h);
+                }
+
+                // Reset for next iteration
+                x_plus[j] = x[j];
+                x_minus[j] = x[j];
+            } else {
+                // Forward difference: (f(x+h) - f(x)) / h
+                x_plus[j] = x[j] + h;
+
+                auto f_plus = f(x_plus);
+
+                for (std::size_t i = 0; i < m; ++i) {
+                    J(i, j) = (f_plus[i] - fx[i]) / h;
+                }
+
+                // Reset for next iteration
+                x_plus[j] = x[j];
+            }
+        }
+
+        return J;
+    }
+
+    /**
+     * @brief Compute gradient using finite differences (dp::mat::vector version)
+     */
+    template <typename Function, typename T, std::size_t N>
+    dp::mat::vector<T, N> gradient(const Function &f, const dp::mat::vector<T, N> &x,
+                                   T h = (std::is_same_v<T, float> ? T(1e-5) : T(1e-8)), bool central = true) {
+        const std::size_t n = x.size();
+
+        dp::mat::vector<T, N> grad;
+        if constexpr (N == dp::mat::Dynamic) {
+            grad.resize(n);
+        }
+
+        T fx = f(x);
+        dp::mat::vector<T, N> x_plus = x;
+        dp::mat::vector<T, N> x_minus = x;
+
+        // Compute each component of gradient
+        for (std::size_t j = 0; j < n; ++j) {
+            if (central) {
+                // Central difference: (f(x+h) - f(x-h)) / (2h)
+                x_plus[j] = x[j] + h;
+                x_minus[j] = x[j] - h;
+
+                grad[j] = (f(x_plus) - f(x_minus)) / (T(2) * h);
+
+                // Reset for next iteration
+                x_plus[j] = x[j];
+                x_minus[j] = x[j];
+            } else {
+                // Forward difference: (f(x+h) - f(x)) / h
+                x_plus[j] = x[j] + h;
+
+                grad[j] = (f(x_plus) - fx) / h;
+
+                // Reset for next iteration
+                x_plus[j] = x[j];
+            }
+        }
+
+        return grad;
     }
 
 } // namespace optinum::lina

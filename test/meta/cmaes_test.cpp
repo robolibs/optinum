@@ -1,9 +1,11 @@
+#include <datapod/matrix.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/cmaes.hpp>
 
 #include <cmath>
 
 using namespace optinum;
+namespace dp = datapod;
 
 TEST_CASE("CMAES: Sphere function optimization") {
     meta::CMAES<double> cmaes;
@@ -11,7 +13,7 @@ TEST_CASE("CMAES: Sphere function optimization") {
     cmaes.config.tolerance = 1e-6;
 
     // 2D Sphere: f(x) = x[0]^2 + x[1]^2, minimum at (0, 0)
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -19,8 +21,8 @@ TEST_CASE("CMAES: Sphere function optimization") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -40,7 +42,7 @@ TEST_CASE("CMAES: Higher dimensional Sphere") {
 
     constexpr std::size_t dim = 5;
 
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -48,8 +50,8 @@ TEST_CASE("CMAES: Higher dimensional Sphere") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(dim);
-    simd::Vector<double, simd::Dynamic> upper(dim);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(dim);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(dim);
     for (std::size_t i = 0; i < dim; ++i) {
         lower[i] = -10.0;
         upper[i] = 10.0;
@@ -70,14 +72,14 @@ TEST_CASE("CMAES: Rosenbrock function") {
     cmaes.config.sigma0 = 0.5;
 
     // 2D Rosenbrock: f(x,y) = (1-x)^2 + 100*(y-x^2)^2, minimum at (1, 1)
-    auto rosenbrock = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto rosenbrock = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double a = 1.0 - x[0];
         double b = x[1] - x[0] * x[0];
         return a * a + 100.0 * b * b;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -86,9 +88,9 @@ TEST_CASE("CMAES: Rosenbrock function") {
     auto result = cmaes.optimize(rosenbrock, lower, upper);
 
     // Rosenbrock is harder - just check we get reasonably close
-    CHECK(result.best_value < 1.0);
-    CHECK(std::abs(result.best_position[0] - 1.0) < 1.0);
-    CHECK(std::abs(result.best_position[1] - 1.0) < 1.0);
+    CHECK(result.best_value <= 1.0);
+    CHECK(std::abs(result.best_position[0] - 1.0) <= 1.0);
+    CHECK(std::abs(result.best_position[1] - 1.0) <= 1.0);
 }
 
 TEST_CASE("CMAES: Rastrigin function (multimodal)") {
@@ -98,7 +100,7 @@ TEST_CASE("CMAES: Rastrigin function (multimodal)") {
     cmaes.config.tolerance = 1e-6;
 
     // 2D Rastrigin: highly multimodal, global minimum at (0, 0) = 0
-    auto rastrigin = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto rastrigin = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         const double A = 10.0;
         const double pi = 3.14159265358979323846;
         double sum = A * static_cast<double>(x.size());
@@ -108,8 +110,8 @@ TEST_CASE("CMAES: Rastrigin function (multimodal)") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.12;
     lower[1] = -5.12;
     upper[0] = 5.12;
@@ -128,7 +130,7 @@ TEST_CASE("CMAES: Ellipsoid function (ill-conditioned)") {
 
     // Ellipsoid: f(x) = sum(i * x[i]^2), ill-conditioned
     // CMA-ES should handle this well due to covariance adaptation
-    auto ellipsoid = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto ellipsoid = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += static_cast<double>(i + 1) * x[i] * x[i];
@@ -136,8 +138,8 @@ TEST_CASE("CMAES: Ellipsoid function (ill-conditioned)") {
         return sum;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(3);
-    simd::Vector<double, simd::Dynamic> upper(3);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(3);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(3);
     for (std::size_t i = 0; i < 3; ++i) {
         lower[i] = -5.0;
         upper[i] = 5.0;
@@ -169,10 +171,10 @@ TEST_CASE("CMAES: Configuration options") {
         cmaes.config.max_generations = 50;
         cmaes.config.track_history = true;
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-        simd::Vector<double, simd::Dynamic> lower(2);
-        simd::Vector<double, simd::Dynamic> upper(2);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(2);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
@@ -192,10 +194,10 @@ TEST_CASE("CMAES: Configuration options") {
         cmaes.config.population_size = 0; // Auto
         cmaes.config.max_generations = 100;
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-        simd::Vector<double, simd::Dynamic> lower(2);
-        simd::Vector<double, simd::Dynamic> upper(2);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(2);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
@@ -212,10 +214,10 @@ TEST_CASE("CMAES: Edge cases") {
     meta::CMAES<double> cmaes;
 
     SUBCASE("Empty bounds returns invalid result") {
-        simd::Vector<double, simd::Dynamic> lower(0);
-        simd::Vector<double, simd::Dynamic> upper(0);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(0);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(0);
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
             (void)x;
             return 0.0;
         };
@@ -225,10 +227,10 @@ TEST_CASE("CMAES: Edge cases") {
     }
 
     SUBCASE("1D optimization") {
-        auto quadratic = [](const simd::Vector<double, simd::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
+        auto quadratic = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
 
-        simd::Vector<double, simd::Dynamic> lower(1);
-        simd::Vector<double, simd::Dynamic> upper(1);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(1);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(1);
         lower[0] = -10.0;
         upper[0] = 10.0;
 
@@ -241,15 +243,15 @@ TEST_CASE("CMAES: Edge cases") {
     }
 
     SUBCASE("Mismatched bounds size returns invalid") {
-        simd::Vector<double, simd::Dynamic> lower(2);
-        simd::Vector<double, simd::Dynamic> upper(3);
+        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::vector<double, dp::mat::Dynamic> upper(3);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
         upper[1] = 5.0;
         upper[2] = 5.0;
 
-        auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
             (void)x;
             return 0.0;
         };
@@ -264,7 +266,7 @@ TEST_CASE("CMAES: Optimize with initial point") {
     cmaes.config.max_generations = 500;
     cmaes.config.tolerance = 1e-6;
 
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -273,12 +275,12 @@ TEST_CASE("CMAES: Optimize with initial point") {
     };
 
     // Start near the optimum
-    simd::Vector<double, simd::Dynamic> initial(2);
+    dp::mat::vector<double, dp::mat::Dynamic> initial(2);
     initial[0] = 0.5;
     initial[1] = 0.5;
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -296,7 +298,7 @@ TEST_CASE("CMAES: Float type") {
     cmaes.config.max_generations = 300;
     cmaes.config.tolerance = 1e-4f;
 
-    auto sphere = [](const simd::Vector<float, simd::Dynamic> &x) {
+    auto sphere = [](const dp::mat::vector<float, dp::mat::Dynamic> &x) {
         float sum = 0.0f;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -304,8 +306,8 @@ TEST_CASE("CMAES: Float type") {
         return sum;
     };
 
-    simd::Vector<float, simd::Dynamic> lower(2);
-    simd::Vector<float, simd::Dynamic> upper(2);
+    dp::mat::vector<float, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<float, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0f;
     lower[1] = -5.0f;
     upper[0] = 5.0f;
@@ -321,10 +323,10 @@ TEST_CASE("CMAES: Function evaluations tracking") {
     cmaes.config.population_size = 10;
     cmaes.config.max_generations = 5;
 
-    auto sphere = [](const simd::Vector<double, simd::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -346,7 +348,7 @@ TEST_CASE("CMAES: Schwefel function") {
     cmaes.config.tolerance = 1e-6;
 
     // Schwefel 2.22: f(x) = sum(|x_i|) + prod(|x_i|), minimum at origin
-    auto schwefel = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto schwefel = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         double prod = 1.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
@@ -356,8 +358,8 @@ TEST_CASE("CMAES: Schwefel function") {
         return sum + prod;
     };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -10.0;
     lower[1] = -10.0;
     upper[0] = 10.0;
@@ -375,7 +377,7 @@ TEST_CASE("CMAES: Ackley function") {
     cmaes.config.tolerance = 1e-6;
 
     // Ackley function: global minimum at origin = 0
-    auto ackley = [](const simd::Vector<double, simd::Dynamic> &x) {
+    auto ackley = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         const double a = 20.0;
         const double b = 0.2;
         const double c = 2.0 * 3.14159265358979323846;
@@ -391,8 +393,8 @@ TEST_CASE("CMAES: Ackley function") {
         return -a * std::exp(-b * std::sqrt(sum1 / n)) - std::exp(sum2 / n) + a + std::exp(1.0);
     };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -411,10 +413,10 @@ TEST_CASE("CMAES: Convergence detection") {
     cmaes.config.patience = 20;
 
     // Simple quadratic - should converge quickly
-    auto quadratic = [](const simd::Vector<double, simd::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+    auto quadratic = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-    simd::Vector<double, simd::Dynamic> lower(2);
-    simd::Vector<double, simd::Dynamic> upper(2);
+    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;

@@ -326,7 +326,7 @@ TEST_CASE("PolynomialDecay - polynomial curve") {
 // ============================================================================
 
 TEST_CASE("Decay policies with GradientDescent") {
-    using Vec2 = optinum::simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("StepDecay") {

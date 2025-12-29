@@ -2,13 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -48,14 +43,14 @@ namespace optinum::opti {
             : beta1(b1), beta2(b2), epsilon(eps) {}
 
         /**
-         * Update the iterate using AMSGrad (SIMD-optimized)
+         * Update the iterate using AMSGrad
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate η
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -89,26 +84,16 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    // Update biased first moment: m = beta1 * m + (1 - beta1) * g
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
-                    // Update biased second moment: v = beta2 * v + (1 - beta2) * g²
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
-                    // AMSGrad: v_hat = max(v_hat, v)
-                    v_hat_ptr[i] = std::max(v_hat_ptr[i], v_ptr[i]);
-                    // Update iterate: x = x - step_correction * m / (sqrt(v_hat) + eps)
-                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_hat_ptr[i]) + epsilon));
-                }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
-                    v_hat_ptr[i] = std::max(v_hat_ptr[i], v_ptr[i]);
-                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_hat_ptr[i]) + epsilon));
-                }
+            for (std::size_t i = 0; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
+                // Update biased first moment: m = beta1 * m + (1 - beta1) * g
+                m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                // Update biased second moment: v = beta2 * v + (1 - beta2) * g²
+                v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                // AMSGrad: v_hat = max(v_hat, v)
+                v_hat_ptr[i] = std::max(v_hat_ptr[i], v_ptr[i]);
+                // Update iterate: x = x - step_correction * m / (sqrt(v_hat) + eps)
+                x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_hat_ptr[i]) + epsilon));
             }
         }
 

@@ -1,14 +1,13 @@
 #include <doctest/doctest.h>
 
 #include <optinum/opti/quasi_newton/gauss_newton.hpp>
-#include <optinum/simd/vector.hpp>
 
 #include <cmath>
 #include <vector>
 
 using optinum::opti::GaussNewton;
-using optinum::simd::Dynamic;
-using optinum::simd::Vector;
+using optinum::simd::dp::mat::Dynamic;
+namespace dp = datapod;
 
 // =============================================================================
 // TEST SUITE: Gauss-Newton Optimizer
@@ -19,8 +18,8 @@ TEST_CASE("GaussNewton - Simple linear least squares") {
     // A = [[1, 2], [3, 4], [5, 6]], b = [5, 11, 17]
     // Solution: x = [1, 2]
 
-    auto residual = [](const Vector<double, 2> &x) {
-        Vector<double, 3> r;
+    auto residual = [](const dp::mat::vector<double, 2> &x) {
+        dp::mat::vector<double, 3> r;
         r[0] = 1.0 * x[0] + 2.0 * x[1] - 5.0;
         r[1] = 3.0 * x[0] + 4.0 * x[1] - 11.0;
         r[2] = 5.0 * x[0] + 6.0 * x[1] - 17.0;
@@ -32,7 +31,7 @@ TEST_CASE("GaussNewton - Simple linear least squares") {
     gn.tolerance = 1e-10;
     gn.verbose = false;
 
-    Vector<double, 2> x0;
+    dp::mat::vector<double, 2> x0;
     x0[0] = 0.0;
     x0[1] = 0.0;
 
@@ -57,8 +56,8 @@ TEST_CASE("GaussNewton - Nonlinear curve fitting (exponential decay)") {
                                    {12.0, 1.0}, {13.0, 1.0}, {14.0, 1.0}, {15.0, 1.0}, {16.0, 1.0},  {17.0, 1.0},
                                    {18.0, 1.0}, {19.0, 1.0}, {20.0, 1.01}};
 
-    auto residual = [&data](const Vector<double, 3> &params) {
-        Vector<double, Dynamic> r;
+    auto residual = [&data](const dp::mat::vector<double, 3> &params) {
+        dp::mat::vector<double, dp::mat::Dynamic> r;
         r.resize(data.size());
         double a = params[0];
         double b = params[1];
@@ -77,7 +76,7 @@ TEST_CASE("GaussNewton - Nonlinear curve fitting (exponential decay)") {
     gn.use_line_search = true; // Use line search for robustness
     gn.verbose = false;
 
-    Vector<double, 3> x0;
+    dp::mat::vector<double, 3> x0;
     x0[0] = 1.0; // Initial guess for a
     x0[1] = 0.1; // Initial guess for b
     x0[2] = 0.0; // Initial guess for c
@@ -108,8 +107,8 @@ TEST_CASE("GaussNewton - Circle fitting") {
 
     // Residual: algebraic distance (not geometric, but simpler)
     // r_i = (x_i - cx)^2 + (y_i - cy)^2 - r^2
-    auto residual = [&points](const Vector<double, 3> &params) {
-        Vector<double, Dynamic> r;
+    auto residual = [&points](const dp::mat::vector<double, 3> &params) {
+        dp::mat::vector<double, dp::mat::Dynamic> r;
         r.resize(points.size());
         double cx = params[0];
         double cy = params[1];
@@ -129,7 +128,7 @@ TEST_CASE("GaussNewton - Circle fitting") {
     gn.use_line_search = true; // Circle fitting can benefit from line search
     gn.verbose = false;
 
-    Vector<double, 3> x0;
+    dp::mat::vector<double, 3> x0;
     x0[0] = 0.0; // Initial guess for cx
     x0[1] = 0.0; // Initial guess for cy
     x0[2] = 3.0; // Initial guess for r
@@ -150,8 +149,8 @@ TEST_CASE("GaussNewton - Rosenbrock as least squares") {
     // where r1 = 1-x, r2 = 10*(y-x^2)
     // Minimum at (1, 1)
 
-    auto residual = [](const Vector<double, 2> &x) {
-        Vector<double, 2> r;
+    auto residual = [](const dp::mat::vector<double, 2> &x) {
+        dp::mat::vector<double, 2> r;
         r[0] = 1.0 - x[0];
         r[1] = 10.0 * (x[1] - x[0] * x[0]);
         return r;
@@ -163,7 +162,7 @@ TEST_CASE("GaussNewton - Rosenbrock as least squares") {
     gn.use_line_search = true; // Rosenbrock benefits from line search
     gn.verbose = false;
 
-    Vector<double, 2> x0;
+    dp::mat::vector<double, 2> x0;
     x0[0] = -1.0;
     x0[1] = 2.0;
 
@@ -194,8 +193,8 @@ TEST_CASE("GaussNewton - Bundle adjustment toy problem") {
         {0.3, 0.3, 1.0, 0.0},
     };
 
-    auto residual = [&obs](const Vector<double, 3> &P) {
-        Vector<double, Dynamic> r;
+    auto residual = [&obs](const dp::mat::vector<double, 3> &P) {
+        dp::mat::vector<double, dp::mat::Dynamic> r;
         r.resize(obs.size() * 2); // 2 residuals per observation
 
         for (std::size_t i = 0; i < obs.size(); ++i) {
@@ -220,7 +219,7 @@ TEST_CASE("GaussNewton - Bundle adjustment toy problem") {
     gn.tolerance = 1e-10;
     gn.verbose = false;
 
-    Vector<double, 3> P0;
+    dp::mat::vector<double, 3> P0;
     P0[0] = 5.0;  // Initial guess X
     P0[1] = 4.0;  // Initial guess Y
     P0[2] = 12.0; // Initial guess Z
@@ -238,15 +237,15 @@ TEST_CASE("GaussNewton - QR solver vs Normal equations solver") {
     // Test that QR solver produces same result as normal equations
     // QR is more stable for ill-conditioned problems
 
-    auto residual = [](const Vector<double, 2> &x) {
-        Vector<double, 3> r;
+    auto residual = [](const dp::mat::vector<double, 2> &x) {
+        dp::mat::vector<double, 3> r;
         r[0] = x[0] + 2.0 * x[1] - 3.0;
         r[1] = 2.0 * x[0] + x[1] - 2.0;
         r[2] = x[0] - x[1] - 1.0;
         return r;
     };
 
-    Vector<double, 2> x0;
+    dp::mat::vector<double, 2> x0;
     x0[0] = 0.0;
     x0[1] = 0.0;
 
@@ -279,14 +278,14 @@ TEST_CASE("GaussNewton - Line search effectiveness") {
     // Test that line search helps with poor initial guess
     // Rosenbrock is a good test case
 
-    auto residual = [](const Vector<double, 2> &x) {
-        Vector<double, 2> r;
+    auto residual = [](const dp::mat::vector<double, 2> &x) {
+        dp::mat::vector<double, 2> r;
         r[0] = 1.0 - x[0];
         r[1] = 10.0 * (x[1] - x[0] * x[0]);
         return r;
     };
 
-    Vector<double, 2> x0;
+    dp::mat::vector<double, 2> x0;
     x0[0] = -5.0; // Very poor initial guess
     x0[1] = 10.0;
 
@@ -318,8 +317,8 @@ TEST_CASE("GaussNewton - Line search effectiveness") {
 TEST_CASE("GaussNewton - Convergence criteria") {
     // Test different convergence criteria
 
-    auto residual = [](const Vector<double, 2> &x) {
-        Vector<double, 2> r;
+    auto residual = [](const dp::mat::vector<double, 2> &x) {
+        dp::mat::vector<double, 2> r;
         r[0] = x[0] - 1.0;
         r[1] = x[1] - 2.0;
         return r;
@@ -334,7 +333,7 @@ TEST_CASE("GaussNewton - Convergence criteria") {
         gn.min_gradient_norm = 1e-20; // Effectively disabled
         gn.verbose = false;
 
-        Vector<double, 2> x0;
+        dp::mat::vector<double, 2> x0;
         x0[0] = 0.0;
         x0[1] = 0.0;
         auto result = gn.optimize(residual, x0);
@@ -352,7 +351,7 @@ TEST_CASE("GaussNewton - Convergence criteria") {
         gn.min_gradient_norm = 1e-20; // Effectively disabled
         gn.verbose = false;
 
-        Vector<double, 2> x0;
+        dp::mat::vector<double, 2> x0;
         x0[0] = 0.9;
         x0[1] = 1.9;
         auto result = gn.optimize(residual, x0);
@@ -370,7 +369,7 @@ TEST_CASE("GaussNewton - Convergence criteria") {
         gn.min_gradient_norm = 1e-3;
         gn.verbose = false;
 
-        Vector<double, 2> x0;
+        dp::mat::vector<double, 2> x0;
         x0[0] = 0.5;
         x0[1] = 1.5;
         auto result = gn.optimize(residual, x0);
@@ -380,12 +379,12 @@ TEST_CASE("GaussNewton - Convergence criteria") {
     }
 }
 
-TEST_CASE("GaussNewton - Dynamic sized problems") {
-    // Test with Dynamic-sized vectors
+TEST_CASE("GaussNewton - dp::mat::Dynamic sized problems") {
+    // Test with dp::mat::Dynamic-sized vectors
 
-    auto residual = [](const Vector<double, Dynamic> &x) {
+    auto residual = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
         std::cout << "residual called with x.size() = " << x.size() << std::endl;
-        Vector<double, Dynamic> r;
+        dp::mat::vector<double, dp::mat::Dynamic> r;
         r.resize(x.size() + 1);
         std::cout << "r.size() = " << r.size() << std::endl;
         for (std::size_t i = 0; i < x.size(); ++i) {
@@ -400,7 +399,7 @@ TEST_CASE("GaussNewton - Dynamic sized problems") {
     gn.tolerance = 1e-10;
     gn.verbose = true;
 
-    Vector<double, Dynamic> x0;
+    dp::mat::vector<double, dp::mat::Dynamic> x0;
     x0.resize(3);
     std::cout << "x0.size() = " << x0.size() << std::endl;
     x0[0] = 0.0;

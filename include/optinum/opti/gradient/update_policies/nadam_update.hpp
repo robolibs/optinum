@@ -1,13 +1,8 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -65,14 +60,14 @@ namespace optinum::opti {
             : beta1(b1), beta2(b2), epsilon(eps) {}
 
         /**
-         * Update the iterate using NAdam (SIMD-optimized)
+         * Update the iterate using NAdam
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate η
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -111,50 +106,27 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
+            for (std::size_t i = 0; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
 
-                    // Update biased first moment: m = β₁ * m + (1 - β₁) * g
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                // Update biased first moment: m = β₁ * m + (1 - β₁) * g
+                m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
 
-                    // Update biased second moment: v = β₂ * v + (1 - β₂) * g²
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                // Update biased second moment: v = β₂ * v + (1 - β₂) * g²
+                v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
 
-                    // NAdam lookahead momentum:
-                    // m̄ = β₁ * m / (1 - β₁^(t+1)) + (1 - β₁) * g / (1 - β₁^t)
-                    // This is equivalent to using the "future" momentum estimate
-                    double m_hat_next = beta1 * m_ptr[i] / bias_correction1_next;
-                    double g_hat = one_minus_beta1 * g_i / bias_correction1;
-                    double m_bar = m_hat_next + g_hat;
+                // NAdam lookahead momentum:
+                // m̄ = β₁ * m / (1 - β₁^(t+1)) + (1 - β₁) * g / (1 - β₁^t)
+                // This is equivalent to using the "future" momentum estimate
+                double m_hat_next = beta1 * m_ptr[i] / bias_correction1_next;
+                double g_hat = one_minus_beta1 * g_i / bias_correction1;
+                double m_bar = m_hat_next + g_hat;
 
-                    // Bias-corrected second moment (already incorporated in step_correction)
-                    double v_sqrt = std::sqrt(v_ptr[i]) + epsilon;
+                // Bias-corrected second moment (already incorporated in step_correction)
+                double v_sqrt = std::sqrt(v_ptr[i]) + epsilon;
 
-                    // Update: x = x - η * m̄ / (√v̂ + ε)
-                    x_ptr[i] -= T(step_correction * m_bar / v_sqrt);
-                }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
-
-                    // Update biased first moment
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
-
-                    // Update biased second moment
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
-
-                    // NAdam lookahead momentum
-                    double m_hat_next = beta1 * m_ptr[i] / bias_correction1_next;
-                    double g_hat = one_minus_beta1 * g_i / bias_correction1;
-                    double m_bar = m_hat_next + g_hat;
-
-                    // Bias-corrected second moment
-                    double v_sqrt = std::sqrt(v_ptr[i]) + epsilon;
-
-                    // Update
-                    x_ptr[i] -= T(step_correction * m_bar / v_sqrt);
-                }
+                // Update: x = x - η * m̄ / (√v̂ + ε)
+                x_ptr[i] -= T(step_correction * m_bar / v_sqrt);
             }
         }
 

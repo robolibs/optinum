@@ -19,7 +19,7 @@ int main() {
     std::cout << "Initial point: (5, 3)\n\n";
 
     optinum::opti::Sphere<double, 2> sphere;
-    optinum::Vector<double, 2> x_init(datapod::mat::vector<double, 2>{5.0, 3.0});
+    dp::mat::vector<double, 2> x_init(datapod::mat::vector<double, 2>{5.0, 3.0});
 
     // Common settings
     const double step_size = 0.1;
@@ -41,7 +41,7 @@ int main() {
         vanilla_gd.max_iterations = max_iterations;
         vanilla_gd.tolerance = tolerance;
 
-        optinum::Vector<double, 2> x = x_init;
+        dp::mat::vector<double, 2> x = x_init;
         auto result = vanilla_gd.optimize(sphere, x);
 
         std::cout << "Vanilla GD        " << std::setw(10) << result.iterations << "    " << std::setw(12)
@@ -59,7 +59,7 @@ int main() {
         momentum.tolerance = tolerance;
         momentum.get_update_policy().momentum = 0.9;
 
-        optinum::Vector<double, 2> x = x_init;
+        dp::mat::vector<double, 2> x = x_init;
         auto result = momentum.optimize(sphere, x);
 
         std::cout << "Momentum          " << std::setw(10) << result.iterations << "    " << std::setw(12)
@@ -78,7 +78,7 @@ int main() {
         rmsprop.get_update_policy().alpha = 0.99;
         rmsprop.get_update_policy().epsilon = 1e-8;
 
-        optinum::Vector<double, 2> x = x_init;
+        dp::mat::vector<double, 2> x = x_init;
         auto result = rmsprop.optimize(sphere, x);
 
         std::cout << "RMSprop           " << std::setw(10) << result.iterations << "    " << std::setw(12)
@@ -98,7 +98,7 @@ int main() {
         adam.get_update_policy().beta2 = 0.999;
         adam.get_update_policy().epsilon = 1e-8;
 
-        optinum::Vector<double, 2> x = x_init;
+        dp::mat::vector<double, 2> x = x_init;
         auto result = adam.optimize(sphere, x);
 
         std::cout << "Adam              " << std::setw(10) << result.iterations << "    " << std::setw(12)
@@ -116,7 +116,7 @@ int main() {
     std::cout << "Initial point: [-5, -4, -3, ..., 3, 4]\n\n";
 
     optinum::opti::Sphere<double, 10> sphere_10d;
-    optinum::Vector<double, 10> x10_init;
+    dp::mat::vector<double, 10> x10_init;
     for (std::size_t i = 0; i < 10; ++i) {
         x10_init[i] = static_cast<double>(i) - 5.0;
     }
@@ -135,10 +135,10 @@ int main() {
         vanilla_gd.max_iterations = max_iterations_10d;
         vanilla_gd.tolerance = tolerance;
 
-        optinum::Vector<double, 10> x = x10_init;
+        dp::mat::vector<double, 10> x = x10_init;
         auto result = vanilla_gd.optimize(sphere_10d, x);
 
-        double norm = optinum::lina::norm(x);
+        double norm = optinum::simd::view(x).norm();
         std::cout << "Vanilla GD        " << std::setw(10) << result.iterations << "    " << std::setw(12)
                   << result.final_cost << "    " << std::setw(10) << norm << "\n";
     }
@@ -150,10 +150,10 @@ int main() {
         momentum.max_iterations = max_iterations_10d;
         momentum.tolerance = tolerance;
 
-        optinum::Vector<double, 10> x = x10_init;
+        dp::mat::vector<double, 10> x = x10_init;
         auto result = momentum.optimize(sphere_10d, x);
 
-        double norm = optinum::lina::norm(x);
+        double norm = optinum::simd::view(x).norm();
         std::cout << "Momentum          " << std::setw(10) << result.iterations << "    " << std::setw(12)
                   << result.final_cost << "    " << std::setw(10) << norm << "\n";
     }
@@ -165,10 +165,10 @@ int main() {
         rmsprop.max_iterations = max_iterations_10d;
         rmsprop.tolerance = tolerance;
 
-        optinum::Vector<double, 10> x = x10_init;
+        dp::mat::vector<double, 10> x = x10_init;
         auto result = rmsprop.optimize(sphere_10d, x);
 
-        double norm = optinum::lina::norm(x);
+        double norm = optinum::simd::view(x).norm();
         std::cout << "RMSprop           " << std::setw(10) << result.iterations << "    " << std::setw(12)
                   << result.final_cost << "    " << std::setw(10) << norm << "\n";
     }
@@ -180,10 +180,10 @@ int main() {
         adam.max_iterations = max_iterations_10d;
         adam.tolerance = tolerance;
 
-        optinum::Vector<double, 10> x = x10_init;
+        dp::mat::vector<double, 10> x = x10_init;
         auto result = adam.optimize(sphere_10d, x);
 
-        double norm = optinum::lina::norm(x);
+        double norm = optinum::simd::view(x).norm();
         std::cout << "Adam              " << std::setw(10) << result.iterations << "    " << std::setw(12)
                   << result.final_cost << "    " << std::setw(10) << norm << "\n";
     }
@@ -210,7 +210,7 @@ int main() {
         adam.get_update_policy().beta1 = beta1;
         adam.get_update_policy().beta2 = 0.999;
 
-        optinum::Vector<double, 2> x = x_init;
+        dp::mat::vector<double, 2> x = x_init;
         auto result = adam.optimize(sphere, x);
 
         std::cout << std::setw(4) << beta1 << "   0.999   " << std::setw(10) << result.iterations << "    "

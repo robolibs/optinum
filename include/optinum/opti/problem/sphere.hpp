@@ -1,8 +1,10 @@
 #pragma once
 
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Sphere function - simplest benchmark for optimization
@@ -17,7 +19,7 @@ namespace optinum::opti {
      *   Sphere<double, Dynamic> - Dynamic size
      */
     template <typename T, std::size_t N> struct Sphere {
-        using tensor_type = simd::Vector<T, N>;
+        using tensor_type = dp::mat::vector<T, N>;
 
         /// Evaluate f(x) = sum(x_i^2)
         T evaluate(const tensor_type &x) const noexcept {

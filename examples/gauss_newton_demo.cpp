@@ -8,6 +8,7 @@
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
+namespace dp = datapod;
 
 // =============================================================================
 // Example 1: Exponential Curve Fitting
@@ -34,8 +35,8 @@ void example_exponential_curve_fitting() {
                                    {7.5, 1.02}, {8.0, 1.01}, {8.5, 1.00}, {9.0, 0.99}, {9.5, 0.99}};
 
     // Define residual function: r_i = y_pred - y_actual
-    auto residual = [&data](const Vector<double, 3> &params) {
-        Vector<double, Dynamic> r;
+    auto residual = [&data](const dp::mat::vector<double, 3> &params) {
+        dp::mat::vector<double, dp::mat::Dynamic> r;
         r.resize(data.size());
 
         double a = params[0];
@@ -57,7 +58,7 @@ void example_exponential_curve_fitting() {
     gn.verbose = true;
 
     // Initial guess
-    Vector<double, 3> x0;
+    dp::mat::vector<double, 3> x0;
     x0[0] = 1.0;
     x0[1] = 0.1;
     x0[2] = 0.0;
@@ -89,7 +90,7 @@ void example_circle_fitting() {
     std::cout << "========================================\n\n";
 
     // Points roughly on circle centered at (2, 3) with radius ~5
-    std::vector<Vector<double, 2>> points(16);
+    std::vector<dp::mat::vector<double, 2>> points(16);
     points[0] = {7.03, 3.00};
     points[1] = {6.53, 4.88};
     points[2] = {5.50, 6.50};
@@ -110,8 +111,8 @@ void example_circle_fitting() {
     std::cout << "Fitting circle to " << points.size() << " 2D points\n\n";
 
     // Algebraic distance residual: r_i = (x_i - cx)^2 + (y_i - cy)^2 - r^2
-    auto residual = [&points](const Vector<double, 3> &params) {
-        Vector<double, Dynamic> r;
+    auto residual = [&points](const dp::mat::vector<double, 3> &params) {
+        dp::mat::vector<double, dp::mat::Dynamic> r;
         r.resize(points.size());
 
         double cx = params[0];
@@ -134,7 +135,7 @@ void example_circle_fitting() {
     gn.verbose = true;
 
     // Initial guess (centroid of points, approximate radius)
-    Vector<double, 3> x0;
+    dp::mat::vector<double, 3> x0;
     x0[0] = 0.0;
     x0[1] = 0.0;
     x0[2] = 3.0;
@@ -169,8 +170,8 @@ void example_rosenbrock_2d() {
     std::cout << "Global minimum at (1, 1) with f = 0\n\n";
 
     // Residual form: split the function into two residuals
-    auto residual = [](const Vector<double, 2> &x) {
-        Vector<double, 2> r;
+    auto residual = [](const dp::mat::vector<double, 2> &x) {
+        dp::mat::vector<double, 2> r;
         r[0] = 1.0 - x[0];                  // First term
         r[1] = 10.0 * (x[1] - x[0] * x[0]); // Second term (scaled sqrt)
         return r;
@@ -184,7 +185,7 @@ void example_rosenbrock_2d() {
     gn.verbose = true;
 
     // Initial guess
-    Vector<double, 2> x0;
+    dp::mat::vector<double, 2> x0;
     x0[0] = -1.0;
     x0[1] = 2.0;
     std::cout << "Initial guess: [" << x0[0] << ", " << x0[1] << "]\n\n";

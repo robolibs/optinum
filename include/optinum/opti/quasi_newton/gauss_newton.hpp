@@ -5,6 +5,7 @@
 // Gauss-Newton optimizer for nonlinear least squares
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
 #include <datapod/matrix/vector.hpp>
 #include <optinum/lina/basic/jacobian.hpp>
 #include <optinum/lina/decompose/lu.hpp>
@@ -12,8 +13,7 @@
 #include <optinum/lina/solve/solve.hpp>
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/types.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <optinum/simd/bridge.hpp>
 
 #include <cmath>
 #include <limits>
@@ -62,8 +62,8 @@ namespace optinum::opti {
      *
      * @example
      * // Residual function: curve fitting
-     * auto residual = [&data](const simd::Vector<double, 3>& params) {
-     *     simd::Vector<double, Dynamic> r;
+     * auto residual = [&data](const dp::mat::vector<double, 3>& params) {
+     *     dp::mat::vector<double, Dynamic> r;
      *     r.resize(data.size());
      *     for (size_t i = 0; i < data.size(); ++i) {
      *         double y_pred = params[0] * exp(-params[1] * data[i].x) + params[2];
@@ -77,7 +77,7 @@ namespace optinum::opti {
      * gn.tolerance = 1e-8;
      * gn.use_line_search = true;
      *
-     * simd::Vector<double, 3> x0{1.0, 1.0, 0.0};
+     * dp::mat::vector<double, 3> x0{1.0, 1.0, 0.0};
      * auto result = gn.optimize(residual, x0);
      */
     template <typename T = double> class GaussNewton {
@@ -136,7 +136,7 @@ namespace optinum::opti {
          * @brief Optimize a residual function starting from initial point
          *
          * @param residual_func Residual function f: R^n -> R^m
-         *                      Must accept simd::Vector<T,N> and return simd::Vector<T,M>
+         *                      Must accept dp::mat::vector<T,N> and return dp::mat::vector<T,M>
          * @param x_init Initial parameter vector (will NOT be modified)
          * @param callback Optional callback for monitoring
          * @return OptimizationResult with solution and diagnostics
@@ -144,9 +144,9 @@ namespace optinum::opti {
          * @note For analytical Jacobian, pass it via residual_func.jacobian() method
          */
         template <typename ResidualFunc, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(ResidualFunc &residual_func, const simd::Vector<T, N> &x_init,
+        OptimizationResult<T, N> optimize(ResidualFunc &residual_func, const dp::mat::vector<T, N> &x_init,
                                           CallbackType callback = NoCallback{}) {
-            using vector_type = simd::Vector<T, N>;
+            using vector_type = dp::mat::vector<T, N>;
 
             // Working variables
             vector_type x = x_init; // Current iterate
@@ -180,7 +180,7 @@ namespace optinum::opti {
 
                 // Step 2: Compute gradient g = J^T * r (for convergence check)
                 auto gradient = compute_gradient<N>(J, r);
-                T grad_norm = simd::norm(gradient);
+                T grad_norm = simd::view(gradient).norm();
 
                 // Callback: iteration info
                 IterationInfo<T> info(iteration, current_error, grad_norm, T(1.0));
@@ -226,7 +226,7 @@ namespace optinum::opti {
                 if (verbose) {
                     std::cout << "Computing step norm..." << std::endl;
                 }
-                T step_norm = simd::norm(dx);
+                T step_norm = simd::view(dx).norm();
                 if (verbose) {
                     std::cout << "Step norm = " << step_norm << std::endl;
                 }
@@ -239,7 +239,7 @@ namespace optinum::opti {
                 // Step 4: Line search or full step
                 T alpha = T(1.0);
                 vector_type x_new;
-                if constexpr (N == simd::Dynamic) {
+                if constexpr (N == dp::mat::Dynamic) {
                     x_new.resize(n);
                 }
                 T new_error = T(0);
@@ -262,7 +262,9 @@ namespace optinum::opti {
                         std::cout << "Computing x_new = x + dx (x.size()=" << x.size() << ", dx.size()=" << dx.size()
                                   << ", x_new.size()=" << x_new.size() << ")" << std::endl;
                     }
-                    x_new = x + dx;
+                    for (std::size_t i = 0; i < n; ++i) {
+                        x_new[i] = x[i] + dx[i];
+                    }
                     if (verbose) {
                         std::cout << "x_new computed, evaluating residual..." << std::endl;
                     }
@@ -318,7 +320,7 @@ namespace optinum::opti {
             auto final_r = residual_func(x);
             auto final_J = compute_jacobian(residual_func, x);
             auto final_gradient = compute_gradient<N>(final_J, final_r);
-            T final_grad_norm = simd::norm(final_gradient);
+            T final_grad_norm = simd::view(final_gradient).norm();
 
             if (verbose) {
                 std::cout << "=== Optimization Complete ===" << std::endl;
@@ -350,8 +352,8 @@ namespace optinum::opti {
          * @brief Compute Jacobian matrix numerically using finite differences
          */
         template <typename ResidualFunc, std::size_t N>
-        simd::Matrix<T, simd::Dynamic, simd::Dynamic> compute_jacobian(ResidualFunc &residual_func,
-                                                                       const simd::Vector<T, N> &x) {
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> compute_jacobian(ResidualFunc &residual_func,
+                                                                                const dp::mat::vector<T, N> &x) {
             // Check if function provides analytical Jacobian
             if constexpr (requires { residual_func.jacobian(x); }) {
                 return residual_func.jacobian(x);
@@ -364,7 +366,7 @@ namespace optinum::opti {
         /**
          * @brief Compute squared error ||r||^2 / 2
          */
-        template <std::size_t M> T compute_squared_error(const simd::Vector<T, M> &r) {
+        template <std::size_t M> T compute_squared_error(const dp::mat::vector<T, M> &r) {
             T sum = T(0);
             for (std::size_t i = 0; i < r.size(); ++i) {
                 sum += r[i] * r[i];
@@ -376,13 +378,13 @@ namespace optinum::opti {
          * @brief Compute gradient g = J^T * r
          */
         template <std::size_t N, std::size_t M>
-        simd::Vector<T, N> compute_gradient(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &J,
-                                            const simd::Vector<T, M> &r) {
+        dp::mat::vector<T, N> compute_gradient(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
+                                               const dp::mat::vector<T, M> &r) {
             const std::size_t m = J.rows();
             const std::size_t n = J.cols();
 
-            simd::Vector<T, N> g;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::vector<T, N> g;
+            if constexpr (N == dp::mat::Dynamic) {
                 g.resize(n);
             }
 
@@ -405,17 +407,17 @@ namespace optinum::opti {
          * - "qr": More stable, handles rank-deficient problems
          */
         template <std::size_t N, std::size_t M>
-        simd::Vector<T, N> solve_linear_system(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &J,
-                                               const simd::Vector<T, M> &r) {
+        dp::mat::vector<T, N> solve_linear_system(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
+                                                  const dp::mat::vector<T, M> &r) {
             const std::size_t m = J.rows();
             const std::size_t n = J.cols();
 
-            simd::Vector<T, N> dx;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::vector<T, N> dx;
+            if constexpr (N == dp::mat::Dynamic) {
                 dx.resize(n);
             }
             // Initialize to zero (important for back substitution)
-            dx.fill(T(0));
+            simd::view(dx).fill(T(0));
 
             if (linear_solver == "normal" || linear_solver == "qr") {
                 // Build normal equations explicitly J^T*J*dx = -J^T*r
@@ -426,11 +428,11 @@ namespace optinum::opti {
                 }
 
                 // Build J^T * J using column-wise operations (more cache-friendly)
-                simd::Matrix<T, simd::Dynamic, simd::Dynamic> A(n, n);
+                dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> A(n, n);
                 if (verbose) {
                     std::cout << "A created: " << A.rows() << "x" << A.cols() << std::endl;
                 }
-                A.fill(T(0));
+                simd::view(A).fill(T(0));
                 if (verbose) {
                     std::cout << "A filled with zeros" << std::endl;
                 }
@@ -471,7 +473,7 @@ namespace optinum::opti {
                 if (verbose) {
                     std::cout << "b resized to " << b.size() << std::endl;
                 }
-                b.fill(T(0));
+                simd::view(b).fill(T(0));
                 if (verbose) {
                     std::cout << "b filled with zeros" << std::endl;
                 }
@@ -570,9 +572,9 @@ namespace optinum::opti {
          * @return Step size alpha, updates x_new and new_error
          */
         template <typename ResidualFunc, std::size_t N, std::size_t M>
-        T line_search(ResidualFunc &residual_func, const simd::Vector<T, N> &x, const simd::Vector<T, N> &dx,
-                      const simd::Vector<T, M> &r, T current_error, const simd::Vector<T, N> &gradient,
-                      simd::Vector<T, N> &x_new, T &new_error) {
+        T line_search(ResidualFunc &residual_func, const dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &dx,
+                      const dp::mat::vector<T, M> &r, T current_error, const dp::mat::vector<T, N> &gradient,
+                      dp::mat::vector<T, N> &x_new, T &new_error) {
             T alpha = line_search_alpha;
 
             // Compute directional derivative g^T * dx
@@ -586,7 +588,9 @@ namespace optinum::opti {
 
             for (std::size_t iter = 0; iter < line_search_max_iters; ++iter) {
                 // Try step
-                x_new = x + (dx * alpha);
+                for (std::size_t i = 0; i < x.size(); ++i) {
+                    x_new[i] = x[i] + dx[i] * alpha;
+                }
                 auto r_new = residual_func(x_new);
                 new_error = compute_squared_error(r_new);
 

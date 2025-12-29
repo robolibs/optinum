@@ -11,6 +11,8 @@
 
 namespace optinum::lie {
 
+    namespace dp = ::datapod;
+
     // ===== SE2: Special Euclidean Group in 2D =====
     //
     // SE(2) represents 2D rigid transforms (rotation + translation).
@@ -64,7 +66,7 @@ namespace optinum::lie {
         // From 3x3 homogeneous matrix
         explicit SE2(const HomogeneousMatrix &T_mat) noexcept {
             // Extract rotation from top-left 2x2
-            simd::Matrix<T, 2, 2> R_mat;
+            dp::mat::matrix<T, 2, 2> R_mat;
             R_mat(0, 0) = T_mat(0, 0);
             R_mat(0, 1) = T_mat(0, 1);
             R_mat(1, 0) = T_mat(1, 0);
@@ -144,7 +146,7 @@ namespace optinum::lie {
         // Fit closest SE2 to arbitrary 3x3 matrix
         [[nodiscard]] static SE2 fit_to_SE2(const HomogeneousMatrix &M) noexcept {
             // Extract and normalize rotation
-            simd::Matrix<T, 2, 2> R_mat;
+            dp::mat::matrix<T, 2, 2> R_mat;
             R_mat(0, 0) = M(0, 0);
             R_mat(0, 1) = M(0, 1);
             R_mat(1, 0) = M(1, 0);
@@ -250,7 +252,7 @@ namespace optinum::lie {
         }
 
         // Return 2x2 rotation matrix
-        [[nodiscard]] simd::Matrix<T, 2, 2> rotation_matrix() const noexcept { return so2_.matrix(); }
+        [[nodiscard]] dp::mat::matrix<T, 2, 2> rotation_matrix() const noexcept { return so2_.matrix(); }
 
         // ===== LIE ALGEBRA =====
 

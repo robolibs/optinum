@@ -35,9 +35,8 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -77,8 +76,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> lower{-5.0, -5.0};
-     * simd::Vector<double, simd::Dynamic> upper{5.0, 5.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = de.optimize(objective, lower, upper);
      * @endcode
@@ -119,8 +118,8 @@ namespace optinum::meta {
          * @return DEResult with best solution and convergence info
          */
         template <typename F>
-        DEResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        DEResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
             const std::size_t pop_size = config.population_size;
 
@@ -311,9 +310,9 @@ namespace optinum::meta {
          * @return DEResult with best solution and convergence info
          */
         template <typename F>
-        DEResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                             const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        DEResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
             const std::size_t pop_size = config.population_size;
 

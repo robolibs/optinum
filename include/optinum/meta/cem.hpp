@@ -32,9 +32,8 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -44,12 +43,12 @@ namespace optinum::meta {
      * Result of CEM optimization
      */
     template <typename T> struct CEMResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t iterations;                       ///< Number of iterations performed
-        std::size_t function_evaluations;             ///< Total function evaluations
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per iteration
+        dp::mat::vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t iterations;                             ///< Number of iterations performed
+        std::size_t function_evaluations;                   ///< Total function evaluations
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per iteration
     };
 
     /**
@@ -64,8 +63,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * dp::mat::vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
-     * dp::mat::vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> lower(2);
+     * dp::mat::vector<double, dp::mat::Dynamic> upper(2);
      *
      * auto result = cem.optimize(objective, lower, upper);
      * @endcode
@@ -108,8 +107,8 @@ namespace optinum::meta {
          * @return CEMResult with best solution and convergence info
          */
         template <typename F>
-        CEMResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                              const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CEMResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
 
             // Validate inputs
@@ -121,13 +120,13 @@ namespace optinum::meta {
             }
 
             // Initialize mean at center of bounds
-            simd::Vector<T, simd::Dynamic> mean(dim);
+            dp::mat::vector<T, dp::mat::Dynamic> mean(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 mean[d] = (lower_bounds[d] + upper_bounds[d]) / T{2};
             }
 
             // Initialize std based on range
-            simd::Vector<T, simd::Dynamic> std_dev(dim);
+            dp::mat::vector<T, dp::mat::Dynamic> std_dev(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 std_dev[d] = config.initial_std * (upper_bounds[d] - lower_bounds[d]) / T{4};
             }
@@ -143,7 +142,8 @@ namespace optinum::meta {
          * @param initial_mean Initial mean of the distribution
          * @return CEMResult with best solution and convergence info
          */
-        template <typename F> CEMResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial_mean) {
+        template <typename F>
+        CEMResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial_mean) {
             const std::size_t dim = initial_mean.size();
 
             if (dim == 0) {
@@ -151,12 +151,12 @@ namespace optinum::meta {
             }
 
             // Initialize std
-            simd::Vector<T, simd::Dynamic> std_dev(dim);
+            dp::mat::vector<T, dp::mat::Dynamic> std_dev(dim);
             std_dev.fill(config.initial_std);
 
             // No bounds
-            simd::Vector<T, simd::Dynamic> lower_bounds(dim);
-            simd::Vector<T, simd::Dynamic> upper_bounds(dim);
+            dp::mat::vector<T, dp::mat::Dynamic> lower_bounds(dim);
+            dp::mat::vector<T, dp::mat::Dynamic> upper_bounds(dim);
             lower_bounds.fill(-std::numeric_limits<T>::max());
             upper_bounds.fill(std::numeric_limits<T>::max());
 
@@ -174,9 +174,9 @@ namespace optinum::meta {
          * @return CEMResult with best solution and convergence info
          */
         template <typename F>
-        CEMResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial_mean,
-                              const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                              const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CEMResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial_mean,
+                              const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial_mean.size();
 
             if (dim == 0 || lower_bounds.size() != dim || upper_bounds.size() != dim) {
@@ -184,12 +184,12 @@ namespace optinum::meta {
             }
 
             // Initialize std based on range
-            simd::Vector<T, simd::Dynamic> std_dev(dim);
+            dp::mat::vector<T, dp::mat::Dynamic> std_dev(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 std_dev[d] = config.initial_std * (upper_bounds[d] - lower_bounds[d]) / T{4};
             }
 
-            simd::Vector<T, simd::Dynamic> mean_copy(initial_mean.size());
+            dp::mat::vector<T, dp::mat::Dynamic> mean_copy(initial_mean.size());
             for (std::size_t i = 0; i < initial_mean.size(); ++i) {
                 mean_copy[i] = initial_mean[i];
             }
@@ -202,10 +202,10 @@ namespace optinum::meta {
          * Core optimization implementation
          */
         template <typename F>
-        CEMResult<T> optimize_impl(F &&objective, simd::Vector<T, simd::Dynamic> mean,
-                                   simd::Vector<T, simd::Dynamic> std_dev,
-                                   const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                                   const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CEMResult<T> optimize_impl(F &&objective, dp::mat::vector<T, dp::mat::Dynamic> mean,
+                                   dp::mat::vector<T, dp::mat::Dynamic> std_dev,
+                                   const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                                   const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = mean.size();
             const std::size_t n_samples = config.population_size;
             const std::size_t n_elite =
@@ -216,12 +216,12 @@ namespace optinum::meta {
             std::mt19937 rng(rd());
 
             // Storage for samples and their fitness values
-            std::vector<simd::Vector<T, simd::Dynamic>> samples(n_samples);
+            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> samples(n_samples);
             std::vector<T> fitness(n_samples);
             std::vector<std::size_t> indices(n_samples);
 
             // Best solution tracking
-            simd::Vector<T, simd::Dynamic> best_position = mean;
+            dp::mat::vector<T, dp::mat::Dynamic> best_position = mean;
             T best_value = std::numeric_limits<T>::max();
             std::size_t total_evals = 0;
 
@@ -242,7 +242,7 @@ namespace optinum::meta {
             for (; iteration < config.max_iterations; ++iteration) {
                 // Sample population from current distribution
                 for (std::size_t i = 0; i < n_samples; ++i) {
-                    samples[i] = simd::Vector<T, simd::Dynamic>(dim);
+                    samples[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
 
                     for (std::size_t d = 0; d < dim; ++d) {
                         std::normal_distribution<T> dist(mean[d], std_dev[d]);
@@ -270,7 +270,7 @@ namespace optinum::meta {
                           [&fitness](std::size_t a, std::size_t b) { return fitness[a] < fitness[b]; });
 
                 // Compute elite mean
-                simd::Vector<T, simd::Dynamic> elite_mean(dim);
+                dp::mat::vector<T, dp::mat::Dynamic> elite_mean(dim);
                 elite_mean.fill(T{0});
 
                 for (std::size_t i = 0; i < n_elite; ++i) {
@@ -284,7 +284,7 @@ namespace optinum::meta {
                 }
 
                 // Compute elite standard deviation
-                simd::Vector<T, simd::Dynamic> elite_std(dim);
+                dp::mat::vector<T, dp::mat::Dynamic> elite_std(dim);
                 elite_std.fill(T{0});
 
                 for (std::size_t i = 0; i < n_elite; ++i) {

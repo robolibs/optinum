@@ -2,14 +2,13 @@
 
 #include <datapod/matrix/vector.hpp>
 #include <optinum/opti/opti.hpp>
-#include <optinum/simd/vector.hpp>
 
 using namespace optinum;
 using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("GradientDescent - Sphere function 2D") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
 
     Sphere<double, 2> sphere;
     GradientDescent<> gd;
@@ -50,7 +49,7 @@ TEST_CASE("GradientDescent - Sphere function 2D") {
 }
 
 TEST_CASE("GradientDescent - Sphere function 3D") {
-    using Vec3 = simd::Vector<double, 3>;
+    using Vec3 = dp::mat::vector<double, 3>;
 
     Sphere<double, 3> sphere;
     GradientDescent<> gd;
@@ -70,7 +69,7 @@ TEST_CASE("GradientDescent - Sphere function 3D") {
 }
 
 TEST_CASE("GradientDescent - Sphere function 10D") {
-    using Vec10 = simd::Vector<double, 10>;
+    using Vec10 = dp::mat::vector<double, 10>;
 
     Sphere<double, 10> sphere;
     GradientDescent<> gd;
@@ -95,7 +94,7 @@ TEST_CASE("GradientDescent - Sphere function 10D") {
 }
 
 TEST_CASE("GradientDescent - Step size effects") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Small step size (slow convergence)") {
@@ -126,7 +125,7 @@ TEST_CASE("GradientDescent - Step size effects") {
 }
 
 TEST_CASE("GradientDescent - Max iterations") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;
@@ -146,7 +145,7 @@ TEST_CASE("GradientDescent - Max iterations") {
 }
 
 TEST_CASE("GradientDescent - Callback system") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;
@@ -173,7 +172,7 @@ TEST_CASE("GradientDescent - Callback system") {
 }
 
 TEST_CASE("GradientDescent - Float precision") {
-    using Vec2 = simd::Vector<float, 2>;
+    using Vec2 = dp::mat::vector<float, 2>;
 
     Sphere<float, 2> sphere;
     GradientDescent<> gd;
@@ -192,7 +191,7 @@ TEST_CASE("GradientDescent - Float precision") {
 }
 
 TEST_CASE("GradientDescent - Result structure") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;
@@ -219,7 +218,7 @@ TEST_CASE("GradientDescent - Custom function") {
     // Custom quadratic function: f(x, y) = (x - 2)^2 + (y + 3)^2
     // Minimum at (2, -3) with value 0
     struct CustomQuadratic {
-        using tensor_type = simd::Vector<double, 2>;
+        using tensor_type = dp::mat::vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -245,7 +244,7 @@ TEST_CASE("GradientDescent - Custom function") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    simd::Vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
+    dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
     auto result = gd.optimize(func, x);
 
     CHECK(result.converged);
@@ -255,7 +254,7 @@ TEST_CASE("GradientDescent - Custom function") {
 }
 
 TEST_CASE("GradientDescent - Policy reset") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;

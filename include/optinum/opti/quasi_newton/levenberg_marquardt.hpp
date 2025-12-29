@@ -5,13 +5,13 @@
 // Levenberg-Marquardt optimizer for nonlinear least squares
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
 #include <datapod/matrix/vector.hpp>
 #include <optinum/lina/basic/jacobian.hpp>
 #include <optinum/lina/decompose/lu.hpp>
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/types.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <optinum/simd/bridge.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -49,7 +49,7 @@ namespace optinum::opti {
      * @tparam T Scalar type (float, double)
      *
      * @example
-     * auto residual = [&data](const simd::Vector<double, 3>& params) {
+     * auto residual = [&data](const dp::mat::vector<double, 3>& params) {
      *     // ... compute residuals ...
      * };
      *
@@ -58,7 +58,7 @@ namespace optinum::opti {
      * lm.initial_lambda = 1e-3;
      * lm.lambda_factor = 10.0;
      *
-     * simd::Vector<double, 3> x0{1.0, 1.0, 0.0};
+     * dp::mat::vector<double, 3> x0{1.0, 1.0, 0.0};
      * auto result = lm.optimize(residual, x0);
      */
     template <typename T = double> class LevenbergMarquardt {
@@ -116,9 +116,9 @@ namespace optinum::opti {
          * @return OptimizationResult with solution and diagnostics
          */
         template <typename ResidualFunc, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(ResidualFunc &residual_func, const simd::Vector<T, N> &x_init,
+        OptimizationResult<T, N> optimize(ResidualFunc &residual_func, const dp::mat::vector<T, N> &x_init,
                                           CallbackType callback = NoCallback{}) {
-            using vector_type = simd::Vector<T, N>;
+            using vector_type = dp::mat::vector<T, N>;
 
             // Working variables
             vector_type x = x_init;
@@ -152,7 +152,7 @@ namespace optinum::opti {
 
                 // Step 2: Compute gradient g = J^T * r
                 auto gradient = compute_gradient<N>(J, r);
-                T grad_norm = simd::norm(gradient);
+                T grad_norm = simd::view(gradient).norm();
 
                 // Callback: iteration info
                 IterationInfo<T> info(iteration, current_error, grad_norm, T(1.0));
@@ -194,7 +194,7 @@ namespace optinum::opti {
                 }
 
                 // Check step norm
-                T step_norm = simd::norm(dx);
+                T step_norm = simd::view(dx).norm();
                 if (step_norm < min_step_norm) {
                     converged = true;
                     termination_reason = "Converged: step norm < " + std::to_string(min_step_norm);
@@ -203,10 +203,12 @@ namespace optinum::opti {
 
                 // Step 4: Try the step and evaluate new error
                 vector_type x_new;
-                if constexpr (N == simd::Dynamic) {
+                if constexpr (N == dp::mat::Dynamic) {
                     x_new.resize(n);
                 }
-                x_new = x + dx;
+                for (std::size_t i = 0; i < n; ++i) {
+                    x_new[i] = x[i] + dx[i];
+                }
                 auto r_new = residual_func(x_new);
                 T new_error = compute_squared_error(r_new);
 
@@ -275,7 +277,7 @@ namespace optinum::opti {
             auto final_r = residual_func(x);
             auto final_J = compute_jacobian(residual_func, x);
             auto final_gradient = compute_gradient<N>(final_J, final_r);
-            T final_grad_norm = simd::norm(final_gradient);
+            T final_grad_norm = simd::view(final_gradient).norm();
 
             if (verbose) {
                 std::cout << "=== Optimization Complete ===" << std::endl;
@@ -305,8 +307,8 @@ namespace optinum::opti {
          * @brief Compute Jacobian matrix numerically using finite differences
          */
         template <typename ResidualFunc, std::size_t N>
-        simd::Matrix<T, simd::Dynamic, simd::Dynamic> compute_jacobian(ResidualFunc &residual_func,
-                                                                       const simd::Vector<T, N> &x) {
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> compute_jacobian(ResidualFunc &residual_func,
+                                                                                const dp::mat::vector<T, N> &x) {
             if constexpr (requires { residual_func.jacobian(x); }) {
                 return residual_func.jacobian(x);
             } else {
@@ -317,7 +319,7 @@ namespace optinum::opti {
         /**
          * @brief Compute squared error ||r||^2 / 2
          */
-        template <std::size_t M> T compute_squared_error(const simd::Vector<T, M> &r) {
+        template <std::size_t M> T compute_squared_error(const dp::mat::vector<T, M> &r) {
             T sum = T(0);
             for (std::size_t i = 0; i < r.size(); ++i) {
                 sum += r[i] * r[i];
@@ -329,13 +331,13 @@ namespace optinum::opti {
          * @brief Compute gradient g = J^T * r
          */
         template <std::size_t N, std::size_t M>
-        simd::Vector<T, N> compute_gradient(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &J,
-                                            const simd::Vector<T, M> &r) {
+        dp::mat::vector<T, N> compute_gradient(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
+                                               const dp::mat::vector<T, M> &r) {
             const std::size_t m = J.rows();
             const std::size_t n = J.cols();
 
-            simd::Vector<T, N> g;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::vector<T, N> g;
+            if constexpr (N == dp::mat::Dynamic) {
                 g.resize(n);
             }
 
@@ -356,20 +358,20 @@ namespace optinum::opti {
          * This is THE key difference from Gauss-Newton!
          */
         template <std::size_t N, std::size_t M>
-        simd::Vector<T, N> solve_damped_system(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &J,
-                                               const simd::Vector<T, M> &r, T lambda) {
+        dp::mat::vector<T, N> solve_damped_system(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
+                                                  const dp::mat::vector<T, M> &r, T lambda) {
             const std::size_t m = J.rows();
             const std::size_t n = J.cols();
 
-            simd::Vector<T, N> dx;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::vector<T, N> dx;
+            if constexpr (N == dp::mat::Dynamic) {
                 dx.resize(n);
             }
-            dx.fill(T(0));
+            simd::view(dx).fill(T(0));
 
             // Build J^T * J + λ*I
-            simd::Matrix<T, simd::Dynamic, simd::Dynamic> A(n, n);
-            A.fill(T(0));
+            dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> A(n, n);
+            simd::view(A).fill(T(0));
 
             // Compute upper triangle (symmetric)
             for (std::size_t i = 0; i < n; ++i) {
@@ -393,7 +395,7 @@ namespace optinum::opti {
             // Build -J^T * r
             dp::mat::vector<T, dp::mat::Dynamic> b;
             b.resize(n);
-            b.fill(T(0));
+            simd::view(b).fill(T(0));
             for (std::size_t i = 0; i < n; ++i) {
                 T sum = T(0);
                 for (std::size_t j = 0; j < m; ++j) {

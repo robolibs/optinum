@@ -1,13 +1,8 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -53,7 +48,7 @@ namespace optinum::opti {
         explicit AdaDeltaUpdate(double r = 0.95, double eps = 1e-6) : rho(r), epsilon(eps) {}
 
         /**
-         * Update the iterate using AdaDelta (SIMD-optimized)
+         * Update the iterate using AdaDelta
          *
          * Note: The step_size parameter is ignored in AdaDelta as it computes
          * its own adaptive learning rate. It's kept for API compatibility.
@@ -63,7 +58,7 @@ namespace optinum::opti {
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T /*step_size*/, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T /*step_size*/, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -84,43 +79,26 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
+            for (std::size_t i = 0; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
 
-                    // Update running average of squared gradients: E[g²] = ρ * E[g²] + (1-ρ) * g²
-                    E_g2_ptr[i] = rho * E_g2_ptr[i] + one_minus_rho * g_i * g_i;
+                // Update running average of squared gradients: E[g²] = ρ * E[g²] + (1-ρ) * g²
+                E_g2_ptr[i] = rho * E_g2_ptr[i] + one_minus_rho * g_i * g_i;
 
-                    // Compute RMS of gradients: RMS[g] = √(E[g²] + ε)
-                    double rms_g = std::sqrt(E_g2_ptr[i] + epsilon);
+                // Compute RMS of gradients: RMS[g] = √(E[g²] + ε)
+                double rms_g = std::sqrt(E_g2_ptr[i] + epsilon);
 
-                    // Compute RMS of previous updates: RMS[Δx] = √(E[Δx²] + ε)
-                    double rms_dx = std::sqrt(E_dx2_ptr[i] + epsilon);
+                // Compute RMS of previous updates: RMS[Δx] = √(E[Δx²] + ε)
+                double rms_dx = std::sqrt(E_dx2_ptr[i] + epsilon);
 
-                    // Compute update: Δx = -(RMS[Δx] / RMS[g]) * g
-                    double delta_x = -(rms_dx / rms_g) * g_i;
+                // Compute update: Δx = -(RMS[Δx] / RMS[g]) * g
+                double delta_x = -(rms_dx / rms_g) * g_i;
 
-                    // Update running average of squared updates: E[Δx²] = ρ * E[Δx²] + (1-ρ) * Δx²
-                    E_dx2_ptr[i] = rho * E_dx2_ptr[i] + one_minus_rho * delta_x * delta_x;
+                // Update running average of squared updates: E[Δx²] = ρ * E[Δx²] + (1-ρ) * Δx²
+                E_dx2_ptr[i] = rho * E_dx2_ptr[i] + one_minus_rho * delta_x * delta_x;
 
-                    // Apply update: x = x + Δx
-                    x_ptr[i] += T(delta_x);
-                }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
-
-                    E_g2_ptr[i] = rho * E_g2_ptr[i] + one_minus_rho * g_i * g_i;
-
-                    double rms_g = std::sqrt(E_g2_ptr[i] + epsilon);
-                    double rms_dx = std::sqrt(E_dx2_ptr[i] + epsilon);
-
-                    double delta_x = -(rms_dx / rms_g) * g_i;
-
-                    E_dx2_ptr[i] = rho * E_dx2_ptr[i] + one_minus_rho * delta_x * delta_x;
-
-                    x_ptr[i] += T(delta_x);
-                }
+                // Apply update: x = x + Δx
+                x_ptr[i] += T(delta_x);
             }
         }
 

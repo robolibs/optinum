@@ -28,9 +28,8 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -58,7 +57,7 @@ namespace optinum::meta {
      *
      * // Define dynamics: x_{t+1} = f(x_t, u_t)
      * auto dynamics = [](const auto& state, const auto& control) {
-     *     simd::Vector<double, simd::Dynamic> next_state(state.size());
+     *     dp::mat::vector<double, dp::mat::Dynamic> next_state(state.size());
      *     // ... integrate dynamics ...
      *     return next_state;
      * };
@@ -151,7 +150,8 @@ namespace optinum::meta {
          * @return MPPIResult with optimal control and diagnostics
          */
         template <typename Dynamics, typename Cost>
-        MPPIResult<T> step(Dynamics &&dynamics, Cost &&cost, const simd::Vector<T, simd::Dynamic> &initial_state) {
+        MPPIResult<T> step(Dynamics &&dynamics, Cost &&cost,
+                           const dp::mat::vector<T, dp::mat::Dynamic> &initial_state) {
             const std::size_t state_dim = initial_state.size();
 
             // Auto-detect control dimension from first dynamics call if needed
@@ -320,7 +320,8 @@ namespace optinum::meta {
          * @return MPPIResult with optimal control and diagnostics
          */
         template <typename Dynamics, typename Cost>
-        MPPIResult<T> optimize(Dynamics &&dynamics, Cost &&cost, const simd::Vector<T, simd::Dynamic> &initial_state,
+        MPPIResult<T> optimize(Dynamics &&dynamics, Cost &&cost,
+                               const dp::mat::vector<T, dp::mat::Dynamic> &initial_state,
                                std::size_t num_iterations = 1) {
             MPPIResult<T> result{{}, std::numeric_limits<T>::max(), 0, false};
 

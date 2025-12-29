@@ -1,13 +1,8 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 
 #include <datapod/matrix/vector.hpp>
-#include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
 
@@ -42,14 +37,14 @@ namespace optinum::opti {
         explicit RMSPropUpdate(double a = 0.99, double eps = 1e-8) : alpha(a), epsilon(eps) {}
 
         /**
-         * Update the iterate using RMSprop (SIMD-optimized)
+         * Update the iterate using RMSprop
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate η
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -67,18 +62,10 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    v_ptr[i] = alpha * v_ptr[i] + one_minus_alpha * g_i * g_i;
-                    x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(v_ptr[i]) + epsilon));
-                }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    v_ptr[i] = alpha * v_ptr[i] + one_minus_alpha * g_i * g_i;
-                    x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(v_ptr[i]) + epsilon));
-                }
+            for (std::size_t i = 0; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
+                v_ptr[i] = alpha * v_ptr[i] + one_minus_alpha * g_i * g_i;
+                x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(v_ptr[i]) + epsilon));
             }
         }
 

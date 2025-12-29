@@ -37,9 +37,8 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix/vector.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
 
@@ -96,8 +95,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> lower{-5.0, -5.0};
-     * simd::Vector<double, simd::Dynamic> upper{5.0, 5.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = ga.optimize(objective, lower, upper);
      * @endcode
@@ -145,8 +144,8 @@ namespace optinum::meta {
          * @return GAResult with best solution and convergence info
          */
         template <typename F>
-        GAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        GAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
             const std::size_t pop_size = config.population_size;
 
@@ -307,9 +306,9 @@ namespace optinum::meta {
          * Optimize starting from an initial point
          */
         template <typename F>
-        GAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                             const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        GAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
             const std::size_t pop_size = config.population_size;
 
@@ -518,8 +517,8 @@ namespace optinum::meta {
         void crossover_op(const dp::mat::vector<T, dp::mat::Dynamic> &parent1,
                           const dp::mat::vector<T, dp::mat::Dynamic> &parent2,
                           dp::mat::vector<T, dp::mat::Dynamic> &child1, dp::mat::vector<T, dp::mat::Dynamic> &child2,
-                          const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                          const simd::Vector<T, simd::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
+                          const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                          const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
             const std::size_t dim = parent1.size();
 
             switch (config.crossover) {
@@ -597,8 +596,8 @@ namespace optinum::meta {
          */
         template <typename RNG, typename Dist>
         void mutate(dp::mat::vector<T, dp::mat::Dynamic> &individual,
-                    const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                    const simd::Vector<T, simd::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
+                    const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
+                    const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
             const std::size_t dim = individual.size();
             std::normal_distribution<T> normal(T{0}, T{1});
 
