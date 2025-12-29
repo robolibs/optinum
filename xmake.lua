@@ -14,8 +14,17 @@ add_cxxflags("-Wno-reorder", "-Wno-narrowing", "-Wno-array-bounds")
 add_cxxflags("-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-stringop-overflow", "-Wno-unused-but-set-variable")
 add_cxxflags("-Wno-gnu-line-marker")
 
--- Enable AVX/AVX2 optimizations for SIMD (use explicit flags for Nix compatibility)
-add_cxxflags("-mavx", "-mavx2", "-mfma")
+-- Architecture-specific SIMD flags
+if is_arch("x86_64", "x64", "i386", "x86") then
+    -- x86/x86_64: Enable AVX/AVX2/FMA optimizations
+    add_cxxflags("-mavx", "-mavx2", "-mfma")
+elseif is_arch("arm64", "arm64-v8a", "aarch64") then
+    -- ARM64: NEON is enabled by default, but we can add explicit flags if needed
+    -- add_cxxflags("-march=armv8-a+simd")
+elseif is_arch("arm", "armv7", "armv7-a") then
+    -- ARM32: Enable NEON
+    add_cxxflags("-mfpu=neon", "-mfloat-abi=hard")
+end
 
 -- Add global search paths for packages in ~/.local
 local home = os.getenv("HOME")

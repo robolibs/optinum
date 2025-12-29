@@ -17,6 +17,19 @@ set(params
     -Wno-unused-but-set-variable
 )
 
+# Architecture-specific SIMD flags
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i[3-6]86")
+    # x86/x86_64: Enable AVX/AVX2/FMA optimizations
+    list(APPEND params -mavx -mavx2 -mfma)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
+    # ARM64: NEON is enabled by default on AArch64
+    # Optionally add explicit SIMD flags if needed
+    # list(APPEND params -march=armv8-a+simd)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
+    # ARM32: Enable NEON
+    list(APPEND params -mfpu=neon -mfloat-abi=hard)
+endif()
+
 string(TOUPPER ${project_name} project_name_upper)
 option(${project_name_upper}_BUILD_EXAMPLES "Build examples" OFF)
 option(${project_name_upper}_ENABLE_TESTS "Enable tests" OFF)
