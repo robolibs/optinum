@@ -1,6 +1,7 @@
 #pragma once
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 
 namespace optinum::opti {
 
@@ -15,6 +16,7 @@ namespace optinum::opti {
      * where α is the step size (learning rate).
      *
      * This is the most basic update policy with no momentum or acceleration.
+     * Uses SIMD-optimized operations for performance.
      */
     struct VanillaUpdate {
         /**
@@ -26,10 +28,8 @@ namespace optinum::opti {
          */
         template <typename T, std::size_t N>
         void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) const noexcept {
-            // x = x - step_size * gradient (element-wise)
-            for (std::size_t i = 0; i < x.size(); ++i) {
-                x[i] -= step_size * gradient[i];
-            }
+            // x = x - step_size * gradient using SIMD
+            simd::backend::scale_sub_runtime<T>(x.data(), step_size, gradient.data(), x.size());
         }
 
         /// Reset state (vanilla has no state)

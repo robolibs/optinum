@@ -6,6 +6,7 @@
 // =============================================================================
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
 #include <cmath>
@@ -240,14 +241,11 @@ namespace optinum::opti {
             return simd::view(a).dot(simd::view(b));
         }
 
-        /// Compute x_new = x + alpha * direction
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
         void compute_step(const dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &direction, T alpha,
                           dp::mat::vector<T, N> &x_new) const {
-            const std::size_t n = x.size();
-            for (std::size_t i = 0; i < n; ++i) {
-                x_new[i] = x[i] + direction[i] * alpha;
-            }
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 
@@ -501,14 +499,11 @@ namespace optinum::opti {
             return simd::view(a).dot(simd::view(b));
         }
 
-        /// Compute x_new = x + alpha * direction
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
         void compute_step(const dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &direction, T alpha,
                           dp::mat::vector<T, N> &x_new) const {
-            const std::size_t n = x.size();
-            for (std::size_t i = 0; i < n; ++i) {
-                x_new[i] = x[i] + direction[i] * alpha;
-            }
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 
@@ -613,13 +608,11 @@ namespace optinum::opti {
             return simd::view(a).dot(simd::view(b));
         }
 
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
         void compute_step(const dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &direction, T alpha,
                           dp::mat::vector<T, N> &x_new) const {
-            const std::size_t n = x.size();
-            for (std::size_t i = 0; i < n; ++i) {
-                x_new[i] = x[i] + direction[i] * alpha;
-            }
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 
@@ -715,13 +708,11 @@ namespace optinum::opti {
             return simd::view(a).dot(simd::view(b));
         }
 
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
         void compute_step(const dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &direction, T alpha,
                           dp::mat::vector<T, N> &x_new) const {
-            const std::size_t n = x.size();
-            for (std::size_t i = 0; i < n; ++i) {
-                x_new[i] = x[i] + direction[i] * alpha;
-            }
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 
