@@ -9,6 +9,8 @@
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/types.hpp>
 #include <optinum/opti/line_search/line_search.hpp>
+#include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
 #include <algorithm>
@@ -267,9 +269,8 @@ namespace optinum::opti {
                     if (verbose) {
                         std::cout << "  Warning: Not a descent direction, resetting to steepest descent" << std::endl;
                     }
-                    for (std::size_t i = 0; i < n; ++i) {
-                        direction[i] = -gradient[i];
-                    }
+                    // direction = -gradient using SIMD
+                    simd::backend::negate_runtime<T>(direction.data(), gradient.data(), n);
                     directional_derivative = -grad_norm * grad_norm;
                     history_count = 0; // Reset history
                 }
@@ -288,10 +289,8 @@ namespace optinum::opti {
                     line_search_success = ls_result.success;
 
                     if (line_search_success) {
-                        // x_new = x + alpha * direction
-                        for (std::size_t i = 0; i < n; ++i) {
-                            x_new[i] = x[i] + direction[i] * alpha_step;
-                        }
+                        // x_new = x + alpha * direction using SIMD
+                        simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha_step, direction.data(), n);
                         // gradient_new already computed by Wolfe line search
                     }
                 } else {
@@ -304,9 +303,8 @@ namespace optinum::opti {
                     line_search_success = ls_result.success;
 
                     if (line_search_success) {
-                        for (std::size_t i = 0; i < n; ++i) {
-                            x_new[i] = x[i] + direction[i] * alpha_step;
-                        }
+                        // x_new = x + alpha * direction using SIMD
+                        simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha_step, direction.data(), n);
                         function.gradient(x_new, gradient_new);
                     }
                 }
@@ -339,21 +337,17 @@ namespace optinum::opti {
                     idx = (history_start + history_count - 1) % history_size;
                 }
 
-                // Store s_k and y_k
+                // Store s_k and y_k using SIMD
                 T *s_ptr = s_flat.data() + idx * n;
                 T *y_ptr = y_flat.data() + idx * n;
 
-                T ys = T(0); // y^T * s
-                T yy = T(0); // y^T * y
+                // s = x_new - x, y = gradient_new - gradient
+                simd::backend::sub_runtime<T>(s_ptr, x_new.data(), x.data(), n);
+                simd::backend::sub_runtime<T>(y_ptr, gradient_new.data(), gradient.data(), n);
 
-                for (std::size_t i = 0; i < n; ++i) {
-                    T s_i = x_new[i] - x[i];
-                    T y_i = gradient_new[i] - gradient[i];
-                    s_ptr[i] = s_i;
-                    y_ptr[i] = y_i;
-                    ys += y_i * s_i;
-                    yy += y_i * y_i;
-                }
+                // Compute ys = y^T * s and yy = y^T * y using SIMD
+                T ys = simd::backend::dot_runtime<T>(y_ptr, s_ptr, n);
+                T yy = simd::backend::dot_runtime<T>(y_ptr, y_ptr, n);
 
                 // Check curvature condition: y^T * s > 0
                 if (ys > T(1e-10) * yy) {
@@ -452,18 +446,15 @@ namespace optinum::opti {
                                std::size_t history_start, std::size_t n, dp::mat::vector<T, N> &direction) const {
             // If no history, use steepest descent
             if (history_count == 0) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    direction[i] = -gradient[i];
-                }
+                // direction = -gradient using SIMD
+                simd::backend::negate_runtime<T>(direction.data(), gradient.data(), n);
                 return;
             }
 
-            // q = gradient (copy)
+            // q = gradient (copy) using SIMD
             dp::mat::vector<T, dp::mat::Dynamic> q;
             q.resize(n);
-            for (std::size_t i = 0; i < n; ++i) {
-                q[i] = gradient[i];
-            }
+            simd::backend::copy_runtime<T>(q.data(), gradient.data(), n);
 
             // First loop: iterate from newest to oldest
             for (std::size_t j = 0; j < history_count; ++j) {
@@ -472,17 +463,12 @@ namespace optinum::opti {
                 const T *s_ptr = s_flat.data() + idx * n;
                 const T *y_ptr = y_flat.data() + idx * n;
 
-                // alpha_i = rho_i * s_i^T * q
-                T dot_sq = T(0);
-                for (std::size_t i = 0; i < n; ++i) {
-                    dot_sq += s_ptr[i] * q[i];
-                }
+                // alpha_i = rho_i * s_i^T * q using SIMD dot product
+                T dot_sq = simd::backend::dot_runtime<T>(s_ptr, q.data(), n);
                 alpha[idx] = rho[idx] * dot_sq;
 
-                // q = q - alpha_i * y_i
-                for (std::size_t i = 0; i < n; ++i) {
-                    q[i] -= alpha[idx] * y_ptr[i];
-                }
+                // q = q - alpha_i * y_i using SIMD (q += (-alpha) * y)
+                simd::backend::axpy_inplace_runtime<T>(q.data(), -alpha[idx], y_ptr, n);
             }
 
             // Compute initial Hessian scaling: gamma = (s_{k-1}^T * y_{k-1}) / (y_{k-1}^T * y_{k-1})
@@ -495,20 +481,16 @@ namespace optinum::opti {
                 const T *s_ptr = s_flat.data() + newest_idx * n;
                 const T *y_ptr = y_flat.data() + newest_idx * n;
 
-                T sy = T(0), yy = T(0);
-                for (std::size_t i = 0; i < n; ++i) {
-                    sy += s_ptr[i] * y_ptr[i];
-                    yy += y_ptr[i] * y_ptr[i];
-                }
+                // Compute sy and yy using SIMD dot products
+                T sy = simd::backend::dot_runtime<T>(s_ptr, y_ptr, n);
+                T yy = simd::backend::dot_runtime<T>(y_ptr, y_ptr, n);
                 gamma = (yy > T(1e-15)) ? (sy / yy) : T(1);
             }
 
-            // r = gamma * q (initial Hessian approximation H_0 = gamma * I)
+            // r = gamma * q (initial Hessian approximation H_0 = gamma * I) using SIMD
             dp::mat::vector<T, dp::mat::Dynamic> r;
             r.resize(n);
-            for (std::size_t i = 0; i < n; ++i) {
-                r[i] = gamma * q[i];
-            }
+            simd::backend::mul_scalar_runtime<T>(r.data(), q.data(), gamma, n);
 
             // Second loop: iterate from oldest to newest
             for (std::size_t j = 0; j < history_count; ++j) {
@@ -517,24 +499,17 @@ namespace optinum::opti {
                 const T *s_ptr = s_flat.data() + idx * n;
                 const T *y_ptr = y_flat.data() + idx * n;
 
-                // beta = rho_i * y_i^T * r
-                T dot_yr = T(0);
-                for (std::size_t i = 0; i < n; ++i) {
-                    dot_yr += y_ptr[i] * r[i];
-                }
+                // beta = rho_i * y_i^T * r using SIMD dot product
+                T dot_yr = simd::backend::dot_runtime<T>(y_ptr, r.data(), n);
                 T beta = rho[idx] * dot_yr;
 
-                // r = r + s_i * (alpha_i - beta)
+                // r = r + s_i * (alpha_i - beta) using SIMD
                 T diff = alpha[idx] - beta;
-                for (std::size_t i = 0; i < n; ++i) {
-                    r[i] += s_ptr[i] * diff;
-                }
+                simd::backend::axpy_inplace_runtime<T>(r.data(), diff, s_ptr, n);
             }
 
-            // direction = -r
-            for (std::size_t i = 0; i < n; ++i) {
-                direction[i] = -r[i];
-            }
+            // direction = -r using SIMD
+            simd::backend::negate_runtime<T>(direction.data(), r.data(), n);
         }
     };
 
