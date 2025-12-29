@@ -409,12 +409,19 @@ namespace optinum::simd {
     // C = A * B where A is (R x K), B is (K x C), output is (R x C)
     // =============================================================================
 
-    // Runtime matrix multiplication
+    // Runtime matrix multiplication with SIMD optimization
+    // Uses column-major layout: processes multiple rows simultaneously
     template <typename T, std::size_t W>
     OPTINUM_INLINE void matmul(T *output, const matrix_view<const T, W> &a, const matrix_view<const T, W> &b) noexcept {
         const std::size_t R = a.rows();
         const std::size_t K = a.cols();
         const std::size_t C = b.cols();
+
+        // Use compile-time SIMD width based on type
+        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
+        using pack_t = pack<T, pack_width>;
+
+        const std::size_t main_r = backend::main_loop_count_runtime(R, pack_width);
 
         // Column-major GEMM: C = A * B
         // A: (R x K), B: (K x C), C: (R x C)
@@ -422,7 +429,22 @@ namespace optinum::simd {
             const T *bcol = b.data_const() + j * K; // B column j
             T *outcol = output + j * R;             // C column j
 
-            for (std::size_t i = 0; i < R; ++i) {
+            // SIMD loop: process pack_width rows at a time
+            // Column-major layout means column elements are contiguous
+            for (std::size_t i = 0; i < main_r; i += pack_width) {
+                pack_t acc(T{0});
+                for (std::size_t k = 0; k < K; ++k) {
+                    // A is column-major: A[i,k] = A.data[k*R + i]
+                    // Load pack_width elements from column k of A, starting at row i
+                    const auto av = pack_t::loadu(a.data_const() + k * R + i);
+                    const pack_t bv(bcol[k]); // Broadcast B[k,j]
+                    acc = pack_t::fma(av, bv, acc);
+                }
+                acc.storeu(outcol + i);
+            }
+
+            // Scalar tail for remaining rows
+            for (std::size_t i = main_r; i < R; ++i) {
                 T acc{0};
                 for (std::size_t k = 0; k < K; ++k) {
                     acc += a.at(i, k) * bcol[k];
@@ -440,12 +462,33 @@ namespace optinum::simd {
 
     // Matrix-vector multiplication: y = A * x
     // A: (R x C), x: (C), y: (R)
+    // SIMD optimized: processes multiple output rows simultaneously
     template <typename T, std::size_t W>
     OPTINUM_INLINE void matvec(T *output, const matrix_view<const T, W> &a, const vector_view<const T, W> &x) noexcept {
         const std::size_t R = a.rows();
         const std::size_t C = a.cols();
 
-        for (std::size_t i = 0; i < R; ++i) {
+        // Use compile-time SIMD width based on type
+        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
+        using pack_t = pack<T, pack_width>;
+
+        const std::size_t main_r = backend::main_loop_count_runtime(R, pack_width);
+
+        // SIMD loop: process pack_width output elements at a time
+        // Column-major layout means column elements are contiguous
+        for (std::size_t i = 0; i < main_r; i += pack_width) {
+            pack_t acc(T{0});
+            for (std::size_t j = 0; j < C; ++j) {
+                // A is column-major: column j starts at a.data() + j*R
+                const auto av = pack_t::loadu(a.data_const() + j * R + i);
+                const pack_t xv(x.at(j)); // Broadcast x[j]
+                acc = pack_t::fma(av, xv, acc);
+            }
+            acc.storeu(output + i);
+        }
+
+        // Scalar tail for remaining rows
+        for (std::size_t i = main_r; i < R; ++i) {
             T acc{0};
             for (std::size_t j = 0; j < C; ++j) {
                 acc += a.at(i, j) * x.at(j);
@@ -536,40 +579,62 @@ namespace optinum::simd {
     // Copy between views
     // =============================================================================
 
-    // Copy from source view to destination view
+    // Copy from source view to destination view (SIMD optimized)
     template <typename T, std::size_t W>
     OPTINUM_INLINE void copy(matrix_view<T, W> &dst, const matrix_view<const T, W> &src) noexcept {
         const std::size_t n = dst.size();
-        for (std::size_t i = 0; i < n; ++i) {
+
+        // Use compile-time SIMD width based on type
+        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
+        using pack_t = pack<T, pack_width>;
+
+        const std::size_t main = backend::main_loop_count_runtime(n, pack_width);
+
+        // SIMD copy loop
+        for (std::size_t i = 0; i < main; i += pack_width) {
+            auto v = pack_t::loadu(src.data_const() + i);
+            v.storeu(dst.data() + i);
+        }
+
+        // Scalar tail
+        for (std::size_t i = main; i < n; ++i) {
             dst[i] = src.at_linear(i);
         }
     }
 
     template <typename T, std::size_t W>
     OPTINUM_INLINE void copy(matrix_view<T, W> &dst, const matrix_view<T, W> &src) noexcept {
-        const std::size_t n = dst.size();
-        for (std::size_t i = 0; i < n; ++i) {
-            dst[i] = src.at_linear(i);
-        }
+        copy(dst, matrix_view<const T, W>(src.data(), src.rows(), src.cols()));
     }
 
     // =============================================================================
-    // Negate (unary minus) - write to output buffer
+    // Negate (unary minus) - write to output buffer (SIMD optimized)
     // =============================================================================
 
     template <typename T, std::size_t W>
     OPTINUM_INLINE void negate(T *output, const matrix_view<const T, W> &a) noexcept {
         const std::size_t n = a.size();
-        for (std::size_t i = 0; i < n; ++i) {
+
+        // Use compile-time SIMD width based on type
+        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
+        using pack_t = pack<T, pack_width>;
+
+        const std::size_t main = backend::main_loop_count_runtime(n, pack_width);
+
+        // SIMD negate loop
+        for (std::size_t i = 0; i < main; i += pack_width) {
+            auto v = pack_t::loadu(a.data_const() + i);
+            (-v).storeu(output + i);
+        }
+
+        // Scalar tail
+        for (std::size_t i = main; i < n; ++i) {
             output[i] = -a.at_linear(i);
         }
     }
 
     template <typename T, std::size_t W> OPTINUM_INLINE void negate(T *output, const matrix_view<T, W> &a) noexcept {
-        const std::size_t n = a.size();
-        for (std::size_t i = 0; i < n; ++i) {
-            output[i] = -a.at_linear(i);
-        }
+        negate(output, matrix_view<const T, W>(a.data(), a.rows(), a.cols()));
     }
 
 } // namespace optinum::simd
