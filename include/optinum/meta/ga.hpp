@@ -38,7 +38,10 @@
 #include <vector>
 
 #include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
+#include <optinum/simd/math/pow.hpp>
+#include <optinum/simd/pack/pack.hpp>
 
 namespace optinum::meta {
 

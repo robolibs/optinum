@@ -41,7 +41,10 @@
 #include <vector>
 
 #include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
+#include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/pack/pack.hpp>
 
 namespace optinum::meta {
 
@@ -314,11 +317,35 @@ namespace optinum::meta {
                         z[i] = normal(rng);
                     }
 
-                    // Compute y = B * D * z
+                    // Compute y = B * D * z (SIMD for inner loop)
+                    // SIMD width for this type
+                    constexpr std::size_t W_inner = sizeof(T) == 4 ? 8 : 4;
+                    using PackInner = simd::pack<T, W_inner>;
+
+                    // First compute D * z
+                    std::vector<T> Dz(n);
+                    std::size_t dd = 0;
+                    for (; dd + W_inner <= n; dd += W_inner) {
+                        auto D_pack = PackInner::loadu(&D[dd]);
+                        auto z_pack = PackInner::loadu(&z[dd]);
+                        (D_pack * z_pack).storeu(&Dz[dd]);
+                    }
+                    for (; dd < n; ++dd) {
+                        Dz[dd] = D[dd] * z[dd];
+                    }
+
+                    // Then compute y = B * Dz (matrix-vector multiply with SIMD)
                     for (std::size_t i = 0; i < n; ++i) {
-                        y[i] = T{0};
-                        for (std::size_t j = 0; j < n; ++j) {
-                            y[i] += B[i * n + j] * D[j] * z[j];
+                        PackInner sum_pack(T{0});
+                        dd = 0;
+                        for (; dd + W_inner <= n; dd += W_inner) {
+                            auto B_pack = PackInner::loadu(&B[i * n + dd]);
+                            auto Dz_pack = PackInner::loadu(&Dz[dd]);
+                            sum_pack = sum_pack + B_pack * Dz_pack;
+                        }
+                        y[i] = sum_pack.hsum();
+                        for (; dd < n; ++dd) {
+                            y[i] += B[i * n + dd] * Dz[dd];
                         }
                     }
 
@@ -346,14 +373,38 @@ namespace optinum::meta {
                           [&fitness](std::size_t a, std::size_t b) { return fitness[a] < fitness[b]; });
 
                 // ============================================================
-                // Update mean: m = sum(w_i * x_i) for i = 1..mu
+                // Update mean: m = sum(w_i * x_i) for i = 1..mu (SIMD)
                 // ============================================================
 
                 dp::mat::vector<T, dp::mat::Dynamic> m_old = m;
-                for (std::size_t i = 0; i < n; ++i) {
-                    m[i] = T{0};
-                    for (std::size_t j = 0; j < mu; ++j) {
-                        m[i] += weights[j] * population[ranking[j]][i];
+
+                // Zero out mean using SIMD
+                constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+                using Pack = simd::pack<T, W>;
+
+                // Zero the mean vector
+                std::size_t d = 0;
+                for (; d + W <= n; d += W) {
+                    Pack(T{0}).storeu(&m[d]);
+                }
+                for (; d < n; ++d) {
+                    m[d] = T{0};
+                }
+
+                // Accumulate weighted sum using SIMD
+                for (std::size_t j = 0; j < mu; ++j) {
+                    const T w = weights[j];
+                    const auto &pop_j = population[ranking[j]];
+                    Pack w_pack(w);
+
+                    d = 0;
+                    for (; d + W <= n; d += W) {
+                        auto m_pack = Pack::loadu(&m[d]);
+                        auto pop_pack = Pack::loadu(&pop_j[d]);
+                        (m_pack + w_pack * pop_pack).storeu(&m[d]);
+                    }
+                    for (; d < n; ++d) {
+                        m[d] += w * pop_j[d];
                     }
                 }
 
@@ -419,15 +470,40 @@ namespace optinum::meta {
                 // C = (1 - c1 - cmu) * C + c1 * (p_c * p_c^T + delta_h * C) + cmu * sum(w_i * y_i * y_i^T)
                 T delta_h = h_sigma ? T{0} : (cc * (T{2} - cc));
 
-                // Compute weighted sum of outer products
+                // Compute weighted sum of outer products (SIMD for y_k computation)
                 std::vector<T> C_mu(n * n, T{0});
+                std::vector<T> y_k(n); // Temporary for y_k = (x_k - m_old) / sigma
+
                 for (std::size_t k = 0; k < mu; ++k) {
-                    // y_k = (x_k - m_old) / sigma
+                    const auto &pop_k = population[ranking[k]];
+                    const T inv_sigma = T{1} / sigma;
+                    Pack inv_sigma_pack(inv_sigma);
+
+                    // Compute y_k = (x_k - m_old) / sigma using SIMD
+                    d = 0;
+                    for (; d + W <= n; d += W) {
+                        auto pop_pack = Pack::loadu(&pop_k[d]);
+                        auto m_old_pack = Pack::loadu(&m_old[d]);
+                        ((pop_pack - m_old_pack) * inv_sigma_pack).storeu(&y_k[d]);
+                    }
+                    for (; d < n; ++d) {
+                        y_k[d] = (pop_k[d] - m_old[d]) * inv_sigma;
+                    }
+
+                    // Outer product accumulation (still O(n²) but with SIMD inner loop)
+                    const T w_k = weights[k];
                     for (std::size_t i = 0; i < n; ++i) {
-                        T y_ki = (population[ranking[k]][i] - m_old[i]) / sigma;
-                        for (std::size_t j = 0; j < n; ++j) {
-                            T y_kj = (population[ranking[k]][j] - m_old[j]) / sigma;
-                            C_mu[i * n + j] += weights[k] * y_ki * y_kj;
+                        const T w_y_ki = w_k * y_k[i];
+                        Pack w_y_ki_pack(w_y_ki);
+
+                        std::size_t j = 0;
+                        for (; j + W <= n; j += W) {
+                            auto c_pack = Pack::loadu(&C_mu[i * n + j]);
+                            auto y_kj_pack = Pack::loadu(&y_k[j]);
+                            (c_pack + w_y_ki_pack * y_kj_pack).storeu(&C_mu[i * n + j]);
+                        }
+                        for (; j < n; ++j) {
+                            C_mu[i * n + j] += w_y_ki * y_k[j];
                         }
                     }
                 }
