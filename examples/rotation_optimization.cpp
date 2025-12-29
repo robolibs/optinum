@@ -12,10 +12,15 @@
 #include <iomanip>
 #include <iostream>
 #include <optinum/lie/lie.hpp>
-#include <optinum/optinum.hpp>
+#include <optinum/opti/opti.hpp>
+#include <optinum/simd/simd.hpp>
 #include <random>
 
-using namespace optinum;
+namespace dp = datapod;
+namespace lie = optinum::lie;
+namespace opti = optinum::opti;
+namespace simd = optinum::simd;
+using dp::mat::Dynamic;
 
 // =============================================================================
 // Example 1: Point Cloud Alignment
@@ -43,8 +48,8 @@ void example_point_cloud_alignment() {
 
     // Generate source points and transform to target
     std::vector<dp::mat::vector<double, 3>> source_points = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0},
-                                                          {1.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 1.0},
-                                                          {1.0, 1.0, 1.0}, {-1.0, 0.5, 0.3}};
+                                                             {1.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 1.0},
+                                                             {1.0, 1.0, 1.0}, {-1.0, 0.5, 0.3}};
 
     std::vector<dp::mat::vector<double, 3>> target_points;
     for (const auto &p : source_points) {

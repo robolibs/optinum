@@ -2,7 +2,8 @@
 #include <optinum/simd/simd.hpp>
 #include <sstream>
 
-using namespace optinum::simd;
+namespace dp = datapod;
+namespace simd = optinum::simd;
 
 // =============================================================================
 // Vector I/O Tests
@@ -10,7 +11,7 @@ using namespace optinum::simd;
 
 TEST_CASE("Vector stream output") {
     SUBCASE("float vector") {
-        Vector<float, 3> v;
+        simd::Vector<float, 3> v;
         v[0] = 1.0f;
         v[1] = 2.0f;
         v[2] = 3.0f;
@@ -21,7 +22,7 @@ TEST_CASE("Vector stream output") {
     }
 
     SUBCASE("int vector") {
-        Vector<int, 4> v;
+        simd::Vector<int, 4> v;
         v.iota();
 
         std::ostringstream oss;
@@ -30,7 +31,7 @@ TEST_CASE("Vector stream output") {
     }
 
     SUBCASE("double vector") {
-        Vector<double, 2> v;
+        simd::Vector<double, 2> v;
         v[0] = 3.14;
         v[1] = 2.71;
 
@@ -48,10 +49,10 @@ TEST_CASE("Vector stream output") {
 
 TEST_CASE("Vector type conversion") {
     SUBCASE("int to float") {
-        Vector<int, 4> vi;
+        simd::Vector<int, 4> vi;
         vi.iota();
 
-        auto vf = cast<float>(vi);
+        auto vf = simd::cast<float>(vi);
         CHECK(vf[0] == 0.0f);
         CHECK(vf[1] == 1.0f);
         CHECK(vf[2] == 2.0f);
@@ -59,35 +60,35 @@ TEST_CASE("Vector type conversion") {
     }
 
     SUBCASE("float to double") {
-        Vector<float, 3> vf;
+        simd::Vector<float, 3> vf;
         vf[0] = 1.5f;
         vf[1] = 2.5f;
         vf[2] = 3.5f;
 
-        auto vd = cast<double>(vf);
+        auto vd = simd::cast<double>(vf);
         CHECK(vd[0] == doctest::Approx(1.5));
         CHECK(vd[1] == doctest::Approx(2.5));
         CHECK(vd[2] == doctest::Approx(3.5));
     }
 
     SUBCASE("double to int (truncation)") {
-        Vector<double, 3> vd;
+        simd::Vector<double, 3> vd;
         vd[0] = 1.9;
         vd[1] = 2.5;
         vd[2] = 3.1;
 
-        auto vi = cast<int>(vd);
+        auto vi = simd::cast<int>(vd);
         CHECK(vi[0] == 1);
         CHECK(vi[1] == 2);
         CHECK(vi[2] == 3);
     }
 
     SUBCASE("float to int to float (round trip)") {
-        Vector<float, 4> v1;
+        simd::Vector<float, 4> v1;
         v1.iota(10.0f);
 
-        auto vi = cast<int>(v1);
-        auto v2 = cast<float>(vi);
+        auto vi = simd::cast<int>(v1);
+        auto v2 = simd::cast<float>(vi);
 
         CHECK(v2[0] == 10.0f);
         CHECK(v2[1] == 11.0f);
@@ -102,7 +103,7 @@ TEST_CASE("Vector type conversion") {
 
 TEST_CASE("Matrix stream output") {
     SUBCASE("2x2 float matrix") {
-        Matrix<float, 2, 2> m;
+        simd::Matrix<float, 2, 2> m;
         m(0, 0) = 1.0f;
         m(0, 1) = 2.0f;
         m(1, 0) = 3.0f;
@@ -115,7 +116,7 @@ TEST_CASE("Matrix stream output") {
     }
 
     SUBCASE("3x3 int matrix") {
-        Matrix<int, 3, 3> m;
+        simd::Matrix<int, 3, 3> m;
         m.iota();
 
         std::ostringstream oss;
@@ -125,7 +126,7 @@ TEST_CASE("Matrix stream output") {
     }
 
     SUBCASE("single row matrix") {
-        Matrix<int, 1, 4> m;
+        simd::Matrix<int, 1, 4> m;
         m.iota();
 
         std::ostringstream oss;
@@ -135,7 +136,7 @@ TEST_CASE("Matrix stream output") {
     }
 
     SUBCASE("single column matrix") {
-        Matrix<int, 3, 1> m;
+        simd::Matrix<int, 3, 1> m;
         m.iota();
 
         std::ostringstream oss;
@@ -151,10 +152,10 @@ TEST_CASE("Matrix stream output") {
 
 TEST_CASE("Matrix type conversion") {
     SUBCASE("int to float") {
-        Matrix<int, 2, 3> mi;
+        simd::Matrix<int, 2, 3> mi;
         mi.iota();
 
-        auto mf = cast<float>(mi);
+        auto mf = simd::cast<float>(mi);
         // Linear indexing (column-major storage)
         CHECK(mf[0] == 0.0f);
         CHECK(mf[1] == 1.0f);
@@ -165,20 +166,20 @@ TEST_CASE("Matrix type conversion") {
     }
 
     SUBCASE("float to double") {
-        Matrix<float, 2, 2> mf;
+        simd::Matrix<float, 2, 2> mf;
         mf.fill(3.14f);
 
-        auto md = cast<double>(mf);
+        auto md = simd::cast<double>(mf);
         for (std::size_t i = 0; i < 4; ++i) {
             CHECK(md[i] == doctest::Approx(3.14));
         }
     }
 
     SUBCASE("preserves matrix structure") {
-        Matrix<int, 3, 2> mi;
+        simd::Matrix<int, 3, 2> mi;
         mi.iota();
 
-        auto mf = cast<float>(mi);
+        auto mf = simd::cast<float>(mi);
         CHECK(mf.rows() == 3);
         CHECK(mf.cols() == 2);
         CHECK(mf.size() == 6);
@@ -191,7 +192,7 @@ TEST_CASE("Matrix type conversion") {
 
 TEST_CASE("Matrix flatten") {
     SUBCASE("2x3 matrix to vector") {
-        Matrix<int, 2, 3> m;
+        simd::Matrix<int, 2, 3> m;
         m.iota();
 
         auto v = m.flatten();
@@ -202,7 +203,7 @@ TEST_CASE("Matrix flatten") {
     }
 
     SUBCASE("square matrix") {
-        Matrix<float, 3, 3> m;
+        simd::Matrix<float, 3, 3> m;
         m.iota(1.0f);
 
         auto v = m.flatten();
@@ -212,7 +213,7 @@ TEST_CASE("Matrix flatten") {
     }
 
     SUBCASE("single row becomes vector") {
-        Matrix<double, 1, 4> m;
+        simd::Matrix<double, 1, 4> m;
         m[0] = 1.1;
         m[1] = 2.2;
         m[2] = 3.3;
@@ -225,7 +226,7 @@ TEST_CASE("Matrix flatten") {
     }
 
     SUBCASE("flatten preserves values") {
-        Matrix<int, 4, 2> m;
+        simd::Matrix<int, 4, 2> m;
         for (std::size_t i = 0; i < 8; ++i) {
             m[i] = static_cast<int>(i * 10);
         }
@@ -238,7 +239,7 @@ TEST_CASE("Matrix flatten") {
 
     SUBCASE("constexpr flatten") {
         constexpr auto test = []() {
-            Matrix<int, 2, 2> m;
+            simd::Matrix<int, 2, 2> m;
             m[0] = 1;
             m[1] = 2;
             m[2] = 3;
@@ -257,7 +258,7 @@ TEST_CASE("Matrix flatten") {
 
 TEST_CASE("Tensor stream output") {
     SUBCASE("2x2x2 tensor") {
-        Tensor<int, 2, 2, 2> t;
+        simd::Tensor<int, 2, 2, 2> t;
         t.fill(42);
 
         std::ostringstream oss;
@@ -271,7 +272,7 @@ TEST_CASE("Tensor stream output") {
     }
 
     SUBCASE("3x3x3 tensor") {
-        Tensor<float, 3, 3, 3> t;
+        simd::Tensor<float, 3, 3, 3> t;
         t.fill(1.5f);
 
         std::ostringstream oss;
@@ -282,7 +283,7 @@ TEST_CASE("Tensor stream output") {
     }
 
     SUBCASE("4D tensor") {
-        Tensor<int, 2, 2, 2, 2> t;
+        simd::Tensor<int, 2, 2, 2, 2> t;
         t.fill(7);
 
         std::ostringstream oss;
@@ -300,32 +301,32 @@ TEST_CASE("Tensor stream output") {
 
 TEST_CASE("Tensor type conversion") {
     SUBCASE("int to float") {
-        Tensor<int, 2, 2, 2> ti;
+        simd::Tensor<int, 2, 2, 2> ti;
         for (std::size_t i = 0; i < 8; ++i) {
             ti[i] = static_cast<int>(i);
         }
 
-        auto tf = cast<float>(ti);
+        auto tf = simd::cast<float>(ti);
         for (std::size_t i = 0; i < 8; ++i) {
             CHECK(tf[i] == static_cast<float>(i));
         }
     }
 
     SUBCASE("float to double") {
-        Tensor<float, 2, 2, 2> tf;
+        simd::Tensor<float, 2, 2, 2> tf;
         tf.fill(2.5f);
 
-        auto td = cast<double>(tf);
+        auto td = simd::cast<double>(tf);
         for (std::size_t i = 0; i < 8; ++i) {
             CHECK(td[i] == doctest::Approx(2.5));
         }
     }
 
     SUBCASE("preserves tensor shape") {
-        Tensor<int, 3, 4, 5> ti;
+        simd::Tensor<int, 3, 4, 5> ti;
         ti.fill(1);
 
-        auto tf = cast<float>(ti);
+        auto tf = simd::cast<float>(ti);
         CHECK(tf.size() == 60);
         CHECK(tf.rank == 3);
         auto shape = tf.shape();
@@ -335,12 +336,12 @@ TEST_CASE("Tensor type conversion") {
     }
 
     SUBCASE("4D tensor conversion") {
-        Tensor<double, 2, 3, 2, 2> td;
+        simd::Tensor<double, 2, 3, 2, 2> td;
         for (std::size_t i = 0; i < 24; ++i) {
             td[i] = static_cast<double>(i) * 0.5;
         }
 
-        auto ti = cast<int>(td);
+        auto ti = simd::cast<int>(td);
         CHECK(ti.size() == 24);
         for (std::size_t i = 0; i < 24; ++i) {
             CHECK(ti[i] == static_cast<int>(i * 0.5));
@@ -354,20 +355,20 @@ TEST_CASE("Tensor type conversion") {
 
 TEST_CASE("Combined I/O and cast operations") {
     SUBCASE("cast then print vector") {
-        Vector<int, 3> vi;
+        simd::Vector<int, 3> vi;
         vi.iota();
 
-        auto vf = cast<float>(vi);
+        auto vf = simd::cast<float>(vi);
         std::ostringstream oss;
         oss << vf;
         CHECK(oss.str() == "[0, 1, 2]");
     }
 
     SUBCASE("cast then print matrix") {
-        Matrix<int, 2, 2> mi;
+        simd::Matrix<int, 2, 2> mi;
         mi.iota();
 
-        auto md = cast<double>(mi);
+        auto md = simd::cast<double>(mi);
         std::ostringstream oss;
         oss << md;
         std::string result = oss.str();
@@ -375,23 +376,23 @@ TEST_CASE("Combined I/O and cast operations") {
     }
 
     SUBCASE("flatten then cast") {
-        Matrix<int, 2, 3> m;
+        simd::Matrix<int, 2, 3> m;
         m.iota(10);
 
         auto v_int = m.flatten();
-        auto v_float = cast<float>(v_int);
+        auto v_float = simd::cast<float>(v_int);
 
         CHECK(v_float[0] == 10.0f);
         CHECK(v_float[5] == 15.0f);
     }
 
     SUBCASE("multiple type conversions") {
-        Vector<int, 4> v1;
+        simd::Vector<int, 4> v1;
         v1.iota();
 
-        auto v2 = cast<float>(v1);
-        auto v3 = cast<double>(v2);
-        auto v4 = cast<int>(v3);
+        auto v2 = simd::cast<float>(v1);
+        auto v3 = simd::cast<double>(v2);
+        auto v4 = simd::cast<int>(v3);
 
         for (std::size_t i = 0; i < 4; ++i) {
             CHECK(v4[i] == v1[i]);

@@ -5,13 +5,13 @@
 // =============================================================================
 
 #include <doctest/doctest.h>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <optinum/simd/simd.hpp>
 
-using namespace optinum::simd;
+namespace dp = datapod;
+namespace simd = optinum::simd;
 
 TEST_CASE("Vector - fill()") {
-    Vector<float, 5> v;
+    simd::Vector<float, 5> v;
     v.fill(3.14f);
 
     for (std::size_t i = 0; i < 5; ++i) {
@@ -21,7 +21,7 @@ TEST_CASE("Vector - fill()") {
 
 TEST_CASE("Vector - iota()") {
     SUBCASE("iota() - default (0, 1, 2, ...)") {
-        Vector<int, 6> v;
+        simd::Vector<int, 6> v;
         v.iota();
 
         CHECK(v[0] == 0);
@@ -33,7 +33,7 @@ TEST_CASE("Vector - iota()") {
     }
 
     SUBCASE("iota(start) - custom start") {
-        Vector<float, 5> v;
+        simd::Vector<float, 5> v;
         v.iota(10.0f);
 
         CHECK(v[0] == 10.0f);
@@ -44,7 +44,7 @@ TEST_CASE("Vector - iota()") {
     }
 
     SUBCASE("iota(start, step) - custom start and step") {
-        Vector<double, 4> v;
+        simd::Vector<double, 4> v;
         v.iota(5.0, 2.5);
 
         CHECK(v[0] == 5.0);
@@ -55,7 +55,7 @@ TEST_CASE("Vector - iota()") {
 }
 
 TEST_CASE("Vector - zeros()") {
-    auto v = Vector<double, 8>::zeros();
+    auto v = simd::Vector<double, 8>::zeros();
 
     for (std::size_t i = 0; i < 8; ++i) {
         CHECK(v[i] == 0.0);
@@ -63,7 +63,7 @@ TEST_CASE("Vector - zeros()") {
 }
 
 TEST_CASE("Vector - ones()") {
-    auto v = Vector<float, 6>::ones();
+    auto v = simd::Vector<float, 6>::ones();
 
     for (std::size_t i = 0; i < 6; ++i) {
         CHECK(v[i] == 1.0f);
@@ -72,7 +72,7 @@ TEST_CASE("Vector - ones()") {
 
 TEST_CASE("Vector - arange()") {
     SUBCASE("arange() - default") {
-        auto v = Vector<int, 5>::arange();
+        auto v = simd::Vector<int, 5>::arange();
 
         CHECK(v[0] == 0);
         CHECK(v[1] == 1);
@@ -82,7 +82,7 @@ TEST_CASE("Vector - arange()") {
     }
 
     SUBCASE("arange(start)") {
-        auto v = Vector<float, 4>::arange(10.0f);
+        auto v = simd::Vector<float, 4>::arange(10.0f);
 
         CHECK(v[0] == 10.0f);
         CHECK(v[1] == 11.0f);
@@ -91,7 +91,7 @@ TEST_CASE("Vector - arange()") {
     }
 
     SUBCASE("arange(start, step)") {
-        auto v = Vector<double, 3>::arange(2.0, 0.5);
+        auto v = simd::Vector<double, 3>::arange(2.0, 0.5);
 
         CHECK(v[0] == 2.0);
         CHECK(v[1] == 2.5);
@@ -101,7 +101,7 @@ TEST_CASE("Vector - arange()") {
 
 TEST_CASE("Vector - reverse()") {
     SUBCASE("Reverse integers") {
-        Vector<int, 5> v;
+        simd::Vector<int, 5> v;
         v.iota(); // [0, 1, 2, 3, 4]
         v.reverse();
 
@@ -113,7 +113,7 @@ TEST_CASE("Vector - reverse()") {
     }
 
     SUBCASE("Reverse floats") {
-        Vector<float, 4> v;
+        simd::Vector<float, 4> v;
         v.iota(10.0f); // [10, 11, 12, 13]
         v.reverse();
 
@@ -124,7 +124,7 @@ TEST_CASE("Vector - reverse()") {
     }
 
     SUBCASE("Reverse even-sized vector") {
-        Vector<int, 6> v;
+        simd::Vector<int, 6> v;
         v.iota(); // [0, 1, 2, 3, 4, 5]
         v.reverse();
 
@@ -139,7 +139,7 @@ TEST_CASE("Vector - reverse()") {
 
 TEST_CASE("Vector - random()") {
     SUBCASE("Float random [0, 1)") {
-        Vector<float, 100> v;
+        simd::Vector<float, 100> v;
         v.random();
 
         // Check all values are in range [0, 1)
@@ -160,7 +160,7 @@ TEST_CASE("Vector - random()") {
     }
 
     SUBCASE("Double random [0, 1)") {
-        Vector<double, 50> v;
+        simd::Vector<double, 50> v;
         v.random();
 
         for (std::size_t i = 0; i < 50; ++i) {
@@ -172,7 +172,7 @@ TEST_CASE("Vector - random()") {
 
 TEST_CASE("Vector - randint()") {
     SUBCASE("Random integers in [0, 10]") {
-        Vector<int, 50> v;
+        simd::Vector<int, 50> v;
         v.randint(0, 10);
 
         for (std::size_t i = 0; i < 50; ++i) {
@@ -182,7 +182,7 @@ TEST_CASE("Vector - randint()") {
     }
 
     SUBCASE("Random integers in [100, 200]") {
-        Vector<int, 30> v;
+        simd::Vector<int, 30> v;
         v.randint(100, 200);
 
         for (std::size_t i = 0; i < 30; ++i) {
@@ -197,7 +197,7 @@ TEST_CASE("Vector - randint()") {
 // =============================================================================
 
 TEST_CASE("Matrix - fill()") {
-    Matrix<double, 3, 4> m;
+    simd::Matrix<double, 3, 4> m;
     m.fill(2.71);
 
     for (std::size_t i = 0; i < 12; ++i) {
@@ -207,7 +207,7 @@ TEST_CASE("Matrix - fill()") {
 
 TEST_CASE("Matrix - iota()") {
     SUBCASE("iota() - default (0, 1, 2, ...)") {
-        Matrix<int, 2, 3> m;
+        simd::Matrix<int, 2, 3> m;
         m.iota();
 
         // Linear indexing
@@ -217,7 +217,7 @@ TEST_CASE("Matrix - iota()") {
     }
 
     SUBCASE("iota(start)") {
-        Matrix<float, 2, 2> m;
+        simd::Matrix<float, 2, 2> m;
         m.iota(10.0f);
 
         CHECK(m[0] == 10.0f);
@@ -227,7 +227,7 @@ TEST_CASE("Matrix - iota()") {
     }
 
     SUBCASE("iota(start, step)") {
-        Matrix<double, 3, 2> m;
+        simd::Matrix<double, 3, 2> m;
         m.iota(0.0, 0.5);
 
         CHECK(m[0] == 0.0);
@@ -240,7 +240,7 @@ TEST_CASE("Matrix - iota()") {
 }
 
 TEST_CASE("Matrix - zeros()") {
-    auto m = Matrix<float, 3, 3>::zeros();
+    auto m = simd::Matrix<float, 3, 3>::zeros();
 
     for (std::size_t i = 0; i < 9; ++i) {
         CHECK(m[i] == 0.0f);
@@ -248,7 +248,7 @@ TEST_CASE("Matrix - zeros()") {
 }
 
 TEST_CASE("Matrix - ones()") {
-    auto m = Matrix<double, 2, 4>::ones();
+    auto m = simd::Matrix<double, 2, 4>::ones();
 
     for (std::size_t i = 0; i < 8; ++i) {
         CHECK(m[i] == 1.0);
@@ -257,7 +257,7 @@ TEST_CASE("Matrix - ones()") {
 
 TEST_CASE("Matrix - arange()") {
     SUBCASE("arange() - default") {
-        auto m = Matrix<int, 2, 3>::arange();
+        auto m = simd::Matrix<int, 2, 3>::arange();
 
         for (int i = 0; i < 6; ++i) {
             CHECK(m[i] == i);
@@ -265,7 +265,7 @@ TEST_CASE("Matrix - arange()") {
     }
 
     SUBCASE("arange(start)") {
-        auto m = Matrix<float, 2, 2>::arange(5.0f);
+        auto m = simd::Matrix<float, 2, 2>::arange(5.0f);
 
         CHECK(m[0] == 5.0f);
         CHECK(m[1] == 6.0f);
@@ -274,7 +274,7 @@ TEST_CASE("Matrix - arange()") {
     }
 
     SUBCASE("arange(start, step)") {
-        auto m = Matrix<double, 2, 2>::arange(10.0, 2.0);
+        auto m = simd::Matrix<double, 2, 2>::arange(10.0, 2.0);
 
         CHECK(m[0] == 10.0);
         CHECK(m[1] == 12.0);
@@ -284,7 +284,7 @@ TEST_CASE("Matrix - arange()") {
 }
 
 TEST_CASE("Matrix - reverse()") {
-    Matrix<int, 2, 3> m;
+    simd::Matrix<int, 2, 3> m;
     m.iota(); // [0, 1, 2, 3, 4, 5] in linear order
     m.reverse();
 
@@ -297,7 +297,7 @@ TEST_CASE("Matrix - reverse()") {
 }
 
 TEST_CASE("Matrix - random()") {
-    Matrix<float, 5, 5> m;
+    simd::Matrix<float, 5, 5> m;
     m.random();
 
     // Check all values in [0, 1)
@@ -318,7 +318,7 @@ TEST_CASE("Matrix - random()") {
 }
 
 TEST_CASE("Matrix - randint()") {
-    Matrix<int, 4, 4> m;
+    simd::Matrix<int, 4, 4> m;
     m.randint(0, 100);
 
     for (std::size_t i = 0; i < 16; ++i) {
@@ -329,20 +329,20 @@ TEST_CASE("Matrix - randint()") {
 
 TEST_CASE("Constexpr compatibility") {
     SUBCASE("Compile-time zeros") {
-        constexpr auto v = Vector<int, 3>::zeros();
+        constexpr auto v = simd::Vector<int, 3>::zeros();
         static_assert(v[0] == 0);
         static_assert(v[1] == 0);
         static_assert(v[2] == 0);
     }
 
     SUBCASE("Compile-time ones") {
-        constexpr auto v = Vector<float, 2>::ones();
+        constexpr auto v = simd::Vector<float, 2>::ones();
         static_assert(v[0] == 1.0f);
         static_assert(v[1] == 1.0f);
     }
 
     SUBCASE("Compile-time arange") {
-        constexpr auto v = Vector<int, 4>::arange();
+        constexpr auto v = simd::Vector<int, 4>::arange();
         static_assert(v[0] == 0);
         static_assert(v[1] == 1);
         static_assert(v[2] == 2);

@@ -9,6 +9,7 @@
 #include <optinum/lina/lina.hpp>
 #include <optinum/simd/simd.hpp>
 
+namespace dp = datapod;
 namespace lina = optinum::lina;
 namespace simd = optinum::simd;
 
@@ -16,7 +17,7 @@ constexpr std::size_t NUM_ITERATIONS_SMALL = 1000; // For expensive ops like dec
 constexpr std::size_t NUM_ITERATIONS_FAST = 10000; // For fast ops like transpose
 
 template <typename T, std::size_t R, std::size_t C>
-void fill_random_matrix(simd::Matrix<T, R, C> &m, T min_val = -10.0, T max_val = 10.0) {
+void fill_random_matrix(dp::mat::matrix<T, R, C> &m, T min_val = -10.0, T max_val = 10.0) {
     static std::mt19937 gen(42);
     std::uniform_real_distribution<T> dist(min_val, max_val);
     for (std::size_t i = 0; i < R * C; ++i) {
@@ -25,7 +26,7 @@ void fill_random_matrix(simd::Matrix<T, R, C> &m, T min_val = -10.0, T max_val =
 }
 
 template <typename T, std::size_t N>
-void fill_random_vector(simd::Vector<T, N> &v, T min_val = -10.0, T max_val = 10.0) {
+void fill_random_vector(dp::mat::vector<T, N> &v, T min_val = -10.0, T max_val = 10.0) {
     static std::mt19937 gen(42);
     std::uniform_real_distribution<T> dist(min_val, max_val);
     for (std::size_t i = 0; i < N; ++i) {
@@ -34,12 +35,13 @@ void fill_random_vector(simd::Vector<T, N> &v, T min_val = -10.0, T max_val = 10
 }
 
 // Make SPD matrix for Cholesky
-template <typename T, std::size_t N> simd::Matrix<T, N, N> make_spd_matrix() {
-    simd::Matrix<T, N, N> m;
-    fill_random_matrix(m, -1.0, 1.0);
+template <typename T, std::size_t N> dp::mat::matrix<T, N, N> make_spd_matrix() {
+    dp::mat::matrix<T, N, N> m;
+    fill_random_matrix(m, static_cast<T>(-1.0), static_cast<T>(1.0));
     // A^T * A is SPD
-    auto mt = lina::transpose(m);
-    m = lina::matmul(mt, m);
+    dp::mat::matrix<T, N, N> mt;
+    simd::backend::transpose<T, N, N>(mt.data(), m.data());
+    simd::backend::matmul<T, N, N, N>(m.data(), mt.data(), m.data());
     // Add diagonal dominance to ensure positive definiteness
     for (std::size_t i = 0; i < N; ++i) {
         m(i, i) += static_cast<T>(N);
@@ -65,35 +67,37 @@ class Timer {
 // ============================================================================
 
 template <std::size_t M, std::size_t K, std::size_t N> double benchmark_matmul(std::size_t iters) {
-    simd::Matrix<double, M, K> a;
-    simd::Matrix<double, K, N> b;
+    dp::mat::matrix<double, M, K> a;
+    dp::mat::matrix<double, K, N> b;
     fill_random_matrix(a);
     fill_random_matrix(b);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto c = lina::matmul(a, b);
+        dp::mat::matrix<double, M, N> c;
+        simd::backend::matmul<double, M, K, N>(c.data(), a.data(), b.data());
         (void)c;
     }
     return timer.elapsed_ms();
 }
 
 template <std::size_t R, std::size_t C> double benchmark_transpose(std::size_t iters) {
-    simd::Matrix<double, R, C> m;
+    dp::mat::matrix<double, R, C> m;
     fill_random_matrix(m);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto mt = lina::transpose(m);
+        dp::mat::matrix<double, C, R> mt;
+        simd::backend::transpose<double, R, C>(mt.data(), m.data());
         (void)mt;
     }
     return timer.elapsed_ms();
 }
 
 template <std::size_t N> double benchmark_inverse(std::size_t iters) {
-    simd::Matrix<double, N, N> m;
+    dp::mat::matrix<double, N, N> m;
     fill_random_matrix(m, -5.0, 5.0);
     // Ensure invertibility by adding diagonal dominance
     for (std::size_t i = 0; i < N; ++i) {
@@ -103,35 +107,37 @@ template <std::size_t N> double benchmark_inverse(std::size_t iters) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto inv = lina::inverse(m);
+        simd::Matrix<double, N, N> wrapper(m);
+        auto inv = lina::inverse(wrapper);
         (void)inv;
     }
     return timer.elapsed_ms();
 }
 
 template <std::size_t N> double benchmark_determinant(std::size_t iters) {
-    simd::Matrix<double, N, N> m;
+    dp::mat::matrix<double, N, N> m;
     fill_random_matrix(m);
 
     Timer timer;
     timer.start();
     double result = 0.0;
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        result += lina::determinant(m);
+        simd::Matrix<double, N, N> wrapper(m);
+        result += lina::determinant(wrapper);
     }
     (void)result;
     return timer.elapsed_ms();
 }
 
 template <std::size_t N> double benchmark_norm_frobenius(std::size_t iters) {
-    simd::Matrix<double, N, N> m;
+    dp::mat::matrix<double, N, N> m;
     fill_random_matrix(m);
 
     Timer timer;
     timer.start();
     double result = 0.0;
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        result += simd::frobenius_norm(m);
+        result += simd::backend::norm_l2<double, N * N>(m.data());
     }
     (void)result;
     return timer.elapsed_ms();
@@ -142,13 +148,14 @@ template <std::size_t N> double benchmark_norm_frobenius(std::size_t iters) {
 // ============================================================================
 
 template <std::size_t N> double benchmark_lu_decomposition(std::size_t iters) {
-    simd::Matrix<double, N, N> m;
+    dp::mat::matrix<double, N, N> m;
     fill_random_matrix(m);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto result = lina::lu(m);
+        simd::Matrix<double, N, N> wrapper(m);
+        auto result = lina::lu(wrapper);
         (void)result.l;
         (void)result.u;
         (void)result.p;
@@ -157,13 +164,14 @@ template <std::size_t N> double benchmark_lu_decomposition(std::size_t iters) {
 }
 
 template <std::size_t M, std::size_t N> double benchmark_qr_decomposition(std::size_t iters) {
-    simd::Matrix<double, M, N> m;
+    dp::mat::matrix<double, M, N> m;
     fill_random_matrix(m);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto [Q, R] = lina::qr(m);
+        simd::Matrix<double, M, N> wrapper(m);
+        auto [Q, R] = lina::qr(wrapper);
         (void)Q;
         (void)R;
     }
@@ -171,13 +179,14 @@ template <std::size_t M, std::size_t N> double benchmark_qr_decomposition(std::s
 }
 
 template <std::size_t M, std::size_t N> double benchmark_svd(std::size_t iters) {
-    simd::Matrix<double, M, N> m;
+    dp::mat::matrix<double, M, N> m;
     fill_random_matrix(m);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto result = lina::svd(m);
+        simd::Matrix<double, M, N> wrapper(m);
+        auto result = lina::svd(wrapper);
         (void)result.u;
         (void)result.s;
         (void)result.vt;
@@ -191,14 +200,15 @@ template <std::size_t N> double benchmark_cholesky(std::size_t iters) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto L = lina::cholesky(m);
+        simd::Matrix<double, N, N> wrapper(m);
+        auto L = lina::cholesky(wrapper);
         (void)L;
     }
     return timer.elapsed_ms();
 }
 
 template <std::size_t N> double benchmark_eigendecomposition(std::size_t iters) {
-    simd::Matrix<double, N, N> m;
+    dp::mat::matrix<double, N, N> m;
     // Make symmetric for eigendecomposition
     fill_random_matrix(m, -1.0, 1.0);
     for (std::size_t i = 0; i < N; ++i) {
@@ -210,7 +220,8 @@ template <std::size_t N> double benchmark_eigendecomposition(std::size_t iters) 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto result = lina::eigen_sym(m);
+        simd::Matrix<double, N, N> wrapper(m);
+        auto result = lina::eigen_sym(wrapper);
         (void)result.vectors;
         (void)result.values;
     }
@@ -222,8 +233,8 @@ template <std::size_t N> double benchmark_eigendecomposition(std::size_t iters) 
 // ============================================================================
 
 template <std::size_t N> double benchmark_solve(std::size_t iters) {
-    simd::Matrix<double, N, N> A;
-    simd::Vector<double, N> b;
+    dp::mat::matrix<double, N, N> A;
+    dp::mat::vector<double, N> b;
     fill_random_matrix(A);
     fill_random_vector(b);
     // Ensure invertibility
@@ -234,22 +245,26 @@ template <std::size_t N> double benchmark_solve(std::size_t iters) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto x = lina::solve(A, b);
+        simd::Matrix<double, N, N> wrapper_A(A);
+        simd::Vector<double, N> wrapper_b(b);
+        auto x = lina::solve(wrapper_A, wrapper_b);
         (void)x;
     }
     return timer.elapsed_ms();
 }
 
 template <std::size_t M, std::size_t N> double benchmark_lstsq(std::size_t iters) {
-    simd::Matrix<double, M, N> A;
-    simd::Vector<double, M> b;
+    dp::mat::matrix<double, M, N> A;
+    dp::mat::vector<double, M> b;
     fill_random_matrix(A);
     fill_random_vector(b);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto x = lina::lstsq(A, b);
+        simd::Matrix<double, M, N> wrapper_A(A);
+        simd::Vector<double, M> wrapper_b(b);
+        auto x = lina::lstsq(wrapper_A, wrapper_b);
         (void)x;
     }
     return timer.elapsed_ms();
@@ -260,35 +275,39 @@ template <std::size_t M, std::size_t N> double benchmark_lstsq(std::size_t iters
 // ============================================================================
 
 template <std::size_t N> double benchmark_hadamard(std::size_t iters) {
-    simd::Matrix<double, N, N> A, B;
+    dp::mat::matrix<double, N, N> A, B;
     fill_random_matrix(A);
     fill_random_matrix(B);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto C = lina::hadamard(A, B);
+        simd::Matrix<double, N, N> wrapper_A(A);
+        simd::Matrix<double, N, N> wrapper_B(B);
+        auto C = lina::hadamard(wrapper_A, wrapper_B);
         (void)C;
     }
     return timer.elapsed_ms();
 }
 
 template <std::size_t N> double benchmark_outer_product(std::size_t iters) {
-    simd::Vector<double, N> u, v;
+    dp::mat::vector<double, N> u, v;
     fill_random_vector(u);
     fill_random_vector(v);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        auto C = lina::outer(u, v);
+        simd::Vector<double, N> wrapper_u(u);
+        simd::Vector<double, N> wrapper_v(v);
+        auto C = lina::outer(wrapper_u, wrapper_v);
         (void)C;
     }
     return timer.elapsed_ms();
 }
 
 template <std::size_t N> double benchmark_inner_product(std::size_t iters) {
-    simd::Matrix<double, N, N> A, B;
+    dp::mat::matrix<double, N, N> A, B;
     fill_random_matrix(A);
     fill_random_matrix(B);
 
@@ -296,7 +315,9 @@ template <std::size_t N> double benchmark_inner_product(std::size_t iters) {
     timer.start();
     double result = 0.0;
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        result += lina::inner(A, B);
+        simd::Matrix<double, N, N> wrapper_A(A);
+        simd::Matrix<double, N, N> wrapper_B(B);
+        result += lina::inner(wrapper_A, wrapper_B);
     }
     (void)result;
     return timer.elapsed_ms();

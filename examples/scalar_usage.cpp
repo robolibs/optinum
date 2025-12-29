@@ -1,35 +1,28 @@
+#include <datapod/matrix/scalar.hpp>
 #include <iostream>
-#include <optinum/optinum.hpp>
+
+namespace dp = datapod;
 
 int main() {
-    // Create from value
-    optinum::Scalar<float> a(3.14f);
-    optinum::Scalar<float> b(2.0f);
+    // Create scalars using dp::mat::scalar
+    dp::mat::scalar<float> a{3.14f};
+    dp::mat::scalar<float> b{2.0f};
 
-    // Arithmetic
-    auto c = a + b;
-    auto d = a * b;
+    // Arithmetic using value member
+    dp::mat::scalar<float> c{a.value + b.value};
+    dp::mat::scalar<float> d{a.value * b.value};
 
-    std::cout << "a = " << a.get() << "\n";
-    std::cout << "b = " << b.get() << "\n";
-    std::cout << "a + b = " << c.get() << "\n";
-    std::cout << "a * b = " << d.get() << "\n";
+    std::cout << "a = " << a.value << "\n";
+    std::cout << "b = " << b.value << "\n";
+    std::cout << "a + b = " << c.value << "\n";
+    std::cout << "a * b = " << d.value << "\n";
 
-    // Access underlying datapod type
-    datapod::mat::scalar<float> &pod = a.pod();
-    std::cout << "pod.value = " << pod.value << "\n";
+    // Direct access to value
+    std::cout << "a.value = " << a.value << "\n";
 
-    // Create from datapod
-    datapod::mat::scalar<double> raw{42.0};
-    optinum::Scalar<double> wrapped(raw);
-    std::cout << "wrapped = " << wrapped.get() << "\n";
-
-#if defined(SHORT_NAMESPACE)
-    // Short namespace usage
-    on::Scalar<int> x(10);
-    on::Scalar<int> y(20);
-    std::cout << "x + y = " << (x + y).get() << "\n";
-#endif
+    // Create with initializer
+    dp::mat::scalar<double> raw{42.0};
+    std::cout << "raw = " << raw.value << "\n";
 
     return 0;
 }

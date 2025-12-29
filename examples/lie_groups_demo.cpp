@@ -7,8 +7,11 @@
 #include <iomanip>
 #include <iostream>
 #include <optinum/lie/lie.hpp>
+#include <optinum/simd/simd.hpp>
 
-using namespace optinum;
+namespace dp = datapod;
+namespace lie = optinum::lie;
+namespace simd = optinum::simd;
 
 // =============================================================================
 // Example 1: SO2 - 2D Rotations
@@ -45,8 +48,8 @@ void example_so2() {
     std::cout << "exp(60 deg) -> log() = " << theta_back * 180.0 / M_PI << " degrees\n\n";
 
     // Rotate a point using operator*
-    simd::Vector<double, 2> p{1.0, 0.0};
-    simd::Vector<double, 2> p_rotated = R1 * p;
+    dp::mat::vector<double, 2> p{1.0, 0.0};
+    dp::mat::vector<double, 2> p_rotated = R1 * p;
     std::cout << "Rotate [1, 0] by 45 degrees: [" << p_rotated[0] << ", " << p_rotated[1] << "]\n";
     std::cout << "  (expected: [0.707, 0.707])\n";
 }
@@ -71,7 +74,7 @@ void example_se2() {
     std::cout << "T3 = rotation by 45 degrees + translation [1, 0]\n\n";
 
     // Transform a point using operator*
-    simd::Vector<double, 2> p{1.0, 0.0};
+    dp::mat::vector<double, 2> p{1.0, 0.0};
 
     auto p1 = T1 * p;
     std::cout << "T1 * [1, 0] = [" << p1[0] << ", " << p1[1] << "]\n";
@@ -83,7 +86,7 @@ void example_se2() {
 
     // Composition
     lie::SE2d T_composed = T2 * T1; // First translate, then rotate
-    auto p_composed = T_composed * simd::Vector<double, 2>{0.0, 0.0};
+    auto p_composed = T_composed * dp::mat::vector<double, 2>{0.0, 0.0};
     std::cout << "T2 * T1 applied to origin: [" << p_composed[0] << ", " << p_composed[1] << "]\n";
     std::cout << "  (T1 moves to [1,2], T2 rotates to [-2, 1])\n\n";
 
@@ -113,7 +116,7 @@ void example_so3() {
     std::cout << "Rz = 90 deg rotation around Z axis\n\n";
 
     // Rotate a point using operator*
-    simd::Vector<double, 3> p{1.0, 0.0, 0.0};
+    dp::mat::vector<double, 3> p{1.0, 0.0, 0.0};
 
     auto p_rz = Rz * p;
     std::cout << "Rz * [1, 0, 0] = [" << p_rz[0] << ", " << p_rz[1] << ", " << p_rz[2] << "]\n";
@@ -124,7 +127,7 @@ void example_so3() {
     std::cout << "Combined rotation Rz * Ry * Rx created\n\n";
 
     // Exp/Log maps (axis-angle)
-    simd::Vector<double, 3> omega{0.0, 0.0, M_PI / 2}; // 90 deg around Z
+    dp::mat::vector<double, 3> omega{0.0, 0.0, M_PI / 2}; // 90 deg around Z
     lie::SO3d R_from_omega = lie::SO3d::exp(omega);
     auto omega_back = R_from_omega.log();
     std::cout << "exp([0, 0, pi/2]) -> log() = [" << omega_back[0] << ", " << omega_back[1] << ", " << omega_back[2]
@@ -156,7 +159,7 @@ void example_se3() {
     std::cout << "T3 = 45 deg rotation around X + translation [1, 0, 0]\n\n";
 
     // Transform a point using operator*
-    simd::Vector<double, 3> p{1.0, 0.0, 0.0};
+    dp::mat::vector<double, 3> p{1.0, 0.0, 0.0};
 
     auto p1 = T1 * p;
     std::cout << "T1 * [1, 0, 0] = [" << p1[0] << ", " << p1[1] << ", " << p1[2] << "]\n";
@@ -193,14 +196,14 @@ void example_similarity() {
     // Create similarity transform: scale + rotation + translation
     double scale = 2.0;
     lie::SO3d R = lie::SO3d::rot_z(M_PI / 4); // 45 deg rotation
-    simd::Vector<double, 3> t{1.0, 0.0, 0.0};
+    dp::mat::vector<double, 3> t{1.0, 0.0, 0.0};
 
     lie::Sim3d S = lie::Sim3d(lie::RxSO3d(scale, R), t);
 
     std::cout << "Sim3 with scale=2, rotation=45 deg around Z, translation=[1, 0, 0]\n\n";
 
     // Transform a point using operator*
-    simd::Vector<double, 3> p{1.0, 0.0, 0.0};
+    dp::mat::vector<double, 3> p{1.0, 0.0, 0.0};
     auto p_transformed = S * p;
     std::cout << "S * [1, 0, 0] = [" << p_transformed[0] << ", " << p_transformed[1] << ", " << p_transformed[2]
               << "]\n";

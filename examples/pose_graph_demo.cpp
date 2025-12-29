@@ -12,11 +12,16 @@
 #include <iomanip>
 #include <iostream>
 #include <optinum/lie/lie.hpp>
-#include <optinum/optinum.hpp>
+#include <optinum/opti/opti.hpp>
+#include <optinum/simd/simd.hpp>
 #include <random>
 #include <vector>
 
-using namespace optinum;
+namespace dp = datapod;
+namespace lie = optinum::lie;
+namespace opti = optinum::opti;
+namespace simd = optinum::simd;
+using dp::mat::Dynamic;
 
 // =============================================================================
 // Example 1: Simple Pose Chain
@@ -115,7 +120,7 @@ void example_pose_chain() {
         double total_error = 0.0;
         for (int i = 1; i < num_poses; ++i) {
             auto twist = (poses_true[i].inverse() * poses[i]).log();
-            total_error += simd::dot(twist, twist);
+            total_error += simd::backend::dot<double, 6>(twist.data(), twist.data());
         }
         return std::sqrt(total_error / (num_poses - 1));
     };

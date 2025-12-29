@@ -1,47 +1,52 @@
 #include <iostream>
-#include <optinum/optinum.hpp>
+#include <optinum/lina/lina.hpp>
+#include <optinum/simd/simd.hpp>
+
+namespace dp = datapod;
+namespace lina = optinum::lina;
+namespace simd = optinum::simd;
 
 int main() {
-    // Create tensors
-    optinum::Vector<float, 3> a;
-    a[0] = 1.0f;
-    a[1] = 2.0f;
-    a[2] = 3.0f;
+    // Create vectors using dp::mat::vector
+    dp::mat::vector<float, 3> a{1.0f, 2.0f, 3.0f};
 
-    optinum::Vector<float, 3> b;
+    dp::mat::vector<float, 3> b;
     b.fill(2.0f);
 
-    // Element-wise operations
-    auto c = a + b;
-    auto d = a * b;
+    // Element-wise operations using SIMD backend
+    dp::mat::vector<float, 3> c;
+    simd::backend::add<float, 3>(c.data(), a.data(), b.data());
+
+    dp::mat::vector<float, 3> d;
+    simd::backend::mul<float, 3>(d.data(), a.data(), b.data());
 
     std::cout << "a = [" << a[0] << ", " << a[1] << ", " << a[2] << "]\n";
     std::cout << "b = [" << b[0] << ", " << b[1] << ", " << b[2] << "]\n";
     std::cout << "a + b = [" << c[0] << ", " << c[1] << ", " << c[2] << "]\n";
     std::cout << "a * b = [" << d[0] << ", " << d[1] << ", " << d[2] << "]\n";
 
-    // Scalar operations
-    auto scaled = a * 3.0f;
+    // Scalar operations using SIMD backend
+    dp::mat::vector<float, 3> scaled;
+    simd::backend::mul_scalar<float, 3>(scaled.data(), a.data(), 3.0f);
     std::cout << "a * 3 = [" << scaled[0] << ", " << scaled[1] << ", " << scaled[2] << "]\n";
 
-    // Dot product and norm
-    std::cout << "dot(a, b) = " << optinum::lina::dot(a, b) << "\n";
-    std::cout << "sum(a) = " << optinum::simd::sum(a) << "\n";
-    std::cout << "norm(a) = " << optinum::lina::norm(a) << "\n";
+    // Dot product and norm using SIMD backend
+    std::cout << "dot(a, b) = " << simd::backend::dot<float, 3>(a.data(), b.data()) << "\n";
+    std::cout << "sum(a) = " << simd::backend::reduce_sum<float, 3>(a.data()) << "\n";
+    std::cout << "norm(a) = " << simd::backend::norm_l2<float, 3>(a.data()) << "\n";
 
-    // Normalized
-    auto n = optinum::simd::normalized(a);
+    // Normalized using SIMD backend
+    dp::mat::vector<float, 3> n;
+    simd::backend::normalize<float, 3>(n.data(), a.data());
     std::cout << "normalized(a) = [" << n[0] << ", " << n[1] << ", " << n[2] << "]\n";
-    std::cout << "norm(normalized(a)) = " << optinum::lina::norm(n) << "\n";
+    std::cout << "norm(normalized(a)) = " << simd::backend::norm_l2<float, 3>(n.data()) << "\n";
 
-    // Access underlying datapod type
-    datapod::mat::vector<float, 3> &pod = a.pod();
-    std::cout << "pod[0] = " << pod[0] << "\n";
+    // Direct access to dp::mat::vector
+    std::cout << "a[0] = " << a[0] << "\n";
 
-    // Create from datapod
-    datapod::mat::vector<double, 4> raw{1.0, 2.0, 3.0, 4.0};
-    optinum::Vector<double, 4> wrapped(raw);
-    std::cout << "wrapped = [" << wrapped[0] << ", " << wrapped[1] << ", " << wrapped[2] << ", " << wrapped[3] << "]\n";
+    // Create vector with initializer list
+    dp::mat::vector<double, 4> raw{1.0, 2.0, 3.0, 4.0};
+    std::cout << "raw = [" << raw[0] << ", " << raw[1] << ", " << raw[2] << ", " << raw[3] << "]\n";
 
     // Iteration
     std::cout << "iterating a: ";
@@ -49,15 +54,6 @@ int main() {
         std::cout << val << " ";
     }
     std::cout << "\n";
-
-#if defined(SHORT_NAMESPACE)
-    // Short namespace
-    on::Vector<float, 3> v;
-    v[0] = 1.0f;
-    v[1] = 0.0f;
-    v[2] = 0.0f;
-    std::cout << "on::Vector<float, 3> norm = " << optinum::lina::norm(v) << "\n";
-#endif
 
     return 0;
 }
