@@ -1,6 +1,8 @@
 #pragma once
 
 #include <optinum/lie/core/constants.hpp>
+#include <optinum/simd/backend/cross.hpp>
+#include <optinum/simd/backend/matmul.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -289,20 +291,26 @@ namespace optinum::lie {
 
         // Rotate a 3D point: R * p  (equivalent to q * p * q^-1)
         [[nodiscard]] Point operator*(const Point &p) const noexcept {
-            // Optimized rotation using quaternion
+            // Optimized rotation using quaternion with SIMD cross product utilities
             // v' = q * v * q^-1 = v + 2*w*(q_v x v) + 2*(q_v x (q_v x v))
             // where q_v = [x, y, z]
 
-            // t = 2 * (q_v x v)
-            const T tx = T(2) * (q_.y * p[2] - q_.z * p[1]);
-            const T ty = T(2) * (q_.z * p[0] - q_.x * p[2]);
-            const T tz = T(2) * (q_.x * p[1] - q_.y * p[0]);
+            // q_v as array for SIMD cross product
+            const T q_v[3] = {q_.x, q_.y, q_.z};
 
-            // v' = v + w*t + (q_v x t)
+            // t = 2 * (q_v x v)
+            T t[3];
+            simd::backend::cross_scale(q_v, p.data(), T(2), t);
+
+            // t2 = q_v x t
+            T t2[3];
+            simd::backend::cross(q_v, t, t2);
+
+            // v' = v + w*t + t2
             Point result;
-            result[0] = p[0] + q_.w * tx + (q_.y * tz - q_.z * ty);
-            result[1] = p[1] + q_.w * ty + (q_.z * tx - q_.x * tz);
-            result[2] = p[2] + q_.w * tz + (q_.x * ty - q_.y * tx);
+            result[0] = p[0] + q_.w * t[0] + t2[0];
+            result[1] = p[1] + q_.w * t[1] + t2[1];
+            result[2] = p[2] + q_.w * t[2] + t2[2];
 
             return result;
         }
@@ -407,25 +415,20 @@ namespace optinum::lie {
             const T a = (T(1) - c) / theta_sq;            // (1-cos)/theta^2
             const T b = (theta - s) / (theta_sq * theta); // (theta-sin)/theta^3
 
-            // hat(omega)
-            auto Omega = hat(omega);
+            // hat(omega) using SIMD skew utility
+            T Omega_data[9];
+            simd::backend::skew(omega.data(), Omega_data);
 
-            // hat(omega)^2
-            RotationMatrix Omega2;
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    T sum = T(0);
-                    for (int k = 0; k < 3; ++k) {
-                        sum += Omega(i, k) * Omega(k, j);
-                    }
-                    Omega2(i, j) = sum;
-                }
-            }
+            // hat(omega)^2 using SIMD matmul
+            T Omega2_data[9];
+            simd::backend::matmul<T, 3, 3, 3>(Omega2_data, Omega_data, Omega_data);
 
             // J = I + a * Omega + b * Omega^2
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    J(i, j) = (i == j ? T(1) : T(0)) + a * Omega(i, j) + b * Omega2(i, j);
+            // Column-major layout: J[col*3 + row]
+            for (int col = 0; col < 3; ++col) {
+                for (int row = 0; row < 3; ++row) {
+                    const int idx = col * 3 + row;
+                    J(row, col) = (row == col ? T(1) : T(0)) + a * Omega_data[idx] + b * Omega2_data[idx];
                 }
             }
 
@@ -461,25 +464,20 @@ namespace optinum::lie {
             const T cot_half = T(1) / std::tan(half_theta);
             const T a = T(1) / theta_sq - cot_half / (T(2) * theta);
 
-            // hat(omega)
-            auto Omega = hat(omega);
+            // hat(omega) using SIMD skew utility
+            T Omega_data[9];
+            simd::backend::skew(omega.data(), Omega_data);
 
-            // hat(omega)^2
-            RotationMatrix Omega2;
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    T sum = T(0);
-                    for (int k = 0; k < 3; ++k) {
-                        sum += Omega(i, k) * Omega(k, j);
-                    }
-                    Omega2(i, j) = sum;
-                }
-            }
+            // hat(omega)^2 using SIMD matmul
+            T Omega2_data[9];
+            simd::backend::matmul<T, 3, 3, 3>(Omega2_data, Omega_data, Omega_data);
 
             // J^-1 = I - 0.5*Omega + a*Omega^2
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    J_inv(i, j) = (i == j ? T(1) : T(0)) - T(0.5) * Omega(i, j) + a * Omega2(i, j);
+            // Column-major layout: J[col*3 + row]
+            for (int col = 0; col < 3; ++col) {
+                for (int row = 0; row < 3; ++row) {
+                    const int idx = col * 3 + row;
+                    J_inv(row, col) = (row == col ? T(1) : T(0)) - T(0.5) * Omega_data[idx] + a * Omega2_data[idx];
                 }
             }
 
