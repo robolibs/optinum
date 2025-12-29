@@ -180,12 +180,14 @@ namespace optinum::simd {
 
         // Load/Store
         static OPTINUM_INLINE pack load_aligned(const float *ptr) noexcept { return pack(vld1q_f32(ptr)); }
-
         static OPTINUM_INLINE pack load_unaligned(const float *ptr) noexcept { return pack(vld1q_f32(ptr)); }
+        static OPTINUM_INLINE pack load(const float *ptr) noexcept { return pack(vld1q_f32(ptr)); }
+        static OPTINUM_INLINE pack loadu(const float *ptr) noexcept { return pack(vld1q_f32(ptr)); }
 
         OPTINUM_INLINE void store_aligned(float *ptr) const noexcept { vst1q_f32(ptr, data_); }
-
         OPTINUM_INLINE void store_unaligned(float *ptr) const noexcept { vst1q_f32(ptr, data_); }
+        OPTINUM_INLINE void store(float *ptr) const noexcept { vst1q_f32(ptr, data_); }
+        OPTINUM_INLINE void storeu(float *ptr) const noexcept { vst1q_f32(ptr, data_); }
 
         // Accessors
         OPTINUM_INLINE native_type native() const noexcept { return data_; }
@@ -290,10 +292,17 @@ namespace optinum::simd {
             return pack(estimate);
         }
 
-        // Min/Max
+        // Min/Max (member functions)
         OPTINUM_INLINE pack min(const pack &other) const noexcept { return pack(vminq_f32(data_, other.data_)); }
-
         OPTINUM_INLINE pack max(const pack &other) const noexcept { return pack(vmaxq_f32(data_, other.data_)); }
+
+        // Min/Max (static functions for SSE/AVX API compatibility)
+        static OPTINUM_INLINE pack min(const pack &a, const pack &b) noexcept {
+            return pack(vminq_f32(a.data_, b.data_));
+        }
+        static OPTINUM_INLINE pack max(const pack &a, const pack &b) noexcept {
+            return pack(vmaxq_f32(a.data_, b.data_));
+        }
 
         // FMA/FMS
         OPTINUM_INLINE pack fmadd(const pack &b, const pack &c) const noexcept {
@@ -309,6 +318,23 @@ namespace optinum::simd {
             return pack(vfmsq_f32(c.data_, data_, b.data_)); // c - a * b
 #else
             return c - *this * b;
+#endif
+        }
+
+        // Static FMA/FMS (compatible with SSE/AVX API)
+        static OPTINUM_INLINE pack fma(const pack &a, const pack &b, const pack &c) noexcept {
+#ifdef __aarch64__
+            return pack(vfmaq_f32(c.data_, a.data_, b.data_)); // a * b + c
+#else
+            return a * b + c;
+#endif
+        }
+
+        static OPTINUM_INLINE pack fms(const pack &a, const pack &b, const pack &c) noexcept {
+#ifdef __aarch64__
+            return pack(vfmsq_f32(c.data_, a.data_, b.data_)); // a * b - c (note: vfms computes c - a*b)
+#else
+            return a * b - c;
 #endif
         }
 
@@ -449,12 +475,14 @@ namespace optinum::simd {
 
         // Load/Store
         static OPTINUM_INLINE pack load_aligned(const double *ptr) noexcept { return pack(vld1q_f64(ptr)); }
-
         static OPTINUM_INLINE pack load_unaligned(const double *ptr) noexcept { return pack(vld1q_f64(ptr)); }
+        static OPTINUM_INLINE pack load(const double *ptr) noexcept { return pack(vld1q_f64(ptr)); }
+        static OPTINUM_INLINE pack loadu(const double *ptr) noexcept { return pack(vld1q_f64(ptr)); }
 
         OPTINUM_INLINE void store_aligned(double *ptr) const noexcept { vst1q_f64(ptr, data_); }
-
         OPTINUM_INLINE void store_unaligned(double *ptr) const noexcept { vst1q_f64(ptr, data_); }
+        OPTINUM_INLINE void store(double *ptr) const noexcept { vst1q_f64(ptr, data_); }
+        OPTINUM_INLINE void storeu(double *ptr) const noexcept { vst1q_f64(ptr, data_); }
 
         // Accessors
         OPTINUM_INLINE native_type native() const noexcept { return data_; }
@@ -528,10 +556,17 @@ namespace optinum::simd {
             return pack(vdivq_f64(vdupq_n_f64(1.0), data_));
         }
 
-        // Min/Max
+        // Min/Max (member functions)
         OPTINUM_INLINE pack min(const pack &other) const noexcept { return pack(vminq_f64(data_, other.data_)); }
-
         OPTINUM_INLINE pack max(const pack &other) const noexcept { return pack(vmaxq_f64(data_, other.data_)); }
+
+        // Min/Max (static functions for SSE/AVX API compatibility)
+        static OPTINUM_INLINE pack min(const pack &a, const pack &b) noexcept {
+            return pack(vminq_f64(a.data_, b.data_));
+        }
+        static OPTINUM_INLINE pack max(const pack &a, const pack &b) noexcept {
+            return pack(vmaxq_f64(a.data_, b.data_));
+        }
 
         // FMA/FMS
         OPTINUM_INLINE pack fmadd(const pack &b, const pack &c) const noexcept {
@@ -540,6 +575,15 @@ namespace optinum::simd {
 
         OPTINUM_INLINE pack fmsub(const pack &b, const pack &c) const noexcept {
             return pack(vfmsq_f64(c.data_, data_, b.data_)); // c - a * b
+        }
+
+        // Static FMA/FMS (compatible with SSE/AVX API)
+        static OPTINUM_INLINE pack fma(const pack &a, const pack &b, const pack &c) noexcept {
+            return pack(vfmaq_f64(c.data_, a.data_, b.data_)); // a * b + c
+        }
+
+        static OPTINUM_INLINE pack fms(const pack &a, const pack &b, const pack &c) noexcept {
+            return pack(vfmsq_f64(c.data_, a.data_, b.data_)); // a * b - c
         }
 
         // Dot product
@@ -657,12 +701,14 @@ namespace optinum::simd {
 
         // Load/Store
         static OPTINUM_INLINE pack load_aligned(const int32_t *ptr) noexcept { return pack(vld1q_s32(ptr)); }
-
         static OPTINUM_INLINE pack load_unaligned(const int32_t *ptr) noexcept { return pack(vld1q_s32(ptr)); }
+        static OPTINUM_INLINE pack load(const int32_t *ptr) noexcept { return pack(vld1q_s32(ptr)); }
+        static OPTINUM_INLINE pack loadu(const int32_t *ptr) noexcept { return pack(vld1q_s32(ptr)); }
 
         OPTINUM_INLINE void store_aligned(int32_t *ptr) const noexcept { vst1q_s32(ptr, data_); }
-
         OPTINUM_INLINE void store_unaligned(int32_t *ptr) const noexcept { vst1q_s32(ptr, data_); }
+        OPTINUM_INLINE void store(int32_t *ptr) const noexcept { vst1q_s32(ptr, data_); }
+        OPTINUM_INLINE void storeu(int32_t *ptr) const noexcept { vst1q_s32(ptr, data_); }
 
         // Accessors
         OPTINUM_INLINE native_type native() const noexcept { return data_; }
@@ -738,8 +784,15 @@ namespace optinum::simd {
         OPTINUM_INLINE pack abs() const noexcept { return pack(vabsq_s32(data_)); }
 
         OPTINUM_INLINE pack min(const pack &other) const noexcept { return pack(vminq_s32(data_, other.data_)); }
-
         OPTINUM_INLINE pack max(const pack &other) const noexcept { return pack(vmaxq_s32(data_, other.data_)); }
+
+        // Min/Max (static functions for SSE/AVX API compatibility)
+        static OPTINUM_INLINE pack min(const pack &a, const pack &b) noexcept {
+            return pack(vminq_s32(a.data_, b.data_));
+        }
+        static OPTINUM_INLINE pack max(const pack &a, const pack &b) noexcept {
+            return pack(vmaxq_s32(a.data_, b.data_));
+        }
 
         // Dot product
         OPTINUM_INLINE int32_t dot(const pack &other) const noexcept { return (*this * other).hsum(); }
@@ -816,12 +869,14 @@ namespace optinum::simd {
 
         // Load/Store
         static OPTINUM_INLINE pack load_aligned(const int64_t *ptr) noexcept { return pack(vld1q_s64(ptr)); }
-
         static OPTINUM_INLINE pack load_unaligned(const int64_t *ptr) noexcept { return pack(vld1q_s64(ptr)); }
+        static OPTINUM_INLINE pack load(const int64_t *ptr) noexcept { return pack(vld1q_s64(ptr)); }
+        static OPTINUM_INLINE pack loadu(const int64_t *ptr) noexcept { return pack(vld1q_s64(ptr)); }
 
         OPTINUM_INLINE void store_aligned(int64_t *ptr) const noexcept { vst1q_s64(ptr, data_); }
-
         OPTINUM_INLINE void store_unaligned(int64_t *ptr) const noexcept { vst1q_s64(ptr, data_); }
+        OPTINUM_INLINE void store(int64_t *ptr) const noexcept { vst1q_s64(ptr, data_); }
+        OPTINUM_INLINE void storeu(int64_t *ptr) const noexcept { vst1q_s64(ptr, data_); }
 
         // Accessors
         OPTINUM_INLINE native_type native() const noexcept { return data_; }
@@ -933,6 +988,10 @@ namespace optinum::simd {
             result[1] = a[1] > b[1] ? a[1] : b[1];
             return pack(vld1q_s64(result));
         }
+
+        // Min/Max (static functions for SSE/AVX API compatibility)
+        static OPTINUM_INLINE pack min(const pack &a, const pack &b) noexcept { return a.min(b); }
+        static OPTINUM_INLINE pack max(const pack &a, const pack &b) noexcept { return a.max(b); }
 
         // Dot product
         OPTINUM_INLINE int64_t dot(const pack &other) const noexcept { return (*this * other).hsum(); }
