@@ -10,8 +10,17 @@
 #include <optinum/simd/arch/arch.hpp>
 #include <optinum/simd/math/exp.hpp>
 #include <optinum/simd/math/log.hpp>
+#include <optinum/simd/pack/pack.hpp>
+#if defined(OPTINUM_HAS_AVX)
 #include <optinum/simd/pack/avx.hpp>
+#endif
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 

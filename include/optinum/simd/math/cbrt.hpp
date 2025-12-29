@@ -11,8 +11,17 @@
 #include <cstdint>
 #include <cstring>
 #include <optinum/simd/arch/arch.hpp>
+#include <optinum/simd/pack/pack.hpp>
+#if defined(OPTINUM_HAS_AVX)
 #include <optinum/simd/pack/avx.hpp>
+#endif
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 
@@ -22,6 +31,7 @@ namespace optinum::simd {
     // =========================================================================
     // pack<float, 4> - SSE implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_SSE2)
 
     template <> inline pack<float, 4> cbrt(const pack<float, 4> &x) noexcept {
         __m128 vx = x.data_;
@@ -62,9 +72,12 @@ namespace optinum::simd {
         return pack<float, 4>(vresult);
     }
 
+#endif // OPTINUM_HAS_SSE2
+
     // =========================================================================
     // pack<float, 8> - AVX implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
 
     template <> inline pack<float, 8> cbrt(const pack<float, 8> &x) noexcept {
         __m256 vx = x.data_;
@@ -104,6 +117,8 @@ namespace optinum::simd {
 
         return pack<float, 8>(vresult);
     }
+
+#endif // OPTINUM_HAS_AVX
 
     // =========================================================================
     // pack<double, 2> - SSE implementation

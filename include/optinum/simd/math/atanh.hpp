@@ -8,9 +8,17 @@
 
 #include <optinum/simd/mask.hpp>
 #include <optinum/simd/math/log.hpp>
+#if defined(OPTINUM_HAS_AVX)
 #include <optinum/simd/pack/avx.hpp>
+#endif
 #include <optinum/simd/pack/pack.hpp>
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 
