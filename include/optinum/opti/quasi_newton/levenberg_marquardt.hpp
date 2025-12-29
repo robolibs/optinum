@@ -11,6 +11,8 @@
 #include <optinum/lina/decompose/lu.hpp>
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/types.hpp>
+#include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
 #include <algorithm>
@@ -201,14 +203,13 @@ namespace optinum::opti {
                     break;
                 }
 
-                // Step 4: Try the step and evaluate new error
+                // Step 4: Try the step and evaluate new error (SIMD-optimized)
                 vector_type x_new;
                 if constexpr (N == dp::mat::Dynamic) {
                     x_new.resize(n);
                 }
-                for (std::size_t i = 0; i < n; ++i) {
-                    x_new[i] = x[i] + dx[i];
-                }
+                // x_new = x + 1.0 * dx
+                simd::backend::axpy_runtime<T>(x_new.data(), x.data(), T(1), dx.data(), n);
                 auto r_new = residual_func(x_new);
                 T new_error = compute_squared_error(r_new);
 
@@ -317,18 +318,16 @@ namespace optinum::opti {
         }
 
         /**
-         * @brief Compute squared error ||r||^2 / 2
+         * @brief Compute squared error ||r||^2 / 2 (SIMD-optimized)
          */
         template <std::size_t M> T compute_squared_error(const dp::mat::vector<T, M> &r) {
-            T sum = T(0);
-            for (std::size_t i = 0; i < r.size(); ++i) {
-                sum += r[i] * r[i];
-            }
+            // Use SIMD dot product: ||r||^2 = r · r
+            T sum = simd::backend::dot_runtime<T>(r.data(), r.data(), r.size());
             return sum / T(2);
         }
 
         /**
-         * @brief Compute gradient g = J^T * r
+         * @brief Compute gradient g = J^T * r (SIMD-optimized for column-major J)
          */
         template <std::size_t N, std::size_t M>
         dp::mat::vector<T, N> compute_gradient(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
@@ -341,12 +340,11 @@ namespace optinum::opti {
                 g.resize(n);
             }
 
+            // For column-major matrix, column i is contiguous at J.data() + i*m
+            const T *r_ptr = r.data();
             for (std::size_t i = 0; i < n; ++i) {
-                T sum = T(0);
-                for (std::size_t j = 0; j < m; ++j) {
-                    sum += J(j, i) * r[j];
-                }
-                g[i] = sum;
+                const T *col_i = J.data() + i * m;
+                g[i] = simd::backend::dot_runtime<T>(col_i, r_ptr, m);
             }
 
             return g;
@@ -369,17 +367,16 @@ namespace optinum::opti {
             }
             simd::view(dx).fill(T(0));
 
-            // Build J^T * J + λ*I
+            // Build J^T * J + λ*I using SIMD dot products
             dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> A(n, n);
             simd::view(A).fill(T(0));
 
-            // Compute upper triangle (symmetric)
+            // Compute upper triangle (symmetric) - columns are contiguous in column-major
             for (std::size_t i = 0; i < n; ++i) {
+                const T *col_i = J.data() + i * m;
                 for (std::size_t j = i; j < n; ++j) {
-                    T sum = T(0);
-                    for (std::size_t k = 0; k < m; ++k) {
-                        sum += J(k, i) * J(k, j);
-                    }
+                    const T *col_j = J.data() + j * m;
+                    T sum = simd::backend::dot_runtime<T>(col_i, col_j, m);
                     A(i, j) = sum;
                     if (i != j) {
                         A(j, i) = sum; // Symmetric
@@ -392,16 +389,13 @@ namespace optinum::opti {
                 A(i, i) += lambda;
             }
 
-            // Build -J^T * r
+            // Build -J^T * r using SIMD dot products
             dp::mat::vector<T, dp::mat::Dynamic> b;
             b.resize(n);
-            simd::view(b).fill(T(0));
+            const T *r_ptr = r.data();
             for (std::size_t i = 0; i < n; ++i) {
-                T sum = T(0);
-                for (std::size_t j = 0; j < m; ++j) {
-                    sum += J(j, i) * r[j];
-                }
-                b[i] = -sum;
+                const T *col_i = J.data() + i * m;
+                b[i] = -simd::backend::dot_runtime<T>(col_i, r_ptr, m);
             }
 
             // Gaussian elimination with partial pivoting
