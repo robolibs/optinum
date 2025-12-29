@@ -1,6 +1,7 @@
 #pragma once
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/backend.hpp>
 
 namespace optinum::opti {
 
@@ -67,10 +68,52 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            // Nesterov update:
+            // SIMD-optimized Nesterov update
             // 1. v_new = μ * v - α * g
             // 2. x_new = x + μ * v_new - α * g
-            for (std::size_t i = 0; i < n; ++i) {
+            constexpr std::size_t W = 4; // AVX: 4 doubles
+            using pack_t = simd::pack<double, W>;
+
+            const pack_t mu(momentum);
+            const pack_t neg_alpha(-double(step_size));
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load velocity
+                auto v_pack = pack_t::loadu(v_ptr + i);
+
+                // Load gradient (convert to double if needed)
+                pack_t g_pack;
+                if constexpr (std::is_same_v<T, double>) {
+                    g_pack = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g_pack = pack_t::loadu(g_tmp);
+                }
+
+                // v_new = momentum * v - step_size * g
+                auto v_new = pack_t::fma(mu, v_pack, neg_alpha * g_pack);
+                v_new.storeu(v_ptr + i);
+
+                // x_new = x + momentum * v_new - step_size * g
+                // = x + momentum * v_new + neg_alpha * g
+                auto update = pack_t::fma(mu, v_new, neg_alpha * g_pack);
+
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack + update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] += T(update[j]);
+                    }
+                }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
                 double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
                 v_ptr[i] = v_new;
                 x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];

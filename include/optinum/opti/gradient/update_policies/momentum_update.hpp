@@ -1,6 +1,7 @@
 #pragma once
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/backend.hpp>
 
 namespace optinum::opti {
 
@@ -58,8 +59,47 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            // Update velocity and position
-            for (std::size_t i = 0; i < n; ++i) {
+            // SIMD-optimized momentum update
+            constexpr std::size_t W = 4; // AVX: 4 doubles
+            using pack_t = simd::pack<double, W>;
+
+            const pack_t mu(momentum);
+            const pack_t neg_alpha(-double(step_size));
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load velocity
+                auto v_pack = pack_t::loadu(v_ptr + i);
+
+                // Load gradient (convert to double if needed)
+                pack_t g_pack;
+                if constexpr (std::is_same_v<T, double>) {
+                    g_pack = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g_pack = pack_t::loadu(g_tmp);
+                }
+
+                // v = momentum * v - step_size * g = fma(mu, v, neg_alpha * g)
+                auto v_new = pack_t::fma(mu, v_pack, neg_alpha * g_pack);
+                v_new.storeu(v_ptr + i);
+
+                // x += v
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack + v_new).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] += T(v_new[j]);
+                    }
+                }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
                 v_ptr[i] = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
                 x_ptr[i] += T(v_ptr[i]);
             }
