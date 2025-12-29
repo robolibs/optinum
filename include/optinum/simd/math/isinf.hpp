@@ -31,6 +31,7 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE2)
 
+#if defined(OPTINUM_HAS_SSE2)
     template <> inline mask<float, 4> isinf(const pack<float, 4> &x) noexcept {
         __m128 vx = x.data_;
 
@@ -52,6 +53,9 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_AVX)
 
+#endif // OPTINUM_HAS_SSE2
+
+#if defined(OPTINUM_HAS_AVX)
     template <> inline mask<float, 8> isinf(const pack<float, 8> &x) noexcept {
         __m256 vx = x.data_;
 
@@ -69,6 +73,8 @@ namespace optinum::simd {
 #endif // OPTINUM_HAS_AVX
 
     // =========================================================================
+#endif // OPTINUM_HAS_AVX
+
     // pack<double, 2> - SSE implementation
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE2)

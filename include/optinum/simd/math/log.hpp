@@ -38,6 +38,7 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE2)
 
+#if defined(OPTINUM_HAS_SSE2)
     template <> inline pack<float, 4> log(const pack<float, 4> &x) noexcept {
         using namespace detail;
 
@@ -116,6 +117,9 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_AVX)
 
+#endif // OPTINUM_HAS_SSE2
+
+#if defined(OPTINUM_HAS_AVX)
     template <> inline pack<float, 8> log(const pack<float, 8> &x) noexcept {
         using namespace detail;
 
@@ -190,6 +194,8 @@ namespace optinum::simd {
 #endif // OPTINUM_HAS_AVX
 
     // =========================================================================
+#endif // OPTINUM_HAS_AVX
+
     // pack<double, 2> - SSE implementation
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE41)

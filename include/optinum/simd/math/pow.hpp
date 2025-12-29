@@ -32,6 +32,7 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE41)
 
+#if defined(OPTINUM_HAS_SSE2)
     template <> inline pack<float, 4> pow(const pack<float, 4> &x, const pack<float, 4> &y) noexcept {
         // pow(x, y) = exp(y * log(x))
         pack<float, 4> log_x = log(x);
@@ -46,6 +47,9 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_AVX)
 
+#endif // OPTINUM_HAS_SSE2
+
+#if defined(OPTINUM_HAS_AVX)
     template <> inline pack<float, 8> pow(const pack<float, 8> &x, const pack<float, 8> &y) noexcept {
         pack<float, 8> log_x = log(x);
         __m256 y_log_x = _mm256_mul_ps(y.data_, log_x.data_);
@@ -55,6 +59,8 @@ namespace optinum::simd {
 #endif // OPTINUM_HAS_AVX
 
     // =========================================================================
+#endif // OPTINUM_HAS_AVX
+
     // pack<double, 2> - SSE implementation
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE41)

@@ -32,6 +32,7 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE41)
 
+#if defined(OPTINUM_HAS_SSE2)
     template <> inline pack<float, 4> tan(const pack<float, 4> &x) noexcept {
         // Compute sin(x) and cos(x)
         pack<float, 4> sin_x = sin(x);
@@ -50,6 +51,9 @@ namespace optinum::simd {
     // =========================================================================
 #if defined(OPTINUM_HAS_AVX)
 
+#endif // OPTINUM_HAS_SSE2
+
+#if defined(OPTINUM_HAS_AVX)
     template <> inline pack<float, 8> tan(const pack<float, 8> &x) noexcept {
         // Compute sin(x) and cos(x)
         pack<float, 8> sin_x = sin(x);
@@ -64,6 +68,8 @@ namespace optinum::simd {
 #endif // OPTINUM_HAS_AVX
 
     // =========================================================================
+#endif // OPTINUM_HAS_AVX
+
     // pack<double, 2> - SSE implementation
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE41)

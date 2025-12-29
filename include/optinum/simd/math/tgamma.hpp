@@ -16,11 +16,13 @@
 #include <optinum/simd/math/exp.hpp>
 #include <optinum/simd/math/lgamma.hpp>
 #include <optinum/simd/pack/pack.hpp>
-#if defined(OPTINUM_HAS_AVX)
-#include <optinum/simd/pack/avx.hpp>
-#endif
+
 #if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_AVX)
+#include <optinum/simd/pack/avx.hpp>
 #endif
 
 #if defined(OPTINUM_HAS_NEON)
@@ -36,48 +38,40 @@ namespace optinum::simd {
 // SSE Implementation for float (W=4)
 // =============================================================================
 #if defined(OPTINUM_HAS_SSE41)
-
     template <> inline pack<float, 4> tgamma(const pack<float, 4> &x) noexcept {
         // tgamma(x) = exp(lgamma(x))
         return exp(lgamma(x));
     }
-
 #endif // OPTINUM_HAS_SSE41
 
 // =============================================================================
 // AVX Implementation for float (W=8)
 // =============================================================================
 #if defined(OPTINUM_HAS_AVX)
-
     template <> inline pack<float, 8> tgamma(const pack<float, 8> &x) noexcept {
         // tgamma(x) = exp(lgamma(x))
         return exp(lgamma(x));
     }
-
 #endif // OPTINUM_HAS_AVX
 
 // =============================================================================
 // SSE Implementation for double (W=2)
 // =============================================================================
 #if defined(OPTINUM_HAS_SSE41)
-
     template <> inline pack<double, 2> tgamma(const pack<double, 2> &x) noexcept {
         // tgamma(x) = exp(lgamma(x))
         return exp(lgamma(x));
     }
-
 #endif // OPTINUM_HAS_SSE41
 
 // =============================================================================
 // AVX Implementation for double (W=4)
 // =============================================================================
 #if defined(OPTINUM_HAS_AVX)
-
     template <> inline pack<double, 4> tgamma(const pack<double, 4> &x) noexcept {
         // tgamma(x) = exp(lgamma(x))
         return exp(lgamma(x));
     }
-
 #endif // OPTINUM_HAS_AVX
 
 } // namespace optinum::simd
