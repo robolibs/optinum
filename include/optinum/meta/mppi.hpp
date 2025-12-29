@@ -29,6 +29,7 @@
 #include <vector>
 
 #include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
@@ -194,11 +195,9 @@ namespace optinum::meta {
             for (std::size_t k = 0; k < K; ++k) {
                 noise_samples[k].resize(H);
 
-                // Initialize state for this rollout
+                // Initialize state for this rollout (SIMD copy)
                 dp::mat::vector<T, dp::mat::Dynamic> state(initial_state.size());
-                for (std::size_t i = 0; i < initial_state.size(); ++i) {
-                    state[i] = initial_state[i];
-                }
+                simd::backend::copy_runtime<T>(state.data(), initial_state.data(), state_dim);
                 T trajectory_cost = T{0};
 
                 // Rollout trajectory
@@ -209,13 +208,12 @@ namespace optinum::meta {
                         noise_samples[k][t][d] = noise_dist(rng);
                     }
 
-                    // Compute noisy control: u = mean + noise
+                    // Compute noisy control: u = mean + noise (SIMD-optimized)
                     dp::mat::vector<T, dp::mat::Dynamic> control(control_dim);
-                    for (std::size_t d = 0; d < control_dim; ++d) {
-                        control[d] = mean_controls_[t][d] + noise_samples[k][t][d];
-                    }
+                    simd::backend::add_runtime<T>(control.data(), mean_controls_[t].data(), noise_samples[k][t].data(),
+                                                  control_dim);
 
-                    // Apply control bounds if specified
+                    // Apply control bounds if specified (scalar - per-dimension bounds)
                     if (bounds.valid()) {
                         for (std::size_t d = 0; d < control_dim; ++d) {
                             control[d] = std::clamp(control[d], bounds.lower[d], bounds.upper[d]);
@@ -262,25 +260,22 @@ namespace optinum::meta {
                 weight_sum = T{1};
             }
 
-            // Update mean control sequence using weighted noise
+            // Update mean control sequence using weighted noise (SIMD-optimized)
             for (std::size_t t = 0; t < H; ++t) {
                 dp::mat::vector<T, dp::mat::Dynamic> delta_u(control_dim);
-                delta_u.fill(T{0});
+                simd::backend::fill_runtime<T>(delta_u.data(), control_dim, T{0});
 
                 for (std::size_t k = 0; k < K; ++k) {
                     T w = weights[k] / weight_sum;
-                    // delta_u += w * noise_samples[k][t]
-                    for (std::size_t d = 0; d < control_dim; ++d) {
-                        delta_u[d] += w * noise_samples[k][t][d];
-                    }
+                    // delta_u += w * noise_samples[k][t] (SIMD axpy)
+                    simd::backend::axpy_inplace_runtime<T>(delta_u.data(), w, noise_samples[k][t].data(), control_dim);
                 }
 
-                // Update mean control
-                for (std::size_t d = 0; d < control_dim; ++d) {
-                    mean_controls_[t][d] += delta_u[d];
-                }
+                // Update mean control: mean += delta_u (SIMD add)
+                simd::backend::add_runtime<T>(mean_controls_[t].data(), mean_controls_[t].data(), delta_u.data(),
+                                              control_dim);
 
-                // Apply bounds to updated mean
+                // Apply bounds to updated mean (scalar - per-dimension bounds)
                 if (bounds.valid()) {
                     for (std::size_t d = 0; d < control_dim; ++d) {
                         mean_controls_[t][d] = std::clamp(mean_controls_[t][d], bounds.lower[d], bounds.upper[d]);
