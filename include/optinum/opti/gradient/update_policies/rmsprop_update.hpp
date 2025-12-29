@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/backend.hpp>
 
 namespace optinum::opti {
 
@@ -62,7 +63,56 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            for (std::size_t i = 0; i < n; ++i) {
+            // SIMD-optimized RMSProp update
+            constexpr std::size_t W = 4; // AVX: 4 doubles
+            using pack_t = simd::pack<double, W>;
+
+            const double step_val = double(step_size);
+            const pack_t alpha_pack(alpha);
+            const pack_t one_m_alpha(one_minus_alpha);
+            const pack_t step_pack(step_val);
+            const pack_t eps(epsilon);
+
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient (convert to double if needed)
+                pack_t g;
+                if constexpr (std::is_same_v<T, double>) {
+                    g = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g = pack_t::loadu(g_tmp);
+                }
+
+                // Load mean squared gradient
+                auto v_pack = pack_t::loadu(v_ptr + i);
+
+                // Update: v = alpha * v + (1 - alpha) * g²
+                v_pack = pack_t::fma(alpha_pack, v_pack, one_m_alpha * g * g);
+
+                // Store updated v
+                v_pack.storeu(v_ptr + i);
+
+                // Compute update: (η / √(v + ε)) * g
+                auto update = step_pack * g / (v_pack.sqrt() + eps);
+
+                // Apply update to x
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack - update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] -= T(update[j]);
+                    }
+                }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
                 double g_i = double(g_ptr[i]);
                 v_ptr[i] = alpha * v_ptr[i] + one_minus_alpha * g_i * g_i;
                 x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(v_ptr[i]) + epsilon));

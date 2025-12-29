@@ -7,6 +7,7 @@
 
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/matmul.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 
 #include <cmath>
@@ -33,33 +34,27 @@ namespace optinum::lina {
             return max_row_sum;
         }
 
-        // Matrix addition
+        // Matrix addition (SIMD-optimized)
         template <typename T, std::size_t N>
         simd::Matrix<T, N, N> add(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, N> &B) noexcept {
             simd::Matrix<T, N, N> C{};
-            for (std::size_t i = 0; i < N * N; ++i) {
-                C.data()[i] = A.data()[i] + B.data()[i];
-            }
+            simd::backend::add<T, N * N>(C.data(), A.data(), B.data());
             return C;
         }
 
-        // Matrix subtraction
+        // Matrix subtraction (SIMD-optimized)
         template <typename T, std::size_t N>
         simd::Matrix<T, N, N> sub(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, N> &B) noexcept {
             simd::Matrix<T, N, N> C{};
-            for (std::size_t i = 0; i < N * N; ++i) {
-                C.data()[i] = A.data()[i] - B.data()[i];
-            }
+            simd::backend::sub<T, N * N>(C.data(), A.data(), B.data());
             return C;
         }
 
-        // Scalar multiply
+        // Scalar multiply (SIMD-optimized)
         template <typename T, std::size_t N>
         simd::Matrix<T, N, N> scale(const simd::Matrix<T, N, N> &A, T scalar) noexcept {
             simd::Matrix<T, N, N> C{};
-            for (std::size_t i = 0; i < N * N; ++i) {
-                C.data()[i] = A.data()[i] * scalar;
-            }
+            simd::backend::mul_scalar<T, N * N>(C.data(), A.data(), scalar);
             return C;
         }
 

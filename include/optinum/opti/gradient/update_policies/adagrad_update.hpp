@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/backend.hpp>
 
 namespace optinum::opti {
 
@@ -65,11 +66,56 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            for (std::size_t i = 0; i < n; ++i) {
-                double g_i = double(g_ptr[i]);
+            // SIMD-optimized AdaGrad update
+            constexpr std::size_t W = 4; // AVX: 4 doubles
+            using pack_t = simd::pack<double, W>;
+
+            const double step_val = double(step_size);
+            const pack_t step_pack(step_val);
+            const pack_t eps(epsilon);
+
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient (convert to double if needed)
+                pack_t g;
+                if constexpr (std::is_same_v<T, double>) {
+                    g = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g = pack_t::loadu(g_tmp);
+                }
+
+                // Load accumulated squared gradient
+                auto G_pack = pack_t::loadu(G_ptr + i);
+
                 // Accumulate squared gradient: G = G + g²
+                G_pack = G_pack + g * g;
+
+                // Store updated G
+                G_pack.storeu(G_ptr + i);
+
+                // Compute update: (η / √(G + ε)) * g
+                auto update = step_pack * g / (G_pack.sqrt() + eps);
+
+                // Apply update to x
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack - update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] -= T(update[j]);
+                    }
+                }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
                 G_ptr[i] += g_i * g_i;
-                // Update iterate: x = x - (η / √(G + ε)) * g
                 x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(G_ptr[i]) + epsilon));
             }
         }
