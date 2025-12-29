@@ -36,6 +36,7 @@
 #include <vector>
 
 #include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
@@ -205,32 +206,40 @@ namespace optinum::meta {
                     } while (r3 == i || r3 == r1 || r3 == r2);
 
                     // Mutation: create mutant vector based on strategy
+                    // SIMD-optimized: use backend functions for vector arithmetic
                     dp::mat::vector<T, dp::mat::Dynamic> mutant(dim);
+                    dp::mat::vector<T, dp::mat::Dynamic> temp(dim); // Temporary for intermediate results
 
                     switch (config.strategy) {
                     case DEStrategy::Rand1:
                         // v = r1 + F*(r2 - r3)
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                population[r1][d] + config.mutation_factor * (population[r2][d] - population[r3][d]);
-                        }
+                        // Step 1: temp = r2 - r3
+                        simd::backend::sub_runtime<T>(temp.data(), population[r2].data(), population[r3].data(), dim);
+                        // Step 2: mutant = r1 + F*temp
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[r1].data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::Best1:
                         // v = best + F*(r1 - r2)
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                best_position[d] + config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // Step 1: temp = r1 - r2
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        // Step 2: mutant = best + F*temp
+                        simd::backend::axpy_runtime<T>(mutant.data(), best_position.data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::CurrentToBest1:
                         // v = x + F*(best - x) + F*(r1 - r2)
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] = population[i][d] +
-                                        config.mutation_factor * (best_position[d] - population[i][d]) +
-                                        config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // Step 1: temp = best - x
+                        simd::backend::sub_runtime<T>(temp.data(), best_position.data(), population[i].data(), dim);
+                        // Step 2: mutant = x + F*temp
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[i].data(), config.mutation_factor,
+                                                       temp.data(), dim);
+                        // Step 3: temp = r1 - r2
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        // Step 4: mutant += F*temp
+                        simd::backend::axpy_inplace_runtime<T>(mutant.data(), config.mutation_factor, temp.data(), dim);
                         break;
                     }
 
@@ -404,30 +413,32 @@ namespace optinum::meta {
                         r3 = static_cast<std::size_t>(uniform(rng) * pop_size) % pop_size;
                     } while (r3 == i || r3 == r1 || r3 == r2);
 
-                    // Mutation
+                    // Mutation - SIMD-optimized vector arithmetic
                     dp::mat::vector<T, dp::mat::Dynamic> mutant(dim);
+                    dp::mat::vector<T, dp::mat::Dynamic> temp(dim);
 
                     switch (config.strategy) {
                     case DEStrategy::Rand1:
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                population[r1][d] + config.mutation_factor * (population[r2][d] - population[r3][d]);
-                        }
+                        // v = r1 + F*(r2 - r3)
+                        simd::backend::sub_runtime<T>(temp.data(), population[r2].data(), population[r3].data(), dim);
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[r1].data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::Best1:
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                best_position[d] + config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // v = best + F*(r1 - r2)
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        simd::backend::axpy_runtime<T>(mutant.data(), best_position.data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::CurrentToBest1:
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] = population[i][d] +
-                                        config.mutation_factor * (best_position[d] - population[i][d]) +
-                                        config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // v = x + F*(best - x) + F*(r1 - r2)
+                        simd::backend::sub_runtime<T>(temp.data(), best_position.data(), population[i].data(), dim);
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[i].data(), config.mutation_factor,
+                                                       temp.data(), dim);
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        simd::backend::axpy_inplace_runtime<T>(mutant.data(), config.mutation_factor, temp.data(), dim);
                         break;
                     }
 
