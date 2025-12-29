@@ -47,12 +47,16 @@ namespace optinum::simd {
         template <std::size_t RR = R, std::size_t CC = C, typename = std::enable_if_t<RR == Dynamic && CC == Dynamic>>
         explicit Matrix(size_type rows, size_type cols) : pod_(rows, cols) {}
 
-        // POD constructors
-        constexpr explicit Matrix(const pod_type &pod) noexcept : pod_(pod) {}
-        constexpr explicit Matrix(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
+        // POD constructors (implicit to allow dp::mat::matrix -> simd::Matrix conversion)
+        constexpr Matrix(const pod_type &pod) noexcept : pod_(pod) {}
+        constexpr Matrix(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
 
         constexpr pod_type &pod() noexcept { return pod_; }
         constexpr const pod_type &pod() const noexcept { return pod_; }
+
+        // Implicit conversion to pod_type (allows simd::Matrix -> dp::mat::matrix)
+        constexpr operator pod_type &() noexcept { return pod_; }
+        constexpr operator const pod_type &() const noexcept { return pod_; }
 
         constexpr pointer data() noexcept { return pod_.data(); }
         constexpr const_pointer data() const noexcept { return pod_.data(); }

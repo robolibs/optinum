@@ -31,9 +31,12 @@
 
 #include <cstddef>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Lookahead optimizer wrapper
@@ -166,15 +169,15 @@ namespace optinum::meta {
         std::size_t step_count() const noexcept { return step_count_; }
 
         /// Get reference to slow weights (for inspection)
-        const simd::Vector<double, simd::Dynamic> &slow_weights() const noexcept { return slow_weights_; }
+        const dp::mat::vector<double, dp::mat::Dynamic> &slow_weights() const noexcept { return slow_weights_; }
 
         /// Get reference to base policy
         BasePolicy &get_base() noexcept { return base; }
         const BasePolicy &get_base() const noexcept { return base; }
 
       private:
-        simd::Vector<double, simd::Dynamic> slow_weights_; ///< Slow weights (phi)
-        std::size_t step_count_ = 0;                       ///< Steps since last slow weight update
+        dp::mat::vector<double, dp::mat::Dynamic> slow_weights_; ///< Slow weights (phi)
+        std::size_t step_count_ = 0;                             ///< Steps since last slow weight update
     };
 
     // Convenience type aliases

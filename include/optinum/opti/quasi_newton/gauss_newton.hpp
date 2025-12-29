@@ -5,6 +5,7 @@
 // Gauss-Newton optimizer for nonlinear least squares
 // =============================================================================
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/lina/basic/jacobian.hpp>
 #include <optinum/lina/decompose/lu.hpp>
 #include <optinum/lina/decompose/qr.hpp>
@@ -20,6 +21,8 @@
 #include <string>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * @brief Gauss-Newton optimizer for nonlinear least squares problems
@@ -463,7 +466,7 @@ namespace optinum::opti {
                 if (verbose) {
                     std::cout << "Building Jtr..." << std::endl;
                 }
-                simd::Vector<T, simd::Dynamic> b;
+                dp::mat::vector<T, dp::mat::Dynamic> b;
                 b.resize(n);
                 if (verbose) {
                     std::cout << "b resized to " << b.size() << std::endl;

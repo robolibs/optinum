@@ -3,12 +3,15 @@
 #include <cmath>
 #include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * AdaGrad (Adaptive Gradient) update policy
@@ -93,7 +96,7 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> sum_squared_grad; ///< Accumulated sum of squared gradients G
+        dp::mat::vector<double, dp::mat::Dynamic> sum_squared_grad; ///< Accumulated sum of squared gradients G
     };
 
 } // namespace optinum::opti

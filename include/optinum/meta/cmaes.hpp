@@ -40,10 +40,13 @@
 #include <random>
 #include <vector>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Result of CMA-ES optimization
@@ -230,7 +233,10 @@ namespace optinum::meta {
             // ============================================================
 
             // Mean of distribution
-            simd::Vector<T, simd::Dynamic> m = initial_mean;
+            simd::Vector<T, simd::Dynamic> m(initial_mean.size());
+            for (std::size_t i = 0; i < initial_mean.size(); ++i) {
+                m[i] = initial_mean[i];
+            }
 
             // Step-size (initial based on range)
             T avg_range = T{0};
@@ -344,7 +350,7 @@ namespace optinum::meta {
                 // Update mean: m = sum(w_i * x_i) for i = 1..mu
                 // ============================================================
 
-                simd::Vector<T, simd::Dynamic> m_old = m;
+                dp::mat::vector<T, dp::mat::Dynamic> m_old = m;
                 for (std::size_t i = 0; i < n; ++i) {
                     m[i] = T{0};
                     for (std::size_t j = 0; j < mu; ++j) {

@@ -34,11 +34,17 @@ namespace optinum::simd {
         static constexpr size_type total_size = (Dims * ...);
 
         constexpr Tensor() noexcept = default;
-        constexpr explicit Tensor(const pod_type &pod) noexcept : pod_(pod) {}
-        constexpr explicit Tensor(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
+
+        // POD constructors (implicit to allow dp::mat::tensor -> simd::Tensor conversion)
+        constexpr Tensor(const pod_type &pod) noexcept : pod_(pod) {}
+        constexpr Tensor(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
 
         constexpr pod_type &pod() noexcept { return pod_; }
         constexpr const pod_type &pod() const noexcept { return pod_; }
+
+        // Implicit conversion to pod_type (allows simd::Tensor -> dp::mat::tensor)
+        constexpr operator pod_type &() noexcept { return pod_; }
+        constexpr operator const pod_type &() const noexcept { return pod_; }
 
         constexpr pointer data() noexcept { return pod_.data(); }
         constexpr const_pointer data() const noexcept { return pod_.data(); }

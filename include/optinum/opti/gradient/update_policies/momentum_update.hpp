@@ -1,10 +1,13 @@
 #pragma once
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Momentum update policy for gradient descent
@@ -83,7 +86,7 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> velocity; ///< Velocity storage (double precision)
+        dp::mat::vector<double, dp::mat::Dynamic> velocity; ///< Velocity storage (double precision)
     };
 
 } // namespace optinum::opti

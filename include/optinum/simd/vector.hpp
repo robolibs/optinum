@@ -58,12 +58,16 @@ namespace optinum::simd {
             std::copy(init.begin(), init.end(), pod_.begin());
         }
 
-        // POD constructors
-        constexpr explicit Vector(const pod_type &pod) noexcept : pod_(pod) {}
-        constexpr explicit Vector(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
+        // POD constructors (implicit to allow dp::mat::vector -> simd::Vector conversion)
+        constexpr Vector(const pod_type &pod) noexcept : pod_(pod) {}
+        constexpr Vector(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
 
         constexpr pod_type &pod() noexcept { return pod_; }
         constexpr const pod_type &pod() const noexcept { return pod_; }
+
+        // Implicit conversion to pod_type (allows simd::Vector -> dp::mat::vector)
+        constexpr operator pod_type &() noexcept { return pod_; }
+        constexpr operator const pod_type &() const noexcept { return pod_; }
 
         constexpr pointer data() noexcept { return pod_.data(); }
         constexpr const_pointer data() const noexcept { return pod_.data(); }

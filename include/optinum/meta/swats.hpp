@@ -31,9 +31,12 @@
 #include <cstddef>
 #include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * SWATS (Switching from Adam to SGD) Update Policy

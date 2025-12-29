@@ -69,8 +69,9 @@ namespace optinum::simd {
         constexpr Quaternion &operator=(const Quaternion &) = default;
         constexpr Quaternion &operator=(Quaternion &&) noexcept = default;
 
-        // Direct initialization from pod
-        constexpr explicit Quaternion(const pod_type &p) noexcept : pod_(p) {}
+        // POD constructors (implicit to allow dp::mat::vector<quaternion> -> simd::Quaternion conversion)
+        constexpr Quaternion(const pod_type &p) noexcept : pod_(p) {}
+        constexpr Quaternion(pod_type &&p) noexcept : pod_(static_cast<pod_type &&>(p)) {}
 
         // ===== ELEMENT ACCESS =====
 
@@ -85,6 +86,10 @@ namespace optinum::simd {
         // Get underlying pod
         [[nodiscard]] constexpr pod_type &pod() noexcept { return pod_; }
         [[nodiscard]] constexpr const pod_type &pod() const noexcept { return pod_; }
+
+        // Implicit conversion to pod_type (allows simd::Quaternion -> dp::mat::vector<quaternion>)
+        constexpr operator pod_type &() noexcept { return pod_; }
+        constexpr operator const pod_type &() const noexcept { return pod_; }
 
         // Get SIMD view (for advanced operations)
         [[nodiscard]] view_type as_view() noexcept { return view(pod_); }

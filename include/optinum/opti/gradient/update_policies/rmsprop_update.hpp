@@ -3,12 +3,15 @@
 #include <cmath>
 #include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * RMSProp update policy for gradient descent
@@ -88,7 +91,7 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> mean_squared_grad; ///< Moving average of squared gradients
+        dp::mat::vector<double, dp::mat::Dynamic> mean_squared_grad; ///< Moving average of squared gradients
     };
 
 } // namespace optinum::opti

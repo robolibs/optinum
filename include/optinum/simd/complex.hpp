@@ -69,8 +69,9 @@ namespace optinum::simd {
         constexpr Complex &operator=(const Complex &) = default;
         constexpr Complex &operator=(Complex &&) noexcept = default;
 
-        // Direct initialization from pod
-        constexpr explicit Complex(const pod_type &p) noexcept : pod_(p) {}
+        // POD constructors (implicit to allow dp::mat::vector<complex> -> simd::Complex conversion)
+        constexpr Complex(const pod_type &p) noexcept : pod_(p) {}
+        constexpr Complex(pod_type &&p) noexcept : pod_(static_cast<pod_type &&>(p)) {}
 
         // ===== ELEMENT ACCESS =====
 
@@ -85,6 +86,10 @@ namespace optinum::simd {
         // Get underlying pod
         [[nodiscard]] constexpr pod_type &pod() noexcept { return pod_; }
         [[nodiscard]] constexpr const pod_type &pod() const noexcept { return pod_; }
+
+        // Implicit conversion to pod_type (allows simd::Complex -> dp::mat::vector<complex>)
+        constexpr operator pod_type &() noexcept { return pod_; }
+        constexpr operator const pod_type &() const noexcept { return pod_; }
 
         // Get SIMD view (for advanced operations)
         [[nodiscard]] view_type as_view() noexcept { return view(pod_); }

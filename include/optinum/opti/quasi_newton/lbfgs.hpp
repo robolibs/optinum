@@ -5,6 +5,7 @@
 // L-BFGS (Limited-memory BFGS) optimizer for unconstrained optimization
 // =============================================================================
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/types.hpp>
 #include <optinum/opti/line_search/line_search.hpp>
@@ -17,6 +18,8 @@
 #include <string>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * @brief L-BFGS (Limited-memory BFGS) optimizer for unconstrained optimization
@@ -192,10 +195,10 @@ namespace optinum::opti {
             // s_history[i] = x_{k-m+i+1} - x_{k-m+i}
             // y_history[i] = g_{k-m+i+1} - g_{k-m+i}
             // rho_history[i] = 1 / (y_i^T * s_i)
-            simd::Vector<T, simd::Dynamic> s_flat; // Flattened s vectors
-            simd::Vector<T, simd::Dynamic> y_flat; // Flattened y vectors
-            simd::Vector<T, simd::Dynamic> rho;    // rho values
-            simd::Vector<T, simd::Dynamic> alpha;  // alpha values for two-loop recursion
+            dp::mat::vector<T, dp::mat::Dynamic> s_flat; // Flattened s vectors
+            dp::mat::vector<T, dp::mat::Dynamic> y_flat; // Flattened y vectors
+            dp::mat::vector<T, dp::mat::Dynamic> rho;    // rho values
+            dp::mat::vector<T, dp::mat::Dynamic> alpha;  // alpha values for two-loop recursion
 
             s_flat.resize(history_size * n);
             y_flat.resize(history_size * n);
@@ -436,9 +439,10 @@ namespace optinum::opti {
          * @param direction Output: search direction d = -H_k * g_k
          */
         template <std::size_t N>
-        void compute_direction(const simd::Vector<T, N> &gradient, const simd::Vector<T, simd::Dynamic> &s_flat,
-                               const simd::Vector<T, simd::Dynamic> &y_flat, const simd::Vector<T, simd::Dynamic> &rho,
-                               simd::Vector<T, simd::Dynamic> &alpha, std::size_t history_count,
+        void compute_direction(const simd::Vector<T, N> &gradient, const dp::mat::vector<T, dp::mat::Dynamic> &s_flat,
+                               const dp::mat::vector<T, dp::mat::Dynamic> &y_flat,
+                               const dp::mat::vector<T, dp::mat::Dynamic> &rho,
+                               dp::mat::vector<T, dp::mat::Dynamic> &alpha, std::size_t history_count,
                                std::size_t history_start, std::size_t n, simd::Vector<T, N> &direction) const {
             // If no history, use steepest descent
             if (history_count == 0) {
@@ -449,7 +453,7 @@ namespace optinum::opti {
             }
 
             // q = gradient (copy)
-            simd::Vector<T, simd::Dynamic> q;
+            dp::mat::vector<T, dp::mat::Dynamic> q;
             q.resize(n);
             for (std::size_t i = 0; i < n; ++i) {
                 q[i] = gradient[i];
@@ -494,7 +498,7 @@ namespace optinum::opti {
             }
 
             // r = gamma * q (initial Hessian approximation H_0 = gamma * I)
-            simd::Vector<T, simd::Dynamic> r;
+            dp::mat::vector<T, dp::mat::Dynamic> r;
             r.resize(n);
             for (std::size_t i = 0; i < n; ++i) {
                 r[i] = gamma * q[i];

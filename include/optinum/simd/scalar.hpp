@@ -14,12 +14,18 @@ namespace optinum::simd {
         using pod_type = dp::mat::scalar<T>;
 
         constexpr Scalar() noexcept = default;
-        constexpr explicit Scalar(const pod_type &pod) noexcept : pod_(pod) {}
-        constexpr explicit Scalar(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
+
+        // POD constructors (implicit to allow dp::mat::scalar -> simd::Scalar conversion)
+        constexpr Scalar(const pod_type &pod) noexcept : pod_(pod) {}
+        constexpr Scalar(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
         constexpr Scalar(T val) noexcept : pod_(val) {}
 
         constexpr pod_type &pod() noexcept { return pod_; }
         constexpr const pod_type &pod() const noexcept { return pod_; }
+
+        // Implicit conversion to pod_type (allows simd::Scalar -> dp::mat::scalar)
+        constexpr operator pod_type &() noexcept { return pod_; }
+        constexpr operator const pod_type &() const noexcept { return pod_; }
 
         constexpr T &get() noexcept { return pod_.value; }
         constexpr const T &get() const noexcept { return pod_.value; }

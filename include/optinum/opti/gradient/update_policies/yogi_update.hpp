@@ -3,12 +3,15 @@
 #include <cmath>
 #include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Yogi update policy
@@ -140,9 +143,9 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> m; ///< First moment estimate (momentum)
-        simd::Vector<double, simd::Dynamic> v; ///< Second moment estimate (variance)
-        std::size_t iteration = 0;             ///< Iteration counter for bias correction
+        dp::mat::vector<double, dp::mat::Dynamic> m; ///< First moment estimate (momentum)
+        dp::mat::vector<double, dp::mat::Dynamic> v; ///< Second moment estimate (variance)
+        std::size_t iteration = 0;                   ///< Iteration counter for bias correction
     };
 
 } // namespace optinum::opti

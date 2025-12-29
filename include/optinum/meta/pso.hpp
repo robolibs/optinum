@@ -31,20 +31,23 @@
 #include <random>
 #include <vector>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::meta {
 
+    namespace dp = ::datapod;
+
     /**
      * Result of PSO optimization
      */
     template <typename T> struct PSOResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t iterations;                       ///< Number of iterations performed
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per iteration (for analysis)
+        dp::mat::vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t iterations;                             ///< Number of iterations performed
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per iteration (for analysis)
     };
 
     /**
@@ -123,24 +126,24 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
             // Compute velocity limits based on range
-            simd::Vector<T, simd::Dynamic> velocity_max(dim);
+            dp::mat::vector<T, dp::mat::Dynamic> velocity_max(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 velocity_max[d] = config.velocity_clamp * (upper_bounds[d] - lower_bounds[d]);
             }
 
             // Initialize particles: positions, velocities, personal bests
             // Using std::vector of simd::Vector for population (each particle is a vector)
-            std::vector<simd::Vector<T, simd::Dynamic>> positions(n_particles);
-            std::vector<simd::Vector<T, simd::Dynamic>> velocities(n_particles);
-            std::vector<simd::Vector<T, simd::Dynamic>> pbest_positions(n_particles);
+            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> positions(n_particles);
+            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> velocities(n_particles);
+            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> pbest_positions(n_particles);
             std::vector<T> pbest_values(n_particles);
             std::vector<T> current_values(n_particles);
 
             // Initialize each particle
             for (std::size_t i = 0; i < n_particles; ++i) {
-                positions[i] = simd::Vector<T, simd::Dynamic>(dim);
-                velocities[i] = simd::Vector<T, simd::Dynamic>(dim);
-                pbest_positions[i] = simd::Vector<T, simd::Dynamic>(dim);
+                positions[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
+                velocities[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
+                pbest_positions[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
 
                 for (std::size_t d = 0; d < dim; ++d) {
                     // Random position within bounds
@@ -169,7 +172,7 @@ namespace optinum::meta {
                     gbest_idx = i;
                 }
             }
-            simd::Vector<T, simd::Dynamic> gbest_position = pbest_positions[gbest_idx];
+            dp::mat::vector<T, dp::mat::Dynamic> gbest_position = pbest_positions[gbest_idx];
 
             // History tracking
             std::vector<T> history;

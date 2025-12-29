@@ -3,12 +3,15 @@
 #include <cmath>
 #include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * AdaDelta update policy
@@ -134,8 +137,8 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> avg_squared_grad;  ///< Running average of squared gradients E[g²]
-        simd::Vector<double, simd::Dynamic> avg_squared_delta; ///< Running average of squared updates E[Δx²]
+        dp::mat::vector<double, dp::mat::Dynamic> avg_squared_grad;  ///< Running average of squared gradients E[g²]
+        dp::mat::vector<double, dp::mat::Dynamic> avg_squared_delta; ///< Running average of squared updates E[Δx²]
     };
 
 } // namespace optinum::opti

@@ -32,10 +32,13 @@
 #include <random>
 #include <vector>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Result of CEM optimization
@@ -61,8 +64,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> lower{-5.0, -5.0};
-     * simd::Vector<double, simd::Dynamic> upper{5.0, 5.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = cem.optimize(objective, lower, upper);
      * @endcode
@@ -186,7 +189,12 @@ namespace optinum::meta {
                 std_dev[d] = config.initial_std * (upper_bounds[d] - lower_bounds[d]) / T{4};
             }
 
-            return optimize_impl(std::forward<F>(objective), initial_mean, std_dev, lower_bounds, upper_bounds);
+            simd::Vector<T, simd::Dynamic> mean_copy(initial_mean.size());
+            for (std::size_t i = 0; i < initial_mean.size(); ++i) {
+                mean_copy[i] = initial_mean[i];
+            }
+
+            return optimize_impl(std::forward<F>(objective), mean_copy, std_dev, lower_bounds, upper_bounds);
         }
 
       private:

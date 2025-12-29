@@ -1,8 +1,11 @@
 #pragma once
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Vanilla update policy for gradient descent
