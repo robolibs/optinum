@@ -8,6 +8,10 @@
 #include <optinum/lie/batch/so3_batch.hpp>
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/se3.hpp>
+#include <optinum/simd/math/cos.hpp>
+#include <optinum/simd/math/sin.hpp>
+#include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/pack/pack.hpp>
 
 #include <array>
 #include <cstddef>
@@ -117,15 +121,85 @@ namespace optinum::lie {
         }
 
         // Exponential map from separate arrays (SIMD-friendly layout)
+        // True SIMD implementation using pack operations
         [[nodiscard]] static SE3Batch exp(const T *vx, const T *vy, const T *vz, const T *wx, const T *wy,
                                           const T *wz) noexcept {
             SE3Batch result;
 
-            // For each pose, compute SE3::exp
-            for (std::size_t i = 0; i < N; ++i) {
+            // First compute rotations using SO3Batch SIMD exp
+            result.rotations_ = RotationBatch::exp(wx, wy, wz);
+
+            // SIMD width for this type
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4; // float: 8, double: 4 for AVX
+            using Pack = simd::pack<T, W>;
+
+            // Process W elements at a time using SIMD for translation computation
+            // Translation: t = V * v where V is the left Jacobian of SO3
+            // V = I + (1-cos(θ))/θ² * [ω]× + (θ-sin(θ))/θ³ * [ω]×²
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                // Load omega (rotation) and v (translation velocity)
+                auto omega_x = Pack::loadu(wx + i);
+                auto omega_y = Pack::loadu(wy + i);
+                auto omega_z = Pack::loadu(wz + i);
+                auto v_x = Pack::loadu(vx + i);
+                auto v_y = Pack::loadu(vy + i);
+                auto v_z = Pack::loadu(vz + i);
+
+                // Compute theta_sq = wx² + wy² + wz²
+                auto theta_sq = omega_x * omega_x + omega_y * omega_y + omega_z * omega_z;
+                auto theta = simd::sqrt(theta_sq);
+
+                // Compute sin(theta) and cos(theta)
+                auto sin_theta = simd::sin(theta);
+                auto cos_theta = simd::cos(theta);
+
+                // Compute coefficients for left Jacobian V
+                // a = (1 - cos(θ)) / θ²
+                // b = (θ - sin(θ)) / θ³
+                auto eps_sq = Pack(epsilon<T> * epsilon<T>);
+                auto small_mask = simd::cmp_lt(theta_sq, eps_sq);
+
+                // Safe division (add epsilon to avoid div by zero)
+                auto safe_theta_sq = theta_sq + Pack(epsilon<T>);
+                auto safe_theta_cubed = safe_theta_sq * theta + Pack(epsilon<T>);
+
+                auto a = (Pack(T(1)) - cos_theta) / safe_theta_sq;
+                auto b = (theta - sin_theta) / safe_theta_cubed;
+
+                // For small angles: a ≈ 0.5, b ≈ 1/6
+                auto a_small = Pack(T(0.5));
+                auto b_small = Pack(T(1.0 / 6.0));
+                a = simd::blend(a, a_small, small_mask);
+                b = simd::blend(b, b_small, small_mask);
+
+                // Compute omega × v (cross product)
+                auto cross_x = omega_y * v_z - omega_z * v_y;
+                auto cross_y = omega_z * v_x - omega_x * v_z;
+                auto cross_z = omega_x * v_y - omega_y * v_x;
+
+                // Compute omega × (omega × v) = omega * (omega · v) - v * |omega|²
+                auto dot = omega_x * v_x + omega_y * v_y + omega_z * v_z;
+                auto cross2_x = omega_x * dot - v_x * theta_sq;
+                auto cross2_y = omega_y * dot - v_y * theta_sq;
+                auto cross2_z = omega_z * dot - v_z * theta_sq;
+
+                // t = v + a * (omega × v) + b * (omega × (omega × v))
+                auto t_x = v_x + a * cross_x + b * cross2_x;
+                auto t_y = v_y + a * cross_y + b * cross2_y;
+                auto t_z = v_z + a * cross_z + b * cross2_z;
+
+                // Store translations
+                t_x.storeu(result.tx_.data() + i);
+                t_y.storeu(result.ty_.data() + i);
+                t_z.storeu(result.tz_.data() + i);
+            }
+
+            // Handle remaining elements with scalar fallback
+            for (; i < N; ++i) {
                 Tangent twist{vx[i], vy[i], vz[i], wx[i], wy[i], wz[i]};
                 auto elem = Element::exp(twist);
-                result.rotations_.set(i, elem.so3());
+                // Rotation already set by SO3Batch::exp above
                 const auto &t = elem.translation();
                 result.tx_[i] = t[0];
                 result.ty_[i] = t[1];
@@ -266,8 +340,27 @@ namespace optinum::lie {
             }
             // Rotate by R1
             rotations_.rotate(result.tx_.data(), result.ty_.data(), result.tz_.data());
-            // Add t1
-            for (std::size_t i = 0; i < N; ++i) {
+
+            // Add t1 (SIMD)
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+            using Pack = simd::pack<T, W>;
+
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                auto r_tx = Pack::loadu(result.tx_.data() + i);
+                auto r_ty = Pack::loadu(result.ty_.data() + i);
+                auto r_tz = Pack::loadu(result.tz_.data() + i);
+                auto t_x = Pack::loadu(tx_.data() + i);
+                auto t_y = Pack::loadu(ty_.data() + i);
+                auto t_z = Pack::loadu(tz_.data() + i);
+
+                (r_tx + t_x).storeu(result.tx_.data() + i);
+                (r_ty + t_y).storeu(result.ty_.data() + i);
+                (r_tz + t_z).storeu(result.tz_.data() + i);
+            }
+
+            // Scalar fallback
+            for (; i < N; ++i) {
                 result.tx_[i] += tx_[i];
                 result.ty_[i] += ty_[i];
                 result.tz_[i] += tz_[i];
@@ -286,8 +379,27 @@ namespace optinum::lie {
         void transform(T *px, T *py, T *pz) const noexcept {
             // First rotate
             rotations_.rotate(px, py, pz);
-            // Then translate
-            for (std::size_t i = 0; i < N; ++i) {
+
+            // Then translate (SIMD)
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+            using Pack = simd::pack<T, W>;
+
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                auto p_x = Pack::loadu(px + i);
+                auto p_y = Pack::loadu(py + i);
+                auto p_z = Pack::loadu(pz + i);
+                auto t_x = Pack::loadu(tx_.data() + i);
+                auto t_y = Pack::loadu(ty_.data() + i);
+                auto t_z = Pack::loadu(tz_.data() + i);
+
+                (p_x + t_x).storeu(px + i);
+                (p_y + t_y).storeu(py + i);
+                (p_z + t_z).storeu(pz + i);
+            }
+
+            // Scalar fallback
+            for (; i < N; ++i) {
                 px[i] += tx_[i];
                 py[i] += ty_[i];
                 pz[i] += tz_[i];
@@ -306,14 +418,33 @@ namespace optinum::lie {
             transform(px_out, py_out, pz_out);
         }
 
-        // Inverse transform: p' = R^-1 * (p - t)
+        // Inverse transform: p' = R^-1 * (p - t) (SIMD)
         void inverse_transform(T *px, T *py, T *pz) const noexcept {
-            // First subtract translation
-            for (std::size_t i = 0; i < N; ++i) {
+            // First subtract translation (SIMD)
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+            using Pack = simd::pack<T, W>;
+
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                auto p_x = Pack::loadu(px + i);
+                auto p_y = Pack::loadu(py + i);
+                auto p_z = Pack::loadu(pz + i);
+                auto t_x = Pack::loadu(tx_.data() + i);
+                auto t_y = Pack::loadu(ty_.data() + i);
+                auto t_z = Pack::loadu(tz_.data() + i);
+
+                (p_x - t_x).storeu(px + i);
+                (p_y - t_y).storeu(py + i);
+                (p_z - t_z).storeu(pz + i);
+            }
+
+            // Scalar fallback
+            for (; i < N; ++i) {
                 px[i] -= tx_[i];
                 py[i] -= ty_[i];
                 pz[i] -= tz_[i];
             }
+
             // Then rotate by inverse
             auto r_inv = rotations_.inverse();
             r_inv.rotate(px, py, pz);
@@ -336,19 +467,39 @@ namespace optinum::lie {
         }
 
         // Linear interpolation (faster, but not geodesic)
-        // Rotation: slerp, Translation: lerp
+        // Rotation: slerp, Translation: lerp (SIMD)
         [[nodiscard]] SE3Batch lerp(const SE3Batch &other, T t) const noexcept {
             SE3Batch result;
 
             // Rotation: slerp
             result.rotations_ = rotations_.slerp(other.rotations_, t);
 
-            // Translation: linear interpolation
-            const T one_minus_t = T(1) - t;
-            for (std::size_t i = 0; i < N; ++i) {
-                result.tx_[i] = one_minus_t * tx_[i] + t * other.tx_[i];
-                result.ty_[i] = one_minus_t * ty_[i] + t * other.ty_[i];
-                result.tz_[i] = one_minus_t * tz_[i] + t * other.tz_[i];
+            // Translation: linear interpolation (SIMD)
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+            using Pack = simd::pack<T, W>;
+
+            const Pack t_pack(t);
+            const Pack one_minus_t(T(1) - t);
+
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                auto tx1 = Pack::loadu(tx_.data() + i);
+                auto ty1 = Pack::loadu(ty_.data() + i);
+                auto tz1 = Pack::loadu(tz_.data() + i);
+                auto tx2 = Pack::loadu(other.tx_.data() + i);
+                auto ty2 = Pack::loadu(other.ty_.data() + i);
+                auto tz2 = Pack::loadu(other.tz_.data() + i);
+
+                (one_minus_t * tx1 + t_pack * tx2).storeu(result.tx_.data() + i);
+                (one_minus_t * ty1 + t_pack * ty2).storeu(result.ty_.data() + i);
+                (one_minus_t * tz1 + t_pack * tz2).storeu(result.tz_.data() + i);
+            }
+
+            // Scalar fallback
+            for (; i < N; ++i) {
+                result.tx_[i] = (T(1) - t) * tx_[i] + t * other.tx_[i];
+                result.ty_[i] = (T(1) - t) * ty_[i] + t * other.ty_[i];
+                result.tz_[i] = (T(1) - t) * tz_[i] + t * other.tz_[i];
             }
 
             return result;
@@ -381,9 +532,22 @@ namespace optinum::lie {
             }
         }
 
-        // Compute translation norms
+        // Compute translation norms (SIMD)
         void translation_norms(T *out) const noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+            using Pack = simd::pack<T, W>;
+
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                auto tx = Pack::loadu(tx_.data() + i);
+                auto ty = Pack::loadu(ty_.data() + i);
+                auto tz = Pack::loadu(tz_.data() + i);
+                auto norm_sq = tx * tx + ty * ty + tz * tz;
+                simd::sqrt(norm_sq).storeu(out + i);
+            }
+
+            // Scalar fallback
+            for (; i < N; ++i) {
                 out[i] = std::sqrt(tx_[i] * tx_[i] + ty_[i] * ty_[i] + tz_[i] * tz_[i]);
             }
         }

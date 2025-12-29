@@ -7,6 +7,12 @@
 
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/so3.hpp>
+#include <optinum/simd/math/abs.hpp>
+#include <optinum/simd/math/acos.hpp>
+#include <optinum/simd/math/cos.hpp>
+#include <optinum/simd/math/sin.hpp>
+#include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/pack/pack.hpp>
 #include <optinum/simd/view/quaternion_view.hpp>
 
 #include <array>
@@ -101,13 +107,80 @@ namespace optinum::lie {
         }
 
         // Exponential map from separate x, y, z arrays (SIMD-friendly layout)
-        // Uses SO3::exp for each element (scalar for now, SIMD optimization possible)
+        // True SIMD implementation using pack operations
         [[nodiscard]] static SO3Batch exp(const T *omega_x, const T *omega_y, const T *omega_z) noexcept {
             SO3Batch result;
 
-            // Use scalar SO3::exp for correctness
-            // The quaternion exp_pure uses full angle, but SO3::exp uses half-angle
-            for (std::size_t i = 0; i < N; ++i) {
+            // SIMD width for this type
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4; // float: 8, double: 4 for AVX
+            using Pack = simd::pack<T, W>;
+
+            // Process W elements at a time using SIMD
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                // Load omega components
+                auto wx = Pack::loadu(omega_x + i);
+                auto wy = Pack::loadu(omega_y + i);
+                auto wz = Pack::loadu(omega_z + i);
+
+                // Compute theta_sq = wx² + wy² + wz²
+                auto theta_sq = wx * wx + wy * wy + wz * wz;
+
+                // Compute theta = sqrt(theta_sq)
+                auto theta = simd::sqrt(theta_sq);
+
+                // Compute half_theta = theta / 2
+                auto half_theta = theta * Pack(T(0.5));
+
+                // Compute sin(half_theta) and cos(half_theta)
+                auto sin_half = simd::sin(half_theta);
+                auto cos_half = simd::cos(half_theta);
+
+                // Compute sinc_half = sin(half_theta) / theta
+                // For small theta, use Taylor: sin(t/2)/t ≈ 0.5 - t²/48 + ...
+                // We use a blend: if theta < epsilon, use 0.5, else use sin(half)/theta
+                auto eps_sq = Pack(epsilon<T> * epsilon<T>);
+                auto small_mask = simd::cmp_lt(theta_sq, eps_sq);
+
+                // Safe division: sin(half_theta) / theta (avoid div by zero)
+                // Add small epsilon to theta to avoid div by zero (will be blended away for small angles)
+                auto safe_theta = theta + Pack(epsilon<T>);
+                auto sinc_half = sin_half / safe_theta;
+
+                // For small angles: sinc_half ≈ 0.5 (first term of Taylor)
+                auto sinc_half_small = Pack(T(0.5));
+
+                // Blend based on small angle condition: blend(a, b, mask) returns b where mask is true
+                sinc_half = simd::blend(sinc_half, sinc_half_small, small_mask);
+
+                // For small angles: cos(half_theta) ≈ 1
+                auto cos_half_small = Pack(T(1));
+                cos_half = simd::blend(cos_half, cos_half_small, small_mask);
+
+                // Compute quaternion components: q = [cos(θ/2), sin(θ/2)/θ * ω]
+                auto qw = cos_half;
+                auto qx = sinc_half * wx;
+                auto qy = sinc_half * wy;
+                auto qz = sinc_half * wz;
+
+                // Store to quaternions (w, x, y, z layout)
+                // Note: dp::mat::quaternion has layout {w, x, y, z}
+                alignas(32) T qw_arr[W], qx_arr[W], qy_arr[W], qz_arr[W];
+                qw.storeu(qw_arr);
+                qx.storeu(qx_arr);
+                qy.storeu(qy_arr);
+                qz.storeu(qz_arr);
+
+                for (std::size_t j = 0; j < W; ++j) {
+                    result.quats_[i + j].w = qw_arr[j];
+                    result.quats_[i + j].x = qx_arr[j];
+                    result.quats_[i + j].y = qy_arr[j];
+                    result.quats_[i + j].z = qz_arr[j];
+                }
+            }
+
+            // Handle remaining elements with scalar fallback
+            for (; i < N; ++i) {
                 Tangent omega{omega_x[i], omega_y[i], omega_z[i]};
                 result.set(i, Element::exp(omega));
             }
@@ -169,8 +242,24 @@ namespace optinum::lie {
             alignas(32) T ax[N], ay[N], az[N], angles[N];
             view().to_axis_angle(ax, ay, az, angles);
 
-            // omega = angle * axis
-            for (std::size_t i = 0; i < N; ++i) {
+            // omega = angle * axis (SIMD)
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+            using Pack = simd::pack<T, W>;
+
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                auto angle = Pack::loadu(angles + i);
+                auto axis_x = Pack::loadu(ax + i);
+                auto axis_y = Pack::loadu(ay + i);
+                auto axis_z = Pack::loadu(az + i);
+
+                (angle * axis_x).storeu(omega_x + i);
+                (angle * axis_y).storeu(omega_y + i);
+                (angle * axis_z).storeu(omega_z + i);
+            }
+
+            // Scalar fallback for remaining elements
+            for (; i < N; ++i) {
                 omega_x[i] = angles[i] * ax[i];
                 omega_y[i] = angles[i] * ay[i];
                 omega_z[i] = angles[i] * az[i];
@@ -267,7 +356,22 @@ namespace optinum::lie {
             alignas(32) T dots[N];
             view().dot_to(other.view(), dots);
 
-            for (std::size_t i = 0; i < N; ++i) {
+            // SIMD computation of 2 * acos(clamp(|dot|, 0, 1))
+            constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+            using Pack = simd::pack<T, W>;
+
+            std::size_t i = 0;
+            for (; i + W <= N; i += W) {
+                auto dot = Pack::loadu(dots + i);
+                auto abs_dot = simd::abs(dot);
+                // Clamp to [0, 1] to avoid NaN from acos
+                auto clamped = Pack::min(abs_dot, Pack(T(1)));
+                auto dist = Pack(T(2)) * simd::acos(clamped);
+                dist.storeu(out + i);
+            }
+
+            // Scalar fallback
+            for (; i < N; ++i) {
                 out[i] = T(2) * std::acos(std::min(std::abs(dots[i]), T(1)));
             }
         }
