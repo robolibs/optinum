@@ -145,6 +145,19 @@ namespace optinum::simd {
             }
         }
 
+        // ===== FILL OPERATIONS =====
+
+        // Fill all elements with a value
+        void fill(const value_type &val) noexcept {
+            pack_type p(val);
+            for (std::size_t i = 0; i < num_packs(); ++i) {
+                store_pack_safe(i, p);
+            }
+        }
+
+        // Fill with identity quaternion
+        void fill_identity() noexcept { fill(value_type::identity()); }
+
         // ===== BULK OPERATIONS (return new view with results) =====
         // These operate on the entire array using SIMD
 

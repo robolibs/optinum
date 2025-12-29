@@ -268,3 +268,341 @@ TEST_CASE("Matrix slicing - mutability") {
         CHECK(data[7] == 88.0f);
     }
 }
+
+// =============================================================================
+// Tests for new matrix_view operations (arithmetic, fill, trace, etc.)
+// =============================================================================
+
+TEST_CASE("matrix_view - fill operations") {
+    std::vector<float> data(12);
+    matrix_view<float, 4> m(data.data(), 3, 4);
+
+    SUBCASE("fill with constant") {
+        m.fill(3.14f);
+        for (std::size_t i = 0; i < 12; ++i) {
+            CHECK(data[i] == doctest::Approx(3.14f));
+        }
+    }
+
+    SUBCASE("set_identity for square matrix") {
+        std::vector<float> sq_data(9);
+        matrix_view<float, 4> sq(sq_data.data(), 3, 3);
+        sq.set_identity();
+
+        // Check diagonal is 1
+        CHECK(sq_data[0] == 1.0f); // (0,0)
+        CHECK(sq_data[4] == 1.0f); // (1,1)
+        CHECK(sq_data[8] == 1.0f); // (2,2)
+
+        // Check off-diagonal is 0
+        CHECK(sq_data[1] == 0.0f);
+        CHECK(sq_data[2] == 0.0f);
+        CHECK(sq_data[3] == 0.0f);
+        CHECK(sq_data[5] == 0.0f);
+        CHECK(sq_data[6] == 0.0f);
+        CHECK(sq_data[7] == 0.0f);
+    }
+
+    SUBCASE("set_identity for non-square matrix") {
+        m.set_identity();
+        // 3x4 matrix, diagonal has min(3,4)=3 elements
+        CHECK(data[0] == 1.0f);  // (0,0)
+        CHECK(data[4] == 1.0f);  // (1,1)
+        CHECK(data[8] == 1.0f);  // (2,2)
+        CHECK(data[1] == 0.0f);  // off-diagonal
+        CHECK(data[9] == 0.0f);  // (0,3)
+        CHECK(data[10] == 0.0f); // (1,3)
+        CHECK(data[11] == 0.0f); // (2,3)
+    }
+}
+
+TEST_CASE("matrix_view - static factory functions") {
+    std::vector<double> data(6);
+
+    SUBCASE("zeros") {
+        matrix_view<double, 4>::zeros(data.data(), 2, 3);
+        for (std::size_t i = 0; i < 6; ++i) {
+            CHECK(data[i] == 0.0);
+        }
+    }
+
+    SUBCASE("ones") {
+        matrix_view<double, 4>::ones(data.data(), 2, 3);
+        for (std::size_t i = 0; i < 6; ++i) {
+            CHECK(data[i] == 1.0);
+        }
+    }
+
+    SUBCASE("identity") {
+        std::vector<double> sq_data(9);
+        matrix_view<double, 4>::identity(sq_data.data(), 3, 3);
+        CHECK(sq_data[0] == 1.0);
+        CHECK(sq_data[4] == 1.0);
+        CHECK(sq_data[8] == 1.0);
+        CHECK(sq_data[1] == 0.0);
+        CHECK(sq_data[3] == 0.0);
+    }
+}
+
+TEST_CASE("matrix_view - compound assignment operators") {
+    std::vector<float> a_data = {1, 2, 3, 4, 5, 6};
+    std::vector<float> b_data = {10, 20, 30, 40, 50, 60};
+
+    matrix_view<float, 4> a(a_data.data(), 2, 3);
+    matrix_view<float, 4> b(b_data.data(), 2, 3);
+
+    SUBCASE("operator+=") {
+        a += b;
+        CHECK(a_data[0] == doctest::Approx(11.0f));
+        CHECK(a_data[1] == doctest::Approx(22.0f));
+        CHECK(a_data[5] == doctest::Approx(66.0f));
+    }
+
+    SUBCASE("operator-=") {
+        a -= b;
+        CHECK(a_data[0] == doctest::Approx(-9.0f));
+        CHECK(a_data[1] == doctest::Approx(-18.0f));
+        CHECK(a_data[5] == doctest::Approx(-54.0f));
+    }
+
+    SUBCASE("operator*= (scalar)") {
+        a *= 2.0f;
+        CHECK(a_data[0] == doctest::Approx(2.0f));
+        CHECK(a_data[1] == doctest::Approx(4.0f));
+        CHECK(a_data[5] == doctest::Approx(12.0f));
+    }
+
+    SUBCASE("operator/= (scalar)") {
+        a /= 2.0f;
+        CHECK(a_data[0] == doctest::Approx(0.5f));
+        CHECK(a_data[1] == doctest::Approx(1.0f));
+        CHECK(a_data[5] == doctest::Approx(3.0f));
+    }
+}
+
+TEST_CASE("matrix_view - element-wise operations") {
+    std::vector<float> a_data = {1, 2, 3, 4};
+    std::vector<float> b_data = {2, 4, 6, 8};
+
+    matrix_view<float, 4> a(a_data.data(), 2, 2);
+    matrix_view<float, 4> b(b_data.data(), 2, 2);
+
+    SUBCASE("hadamard_inplace") {
+        a.hadamard_inplace(b);
+        CHECK(a_data[0] == doctest::Approx(2.0f));
+        CHECK(a_data[1] == doctest::Approx(8.0f));
+        CHECK(a_data[2] == doctest::Approx(18.0f));
+        CHECK(a_data[3] == doctest::Approx(32.0f));
+    }
+
+    SUBCASE("div_inplace") {
+        a.div_inplace(b);
+        CHECK(a_data[0] == doctest::Approx(0.5f));
+        CHECK(a_data[1] == doctest::Approx(0.5f));
+        CHECK(a_data[2] == doctest::Approx(0.5f));
+        CHECK(a_data[3] == doctest::Approx(0.5f));
+    }
+}
+
+TEST_CASE("matrix_view - reductions") {
+    // 2x3 matrix:
+    //   1 3 5
+    //   2 4 6
+    std::vector<double> data = {1, 2, 3, 4, 5, 6};
+    matrix_view<double, 4> m(data.data(), 2, 3);
+
+    SUBCASE("trace") {
+        // Trace is sum of diagonal: 1 + 4 = 5 (min(2,3)=2 diagonal elements)
+        CHECK(m.trace() == doctest::Approx(5.0));
+    }
+
+    SUBCASE("sum") { CHECK(m.sum() == doctest::Approx(21.0)); }
+
+    SUBCASE("frobenius_norm") {
+        // sqrt(1 + 4 + 9 + 16 + 25 + 36) = sqrt(91)
+        CHECK(m.frobenius_norm() == doctest::Approx(std::sqrt(91.0)));
+    }
+}
+
+TEST_CASE("matrix_view - free function operations") {
+    std::vector<float> a_data = {1, 2, 3, 4};
+    std::vector<float> b_data = {10, 20, 30, 40};
+    std::vector<float> out_data(4);
+
+    matrix_view<float, 4> a(a_data.data(), 2, 2);
+    matrix_view<float, 4> b(b_data.data(), 2, 2);
+
+    SUBCASE("add") {
+        add(out_data.data(), a, b);
+        CHECK(out_data[0] == doctest::Approx(11.0f));
+        CHECK(out_data[1] == doctest::Approx(22.0f));
+        CHECK(out_data[3] == doctest::Approx(44.0f));
+    }
+
+    SUBCASE("sub") {
+        sub(out_data.data(), a, b);
+        CHECK(out_data[0] == doctest::Approx(-9.0f));
+        CHECK(out_data[1] == doctest::Approx(-18.0f));
+        CHECK(out_data[3] == doctest::Approx(-36.0f));
+    }
+
+    SUBCASE("hadamard") {
+        hadamard(out_data.data(), a, b);
+        CHECK(out_data[0] == doctest::Approx(10.0f));
+        CHECK(out_data[1] == doctest::Approx(40.0f));
+        CHECK(out_data[3] == doctest::Approx(160.0f));
+    }
+
+    SUBCASE("mul_scalar") {
+        mul_scalar(out_data.data(), a, 3.0f);
+        CHECK(out_data[0] == doctest::Approx(3.0f));
+        CHECK(out_data[1] == doctest::Approx(6.0f));
+        CHECK(out_data[3] == doctest::Approx(12.0f));
+    }
+
+    SUBCASE("negate") {
+        negate(out_data.data(), a);
+        CHECK(out_data[0] == doctest::Approx(-1.0f));
+        CHECK(out_data[1] == doctest::Approx(-2.0f));
+        CHECK(out_data[3] == doctest::Approx(-4.0f));
+    }
+}
+
+TEST_CASE("matrix_view - transpose") {
+    // 2x3 matrix (column-major):
+    //   1 3 5
+    //   2 4 6
+    std::vector<float> a_data = {1, 2, 3, 4, 5, 6};
+    std::vector<float> out_data(6);
+
+    matrix_view<float, 4> a(a_data.data(), 2, 3);
+
+    transpose(out_data.data(), a);
+
+    // Result should be 3x2 (column-major):
+    //   1 2
+    //   3 4
+    //   5 6
+    matrix_view<float, 4> out(out_data.data(), 3, 2);
+    CHECK(out.at(0, 0) == doctest::Approx(1.0f));
+    CHECK(out.at(1, 0) == doctest::Approx(3.0f));
+    CHECK(out.at(2, 0) == doctest::Approx(5.0f));
+    CHECK(out.at(0, 1) == doctest::Approx(2.0f));
+    CHECK(out.at(1, 1) == doctest::Approx(4.0f));
+    CHECK(out.at(2, 1) == doctest::Approx(6.0f));
+}
+
+TEST_CASE("matrix_view - matmul") {
+    // A = 2x3 (column-major):
+    //   1 3 5
+    //   2 4 6
+    std::vector<float> a_data = {1, 2, 3, 4, 5, 6};
+
+    // B = 3x2 (column-major):
+    //   1 4
+    //   2 5
+    //   3 6
+    std::vector<float> b_data = {1, 2, 3, 4, 5, 6};
+
+    // Result C = A * B = 2x2
+    std::vector<float> c_data(4);
+
+    matrix_view<float, 4> a(a_data.data(), 2, 3);
+    matrix_view<float, 4> b(b_data.data(), 3, 2);
+
+    matmul(c_data.data(), a, b);
+
+    // C[0,0] = 1*1 + 3*2 + 5*3 = 1 + 6 + 15 = 22
+    // C[1,0] = 2*1 + 4*2 + 6*3 = 2 + 8 + 18 = 28
+    // C[0,1] = 1*4 + 3*5 + 5*6 = 4 + 15 + 30 = 49
+    // C[1,1] = 2*4 + 4*5 + 6*6 = 8 + 20 + 36 = 64
+    matrix_view<float, 4> c(c_data.data(), 2, 2);
+    CHECK(c.at(0, 0) == doctest::Approx(22.0f));
+    CHECK(c.at(1, 0) == doctest::Approx(28.0f));
+    CHECK(c.at(0, 1) == doctest::Approx(49.0f));
+    CHECK(c.at(1, 1) == doctest::Approx(64.0f));
+}
+
+TEST_CASE("matrix_view - matvec") {
+    // A = 2x3 (column-major):
+    //   1 3 5
+    //   2 4 6
+    std::vector<float> a_data = {1, 2, 3, 4, 5, 6};
+
+    // x = [1, 2, 3]
+    std::vector<float> x_data = {1, 2, 3};
+
+    // Result y = A * x = [1*1 + 3*2 + 5*3, 2*1 + 4*2 + 6*3] = [22, 28]
+    std::vector<float> y_data(2);
+
+    matrix_view<float, 4> a(a_data.data(), 2, 3);
+    vector_view<float, 4> x(x_data.data(), 3);
+
+    matvec(y_data.data(), a, x);
+
+    CHECK(y_data[0] == doctest::Approx(22.0f));
+    CHECK(y_data[1] == doctest::Approx(28.0f));
+}
+
+TEST_CASE("matrix_view - comparison operators") {
+    std::vector<float> a_data = {1, 2, 3, 4};
+    std::vector<float> b_data = {1, 2, 3, 4};
+    std::vector<float> c_data = {1, 2, 3, 5};
+
+    matrix_view<float, 4> a(a_data.data(), 2, 2);
+    matrix_view<float, 4> b(b_data.data(), 2, 2);
+    matrix_view<float, 4> c(c_data.data(), 2, 2);
+
+    CHECK(a == b);
+    CHECK_FALSE(a != b);
+    CHECK_FALSE(a == c);
+    CHECK(a != c);
+}
+
+TEST_CASE("matrix_view - copy") {
+    std::vector<float> src_data = {1, 2, 3, 4, 5, 6};
+    std::vector<float> dst_data(6);
+
+    matrix_view<float, 4> src(src_data.data(), 2, 3);
+    matrix_view<float, 4> dst(dst_data.data(), 2, 3);
+
+    copy(dst, src);
+
+    for (std::size_t i = 0; i < 6; ++i) {
+        CHECK(dst_data[i] == doctest::Approx(src_data[i]));
+    }
+}
+
+TEST_CASE("matrix_view - 1D indexing") {
+    std::vector<float> data = {1, 2, 3, 4, 5, 6};
+    matrix_view<float, 4> m(data.data(), 2, 3);
+
+    SUBCASE("at_linear read") {
+        CHECK(m.at_linear(0) == 1.0f);
+        CHECK(m.at_linear(1) == 2.0f);
+        CHECK(m.at_linear(5) == 6.0f);
+    }
+
+    SUBCASE("operator[] write") {
+        m[0] = 100.0f;
+        m[5] = 200.0f;
+        CHECK(data[0] == 100.0f);
+        CHECK(data[5] == 200.0f);
+    }
+}
+
+TEST_CASE("matrix_view - trace free function") {
+    std::vector<double> data = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    matrix_view<double, 4> m(data.data(), 3, 3);
+
+    // Diagonal: 1, 5, 9 (indices 0, 4, 8 in column-major)
+    CHECK(trace(m) == doctest::Approx(15.0));
+}
+
+TEST_CASE("matrix_view - frobenius_norm free function") {
+    std::vector<float> data = {1, 2, 3, 4};
+    matrix_view<float, 4> m(data.data(), 2, 2);
+
+    // sqrt(1 + 4 + 9 + 16) = sqrt(30)
+    CHECK(frobenius_norm(m) == doctest::Approx(std::sqrt(30.0f)));
+}

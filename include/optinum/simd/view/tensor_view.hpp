@@ -116,6 +116,249 @@ namespace optinum::simd {
         OPTINUM_INLINE const value_type *data_const() const noexcept { return kernel_.data_const(); }
 
         // ==========================================================================
+        // Linear indexing (treats tensor as flat array)
+        // ==========================================================================
+
+        OPTINUM_INLINE value_type &operator[](std::size_t i) const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot get non-const reference from const view");
+            return kernel_.data()[i];
+        }
+
+        OPTINUM_INLINE const value_type &at_linear(std::size_t i) const noexcept { return kernel_.data_const()[i]; }
+
+        // ==========================================================================
+        // Fill operation
+        // ==========================================================================
+
+        OPTINUM_INLINE void fill(value_type val) const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot fill const view");
+            const std::size_t n = num_packs();
+            const pack<value_type, W> p(val);
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                store_pack(i, p);
+            }
+            if (n > 0) {
+                store_pack_tail(n - 1, p);
+            }
+        }
+
+        // ==========================================================================
+        // Compound assignment (element-wise) - in-place operations
+        // ==========================================================================
+
+        OPTINUM_INLINE void add_inplace(const tensor_view &rhs) const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot modify const view");
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                store_pack(i, a + b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                store_pack_tail(n - 1, a + b);
+            }
+        }
+
+        OPTINUM_INLINE void sub_inplace(const tensor_view &rhs) const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot modify const view");
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                store_pack(i, a - b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                store_pack_tail(n - 1, a - b);
+            }
+        }
+
+        OPTINUM_INLINE void mul_inplace(const tensor_view &rhs) const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot modify const view");
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                store_pack(i, a * b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                store_pack_tail(n - 1, a * b);
+            }
+        }
+
+        OPTINUM_INLINE void div_inplace(const tensor_view &rhs) const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot modify const view");
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                store_pack(i, a / b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                store_pack_tail(n - 1, a / b);
+            }
+        }
+
+        OPTINUM_INLINE void scale_inplace(value_type scalar) const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot modify const view");
+            const std::size_t n = num_packs();
+            const pack<value_type, W> s(scalar);
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                store_pack(i, a * s);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                store_pack_tail(n - 1, a * s);
+            }
+        }
+
+        OPTINUM_INLINE void negate_inplace() const noexcept {
+            static_assert(!std::is_const_v<T>, "Cannot modify const view");
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                store_pack(i, -a);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                store_pack_tail(n - 1, -a);
+            }
+        }
+
+        // ==========================================================================
+        // Binary operations - write to output pointer
+        // ==========================================================================
+
+        OPTINUM_INLINE void add_to(const tensor_view &rhs, value_type *out) const noexcept {
+            tensor_view<value_type, W, Rank> result(out, kernel_.extents_, kernel_.strides_);
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                result.store_pack(i, a + b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                result.store_pack_tail(n - 1, a + b);
+            }
+        }
+
+        OPTINUM_INLINE void sub_to(const tensor_view &rhs, value_type *out) const noexcept {
+            tensor_view<value_type, W, Rank> result(out, kernel_.extents_, kernel_.strides_);
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                result.store_pack(i, a - b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                result.store_pack_tail(n - 1, a - b);
+            }
+        }
+
+        OPTINUM_INLINE void mul_to(const tensor_view &rhs, value_type *out) const noexcept {
+            tensor_view<value_type, W, Rank> result(out, kernel_.extents_, kernel_.strides_);
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                result.store_pack(i, a * b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                result.store_pack_tail(n - 1, a * b);
+            }
+        }
+
+        OPTINUM_INLINE void div_to(const tensor_view &rhs, value_type *out) const noexcept {
+            tensor_view<value_type, W, Rank> result(out, kernel_.extents_, kernel_.strides_);
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                auto b = rhs.load_pack(i);
+                result.store_pack(i, a / b);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                auto b = rhs.load_pack_tail(n - 1);
+                result.store_pack_tail(n - 1, a / b);
+            }
+        }
+
+        OPTINUM_INLINE void scale_to(value_type scalar, value_type *out) const noexcept {
+            tensor_view<value_type, W, Rank> result(out, kernel_.extents_, kernel_.strides_);
+            const std::size_t n = num_packs();
+            const pack<value_type, W> s(scalar);
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                result.store_pack(i, a * s);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                result.store_pack_tail(n - 1, a * s);
+            }
+        }
+
+        OPTINUM_INLINE void negate_to(value_type *out) const noexcept {
+            tensor_view<value_type, W, Rank> result(out, kernel_.extents_, kernel_.strides_);
+            const std::size_t n = num_packs();
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                auto a = load_pack(i);
+                result.store_pack(i, -a);
+            }
+            if (n > 0) {
+                auto a = load_pack_tail(n - 1);
+                result.store_pack_tail(n - 1, -a);
+            }
+        }
+
+        // ==========================================================================
+        // Reduction operations
+        // ==========================================================================
+
+        OPTINUM_INLINE value_type sum() const noexcept {
+            const std::size_t n = num_packs();
+            if (n == 0)
+                return value_type{};
+
+            pack<value_type, W> acc(value_type{});
+            for (std::size_t i = 0; i + 1 < n; ++i) {
+                acc = acc + load_pack(i);
+            }
+            // Handle tail
+            auto tail = load_pack_tail(n - 1);
+            acc = acc + tail;
+
+            // Horizontal sum
+            return acc.hsum();
+        }
+
+        // ==========================================================================
+        // Comparison operations
+        // ==========================================================================
+
+        OPTINUM_INLINE bool equals(const tensor_view &rhs) const noexcept {
+            const std::size_t sz = size();
+            for (std::size_t i = 0; i < sz; ++i) {
+                if (kernel_.data_const()[i] != rhs.kernel_.data_const()[i])
+                    return false;
+            }
+            return true;
+        }
+
+        // ==========================================================================
         // Slicing - N-dimensional slicing with seq/fseq/all/fix
         // ==========================================================================
 

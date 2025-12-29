@@ -135,6 +135,19 @@ namespace optinum::simd {
             }
         }
 
+        // ===== FILL OPERATIONS =====
+
+        // Fill all elements with a value
+        void fill(const value_type &val) noexcept {
+            pack_type p(val);
+            for (std::size_t i = 0; i < num_packs(); ++i) {
+                store_pack_safe(i, p);
+            }
+        }
+
+        // Fill with real value only (imag = 0)
+        void fill_real(T real_val) noexcept { fill(value_type{real_val, T{}}); }
+
         // ===== IN-PLACE OPERATIONS =====
 
         // Conjugate in place
