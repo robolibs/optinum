@@ -5,6 +5,7 @@
 // Solve triangular systems: Lx = b (lower) or Ux = b (upper)
 // =============================================================================
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -28,11 +29,11 @@ namespace optinum::lina {
      * @return Solution vector x
      */
     template <typename T, std::size_t N>
-    [[nodiscard]] simd::Vector<T, N> solve_lower_triangular(const simd::Matrix<T, N, N> &L,
-                                                            const simd::Vector<T, N> &b) noexcept {
+    [[nodiscard]] datapod::mat::vector<T, N> solve_lower_triangular(const simd::Matrix<T, N, N> &L,
+                                                                    const simd::Vector<T, N> &b) noexcept {
         static_assert(std::is_floating_point_v<T>, "triangular_solve requires floating-point type");
 
-        simd::Vector<T, N> x{};
+        datapod::mat::vector<T, N> x{};
 
         // Threshold for using SIMD (need enough elements for vectorization benefit)
         constexpr std::size_t simd_threshold = 8;
@@ -76,11 +77,11 @@ namespace optinum::lina {
      * @return Solution vector x
      */
     template <typename T, std::size_t N>
-    [[nodiscard]] simd::Vector<T, N> solve_upper_triangular(const simd::Matrix<T, N, N> &U,
-                                                            const simd::Vector<T, N> &b) noexcept {
+    [[nodiscard]] datapod::mat::vector<T, N> solve_upper_triangular(const simd::Matrix<T, N, N> &U,
+                                                                    const simd::Vector<T, N> &b) noexcept {
         static_assert(std::is_floating_point_v<T>, "triangular_solve requires floating-point type");
 
-        simd::Vector<T, N> x{};
+        datapod::mat::vector<T, N> x{};
 
         // Threshold for using SIMD
         constexpr std::size_t simd_threshold = 8;
@@ -119,8 +120,8 @@ namespace optinum::lina {
      * @param lower If true, solve Lx=b; if false, solve Ux=b
      */
     template <typename T, std::size_t N>
-    [[nodiscard]] simd::Vector<T, N> triangular_solve(const simd::Matrix<T, N, N> &A, const simd::Vector<T, N> &b,
-                                                      bool lower = true) noexcept {
+    [[nodiscard]] datapod::mat::vector<T, N> triangular_solve(const simd::Matrix<T, N, N> &A,
+                                                              const simd::Vector<T, N> &b, bool lower = true) noexcept {
         if (lower) {
             return solve_lower_triangular(A, b);
         } else {

@@ -5,6 +5,7 @@
 // Matrix rank via SVD
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
 #include <optinum/lina/decompose/svd.hpp>
 #include <optinum/simd/matrix.hpp>
 
@@ -48,6 +49,13 @@ namespace optinum::lina {
         }
 
         return r;
+    }
+
+    // Overload for dp::mat::matrix (owning type)
+    template <typename T, std::size_t M, std::size_t N>
+    [[nodiscard]] std::size_t rank(const datapod::mat::matrix<T, M, N> &a, T tol = T{-1}) noexcept {
+        simd::Matrix<T, M, N> view(const_cast<datapod::mat::matrix<T, M, N> &>(a));
+        return rank(view, tol);
     }
 
 } // namespace optinum::lina
