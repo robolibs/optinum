@@ -368,6 +368,105 @@ namespace optinum::simd {
                 result.data_[i] = data_[width - 1 - i];
             return result;
         }
+
+        // ==========================================================================
+        // Utility helpers (scalar fallback implementations)
+        // ==========================================================================
+
+        // set() - construct a pack from exactly W scalar values.
+        template <typename... Args> OPTINUM_INLINE static pack set(Args... values) noexcept {
+            static_assert(sizeof...(Args) == W, "pack::set requires exactly W values");
+
+            pack result;
+            T tmp[W] = {static_cast<T>(values)...};
+            for (std::size_t i = 0; i < width; ++i) {
+                result.data_[i] = tmp[i];
+            }
+            return result;
+        }
+
+        // set_sequential() - fill lanes with a sequence starting at `start`
+        // and increasing by `step`.
+        OPTINUM_INLINE static pack set_sequential(T start, T step = T{1}) noexcept {
+            pack result;
+            T value = start;
+            for (std::size_t i = 0; i < width; ++i) {
+                result.data_[i] = value;
+                value = value + step;
+            }
+            return result;
+        }
+
+        // rotate<N>() - rotate lanes by N positions (left for N>0, right for N<0).
+        template <int N> OPTINUM_INLINE pack rotate() const noexcept {
+            if constexpr (N == 0) {
+                return *this;
+            } else {
+                constexpr int w = static_cast<int>(width);
+                static_assert(w > 0, "pack width must be positive");
+
+                // Normalize shift into [0, w)
+                constexpr int shift = ((N % w) + w) % w;
+                if constexpr (shift == 0) {
+                    return *this;
+                } else {
+                    pack result;
+                    for (std::size_t i = 0; i < width; ++i) {
+                        const std::size_t src = (i + static_cast<std::size_t>(shift)) % width;
+                        result.data_[i] = data_[src];
+                    }
+                    return result;
+                }
+            }
+        }
+
+        // shift<N>() - shift lanes by N positions (left for N>0, right for N<0)
+        // and fill vacated lanes with zero.
+        template <int N> OPTINUM_INLINE pack shift() const noexcept {
+            if constexpr (N == 0) {
+                return *this;
+            } else {
+                constexpr int w = static_cast<int>(width);
+                static_assert(w > 0, "pack width must be positive");
+
+                pack result;
+                for (std::size_t i = 0; i < width; ++i)
+                    result.data_[i] = T{};
+
+                if constexpr (N >= w || N <= -w) {
+                    // Shift exceeds width: everything becomes zero.
+                    return result;
+                } else if constexpr (N > 0) {
+                    // Left shift
+                    for (std::size_t i = 0; i < width - static_cast<std::size_t>(N); ++i) {
+                        result.data_[i] = data_[i + static_cast<std::size_t>(N)];
+                    }
+                    return result;
+                } else { // N < 0, right shift
+                    constexpr int k = -N;
+                    for (std::size_t i = static_cast<std::size_t>(k); i < width; ++i) {
+                        result.data_[i] = data_[i - static_cast<std::size_t>(k)];
+                    }
+                    return result;
+                }
+            }
+        }
+
+        // gather() - load elements from non-contiguous memory locations.
+        template <typename IndexT> OPTINUM_INLINE static pack gather(const T *base, const IndexT *indices) noexcept {
+            pack result;
+            for (std::size_t i = 0; i < width; ++i) {
+                result.data_[i] = base[static_cast<std::size_t>(indices[i])];
+            }
+            return result;
+        }
+
+        // scatter() - store elements to non-contiguous memory locations.
+        template <typename IndexT> OPTINUM_INLINE void scatter(T *base, const IndexT *indices) const noexcept {
+            for (std::size_t i = 0; i < width; ++i) {
+                base[static_cast<std::size_t>(indices[i])] = data_[i];
+            }
+        }
     };
 
     // =============================================================================
