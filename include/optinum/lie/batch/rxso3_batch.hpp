@@ -761,7 +761,7 @@ namespace optinum::lie {
 
             // Scalar fallback
             for (; i < N; ++i) {
-                result.set(i, interpolate((*this)[i], other[i], t));
+                result.set(i, lie::interpolate((*this)[i], other[i], t));
             }
 
             return result;

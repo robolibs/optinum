@@ -4,6 +4,7 @@
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
+#include <datapod/matrix/math/complex.hpp>
 #include <datapod/matrix/matrix.hpp>
 #include <datapod/matrix/vector.hpp>
 
@@ -20,7 +21,7 @@ namespace optinum::lie {
     // SO(2) represents 2D rotations. Internally stored as a unit complex number:
     //   z = cos(theta) + i*sin(theta) = (real, imag) = (cos, sin)
     //
-    // Storage: Vector<T, 2> where [0] = cos(theta), [1] = sin(theta)
+    // Storage: dp::mat::complex<T> where real = cos(theta), imag = sin(theta)
     // DoF: 1 (rotation angle theta)
     // NumParams: 2 (unit complex number)
     //
@@ -35,7 +36,8 @@ namespace optinum::lie {
         // ===== TYPE ALIASES =====
         using Scalar = T;
         using Tangent = T;                               // R^1, just the angle
-        using Params = dp::mat::vector<T, 2>;            // Unit complex (cos, sin) - owning
+        using Complex = dp::mat::complex<T>;             // Unit complex (cos, sin) - internal storage
+        using Params = dp::mat::vector<T, 2>;            // For compatibility - owning
         using Point = dp::mat::vector<T, 2>;             // 2D point - owning
         using RotationMatrix = dp::mat::matrix<T, 2, 2>; // owning
         using AdjointMatrix = T;                         // 1x1 matrix = scalar
@@ -47,34 +49,27 @@ namespace optinum::lie {
         // ===== CONSTRUCTORS =====
 
         // Default: identity rotation (theta = 0)
-        constexpr SO2() noexcept : z_{{T(1), T(0)}} {}
+        constexpr SO2() noexcept : z_{T(1), T(0)} {}
 
         // From angle (theta in radians)
-        explicit SO2(Scalar theta) noexcept : z_{{std::cos(theta), std::sin(theta)}} {}
+        explicit SO2(Scalar theta) noexcept : z_{std::cos(theta), std::sin(theta)} {}
 
         // From unit complex number (cos, sin) - normalizes if needed
-        SO2(Scalar real, Scalar imag) noexcept {
-            const Scalar norm = std::sqrt(real * real + imag * imag);
-            if (norm > epsilon<T>) {
-                z_[0] = real / norm;
-                z_[1] = imag / norm;
-            } else {
-                // Degenerate case: default to identity
-                z_[0] = T(1);
-                z_[1] = T(0);
-            }
-        }
+        SO2(Scalar real, Scalar imag) noexcept : z_{real, imag} { normalize(); }
 
         // From 2x2 rotation matrix
         explicit SO2(const RotationMatrix &R) noexcept {
             // Extract cos and sin from R = [[cos, -sin], [sin, cos]]
-            z_[0] = R(0, 0); // cos
-            z_[1] = R(1, 0); // sin
+            z_.real = R(0, 0); // cos
+            z_.imag = R(1, 0); // sin
             normalize();
         }
 
-        // From parameters (unit complex)
-        explicit SO2(const Params &z) noexcept : z_(z) { normalize(); }
+        // From parameters (unit complex as vector)
+        explicit SO2(const Params &z) noexcept : z_{z[0], z[1]} { normalize(); }
+
+        // From complex directly
+        explicit SO2(const Complex &z) noexcept : z_(z) { normalize(); }
 
         // ===== STATIC FACTORY METHODS =====
 
@@ -102,15 +97,14 @@ namespace optinum::lie {
         // ===== CORE OPERATIONS =====
 
         // Logarithmic map: SO2 -> theta
-        // log() = atan2(sin, cos)
-        [[nodiscard]] Tangent log() const noexcept { return std::atan2(z_[1], z_[0]); }
+        // log() = atan2(sin, cos) = phase of complex number
+        [[nodiscard]] Tangent log() const noexcept { return z_.phase(); }
 
         // Inverse: conjugate of unit complex
         // (cos, sin)^-1 = (cos, -sin)
         [[nodiscard]] SO2 inverse() const noexcept {
             SO2 result;
-            result.z_[0] = z_[0];
-            result.z_[1] = -z_[1];
+            result.z_ = z_.conjugate();
             return result;
         }
 
@@ -118,13 +112,12 @@ namespace optinum::lie {
         // (c1 + i*s1) * (c2 + i*s2) = (c1*c2 - s1*s2) + i*(c1*s2 + s1*c2)
         [[nodiscard]] SO2 operator*(const SO2 &other) const noexcept {
             SO2 result;
-            result.z_[0] = z_[0] * other.z_[0] - z_[1] * other.z_[1];
-            result.z_[1] = z_[0] * other.z_[1] + z_[1] * other.z_[0];
+            result.z_ = z_ * other.z_;
             return result;
         }
 
         SO2 &operator*=(const SO2 &other) noexcept {
-            *this = *this * other;
+            z_ *= other.z_;
             return *this;
         }
 
@@ -132,8 +125,8 @@ namespace optinum::lie {
         // [[cos, -sin], [sin, cos]] * [x, y]^T = [cos*x - sin*y, sin*x + cos*y]
         [[nodiscard]] Point operator*(const Point &p) const noexcept {
             Point result;
-            result[0] = z_[0] * p[0] - z_[1] * p[1];
-            result[1] = z_[1] * p[0] + z_[0] * p[1];
+            result[0] = z_.real * p[0] - z_.imag * p[1];
+            result[1] = z_.imag * p[0] + z_.real * p[1];
             return result;
         }
 
@@ -142,10 +135,10 @@ namespace optinum::lie {
         // Return 2x2 rotation matrix
         [[nodiscard]] RotationMatrix matrix() const noexcept {
             RotationMatrix R;
-            R(0, 0) = z_[0];
-            R(0, 1) = -z_[1];
-            R(1, 0) = z_[1];
-            R(1, 1) = z_[0];
+            R(0, 0) = z_.real;
+            R(0, 1) = -z_.imag;
+            R(1, 0) = z_.imag;
+            R(1, 1) = z_.real;
             return R;
         }
 
@@ -205,8 +198,8 @@ namespace optinum::lie {
             // d/dx (this * exp(x)) at x=0 = this * d/dx(exp(x)) at x=0
             // = [[cos, -sin], [sin, cos]] * [0, 1]^T = [-sin, cos]^T
             Params J;
-            J[0] = -z_[1]; // -sin(this)
-            J[1] = z_[0];  // cos(this)
+            J[0] = -z_.imag; // -sin(this)
+            J[1] = z_.real;  // cos(this)
             return J;
         }
 
@@ -216,56 +209,56 @@ namespace optinum::lie {
 
         // ===== ACCESSORS =====
 
-        // Get unit complex number as (cos, sin)
-        [[nodiscard]] constexpr const Params &unit_complex() const noexcept { return z_; }
+        // Get unit complex number
+        [[nodiscard]] constexpr const Complex &unit_complex() const noexcept { return z_; }
 
         // Get cosine component
-        [[nodiscard]] constexpr Scalar real() const noexcept { return z_[0]; }
+        [[nodiscard]] constexpr Scalar real() const noexcept { return z_.real; }
 
         // Get sine component
-        [[nodiscard]] constexpr Scalar imag() const noexcept { return z_[1]; }
+        [[nodiscard]] constexpr Scalar imag() const noexcept { return z_.imag; }
 
         // Get angle in radians
         [[nodiscard]] Scalar angle() const noexcept { return log(); }
 
-        // Raw data pointer
-        [[nodiscard]] constexpr T *data() noexcept { return z_.data(); }
-        [[nodiscard]] constexpr const T *data() const noexcept { return z_.data(); }
+        // Raw data pointer (for compatibility)
+        [[nodiscard]] T *data() noexcept { return &z_.real; }
+        [[nodiscard]] const T *data() const noexcept { return &z_.real; }
 
-        // Parameters (same as unit_complex)
-        [[nodiscard]] constexpr const Params &params() const noexcept { return z_; }
+        // Parameters as vector (for compatibility)
+        [[nodiscard]] Params params() const noexcept { return Params{{z_.real, z_.imag}}; }
 
         // ===== MUTATORS =====
 
         // Set from angle
         void set_angle(Scalar theta) noexcept {
-            z_[0] = std::cos(theta);
-            z_[1] = std::sin(theta);
+            z_.real = std::cos(theta);
+            z_.imag = std::sin(theta);
         }
 
         // Set from complex (normalizes)
         void set_complex(Scalar real, Scalar imag) noexcept {
-            z_[0] = real;
-            z_[1] = imag;
+            z_.real = real;
+            z_.imag = imag;
             normalize();
         }
 
         // Set from rotation matrix
         void set_rotation_matrix(const RotationMatrix &R) noexcept {
-            z_[0] = R(0, 0);
-            z_[1] = R(1, 0);
+            z_.real = R(0, 0);
+            z_.imag = R(1, 0);
             normalize();
         }
 
         // Normalize to ensure unit complex
         void normalize() noexcept {
-            const Scalar norm = std::sqrt(z_[0] * z_[0] + z_[1] * z_[1]);
+            const Scalar norm = z_.magnitude();
             if (norm > epsilon<T>) {
-                z_[0] /= norm;
-                z_[1] /= norm;
+                z_.real /= norm;
+                z_.imag /= norm;
             } else {
-                z_[0] = T(1);
-                z_[1] = T(0);
+                z_.real = T(1);
+                z_.imag = T(0);
             }
         }
 
@@ -273,29 +266,29 @@ namespace optinum::lie {
 
         // Cast to different scalar type
         template <typename NewScalar> [[nodiscard]] SO2<NewScalar> cast() const noexcept {
-            return SO2<NewScalar>(static_cast<NewScalar>(z_[0]), static_cast<NewScalar>(z_[1]));
+            return SO2<NewScalar>(static_cast<NewScalar>(z_.real), static_cast<NewScalar>(z_.imag));
         }
 
         // ===== COMPARISON =====
 
         [[nodiscard]] bool operator==(const SO2 &other) const noexcept {
-            return std::abs(z_[0] - other.z_[0]) < epsilon<T> && std::abs(z_[1] - other.z_[1]) < epsilon<T>;
+            return std::abs(z_.real - other.z_.real) < epsilon<T> && std::abs(z_.imag - other.z_.imag) < epsilon<T>;
         }
 
         [[nodiscard]] bool operator!=(const SO2 &other) const noexcept { return !(*this == other); }
 
         // Check if close to another SO2 (within tolerance)
         [[nodiscard]] bool is_approx(const SO2 &other, Scalar tol = epsilon<T>) const noexcept {
-            return std::abs(z_[0] - other.z_[0]) < tol && std::abs(z_[1] - other.z_[1]) < tol;
+            return std::abs(z_.real - other.z_.real) < tol && std::abs(z_.imag - other.z_.imag) < tol;
         }
 
         // Check if approximately identity
         [[nodiscard]] bool is_identity(Scalar tol = epsilon<T>) const noexcept {
-            return std::abs(z_[0] - T(1)) < tol && std::abs(z_[1]) < tol;
+            return std::abs(z_.real - T(1)) < tol && std::abs(z_.imag) < tol;
         }
 
       private:
-        Params z_; // Unit complex number: [cos(theta), sin(theta)]
+        Complex z_; // Unit complex number: cos(theta) + i*sin(theta)
     };
 
     // ===== TYPE ALIASES =====

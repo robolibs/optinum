@@ -337,6 +337,341 @@ TEST_SUITE("SO2Batch") {
 }
 
 // ============================================================================
+// SE2Batch Tests
+// ============================================================================
+
+TEST_SUITE("SE2Batch") {
+
+    TEST_CASE("Default construction is identity") {
+        SE2Batch<double, 4> batch;
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            auto elem = batch[i];
+            CHECK(elem.so2().is_identity());
+            auto t = elem.translation();
+            CHECK(std::abs(t[0]) < 1e-10);
+            CHECK(std::abs(t[1]) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Broadcast construction") {
+        auto T = SE2d::trans(1, 2) * SE2d::rot(0.5);
+        SE2Batch<double, 8> batch(T);
+
+        for (std::size_t i = 0; i < 8; ++i) {
+            CHECK(batch[i].so2().is_approx(T.so2(), 1e-10));
+            auto t = batch[i].translation();
+            CHECK(std::abs(t[0] - 1.0) < 1e-10);
+            CHECK(std::abs(t[1] - 2.0) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Element access and modification") {
+        SE2Batch<double, 4> batch;
+
+        batch.set(0, SE2d::trans(1, 0));
+        batch.set(1, SE2d::trans(0, 2));
+        batch.set(2, SE2d::trans(3, 4));
+        batch.set(3, SE2d::rot(0.5));
+
+        auto t0 = batch[0].translation();
+        CHECK(std::abs(t0[0] - 1.0) < 1e-10);
+        CHECK(std::abs(t0[1]) < 1e-10);
+
+        auto t1 = batch[1].translation();
+        CHECK(std::abs(t1[0]) < 1e-10);
+        CHECK(std::abs(t1[1] - 2.0) < 1e-10);
+
+        auto t2 = batch[2].translation();
+        CHECK(std::abs(t2[0] - 3.0) < 1e-10);
+        CHECK(std::abs(t2[1] - 4.0) < 1e-10);
+
+        CHECK(batch[3].so2().is_approx(SO2d(0.5), 1e-10));
+    }
+
+    TEST_CASE("Static factory methods") {
+        auto batch_r = SE2Batch<double, 4>::rot(0.5);
+        auto batch_t = SE2Batch<double, 4>::trans(1, 2);
+        auto batch_tx = SE2Batch<double, 4>::trans_x(5);
+        auto batch_ty = SE2Batch<double, 4>::trans_y(7);
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            CHECK(batch_r[i].so2().is_approx(SO2d(0.5), 1e-10));
+
+            auto t = batch_t[i].translation();
+            CHECK(std::abs(t[0] - 1.0) < 1e-10);
+            CHECK(std::abs(t[1] - 2.0) < 1e-10);
+
+            auto tx = batch_tx[i].translation();
+            CHECK(std::abs(tx[0] - 5.0) < 1e-10);
+            CHECK(std::abs(tx[1]) < 1e-10);
+
+            auto ty = batch_ty[i].translation();
+            CHECK(std::abs(ty[0]) < 1e-10);
+            CHECK(std::abs(ty[1] - 7.0) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Inverse operation") {
+        constexpr std::size_t N = 4;
+        SE2Batch<double, N> batch;
+
+        batch.set(0, SE2d::trans(1, 2) * SE2d::rot(0.5));
+        batch.set(1, SE2d::trans(-1, 0) * SE2d::rot(0.3));
+        batch.set(2, SE2d::rot(1.0) * SE2d::trans(0, 5));
+        batch.set(3, SE2d::identity());
+
+        auto inv_batch = batch.inverse();
+
+        for (std::size_t i = 0; i < N; ++i) {
+            auto product = batch[i] * inv_batch[i];
+            CHECK(product.so2().is_identity(1e-10));
+            auto t = product.translation();
+            CHECK(std::abs(t[0]) < 1e-10);
+            CHECK(std::abs(t[1]) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Group composition") {
+        constexpr std::size_t N = 4;
+        SE2Batch<double, N> batch1, batch2;
+
+        batch1.set(0, SE2d::trans(1, 0));
+        batch1.set(1, SE2d::rot(M_PI / 2));
+        batch1.set(2, SE2d::trans(0, 1) * SE2d::rot(0.5));
+        batch1.set(3, SE2d::identity());
+
+        batch2.set(0, SE2d::trans(0, 1));
+        batch2.set(1, SE2d::trans(1, 0));
+        batch2.set(2, SE2d::rot(0.3));
+        batch2.set(3, SE2d::trans(1, 2));
+
+        auto result = batch1 * batch2;
+
+        for (std::size_t i = 0; i < N; ++i) {
+            auto expected = batch1[i] * batch2[i];
+
+            // Check rotation
+            CHECK(result[i].so2().is_approx(expected.so2(), 1e-10));
+
+            // Check translation
+            auto t_result = result[i].translation();
+            auto t_expected = expected.translation();
+            CHECK(std::abs(t_result[0] - t_expected[0]) < 1e-10);
+            CHECK(std::abs(t_result[1] - t_expected[1]) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Transform points") {
+        constexpr std::size_t N = 4;
+        SE2Batch<double, N> batch;
+
+        // Translation only
+        batch.set(0, SE2d::trans(1, 2));
+        // Rotation only (90 deg)
+        batch.set(1, SE2d::rot(M_PI / 2));
+        // Combined
+        batch.set(2, SE2d::trans(0, 1) * SE2d::rot(M_PI / 2));
+        // Identity
+        batch.set(3, SE2d::identity());
+
+        double px[N] = {0, 1, 0, 5};
+        double py[N] = {0, 0, 1, 6};
+
+        batch.transform(px, py);
+
+        // Translation: (0,0) + (1,2) = (1,2)
+        CHECK(std::abs(px[0] - 1.0) < 1e-10);
+        CHECK(std::abs(py[0] - 2.0) < 1e-10);
+
+        // rot(90): (1,0) -> (0,1)
+        CHECK(std::abs(px[1]) < 1e-10);
+        CHECK(std::abs(py[1] - 1.0) < 1e-10);
+
+        // rot(90) + trans_y(1): (0,1) -> (-1,0) + (0,1) = (-1,1)
+        CHECK(std::abs(px[2] + 1.0) < 1e-10);
+        CHECK(std::abs(py[2] - 1.0) < 1e-10);
+
+        // Identity: unchanged
+        CHECK(std::abs(px[3] - 5.0) < 1e-10);
+        CHECK(std::abs(py[3] - 6.0) < 1e-10);
+    }
+
+    TEST_CASE("Linear interpolation") {
+        constexpr std::size_t N = 4;
+        SE2Batch<double, N> batch1(SE2d::identity());
+        SE2Batch<double, N> batch2(SE2d::trans(2, 0) * SE2d::rot(M_PI / 2));
+
+        auto mid = batch1.lerp(batch2, 0.5);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            // Translation should be (1, 0) at midpoint
+            auto t = mid[i].translation();
+            CHECK(std::abs(t[0] - 1.0) < 1e-6);
+            CHECK(std::abs(t[1]) < 1e-6);
+
+            // Rotation should be approximately rot(pi/4)
+            auto expected_rot = SO2d(M_PI / 4);
+            CHECK(mid[i].so2().is_approx(expected_rot, 1e-4));
+        }
+    }
+
+    TEST_CASE("Exp/log round trip") {
+        constexpr std::size_t N = 4;
+        std::mt19937 rng(456);
+        std::uniform_real_distribution<double> dist(-0.3, 0.3);
+
+        std::array<dp::mat::vector<double, 3>, N> twists;
+        for (std::size_t i = 0; i < N; ++i) {
+            twists[i] = {dist(rng), dist(rng), dist(rng)};
+        }
+
+        auto batch = SE2Batch<double, N>::exp(twists);
+        auto logs = batch.log();
+
+        for (std::size_t i = 0; i < N; ++i) {
+            for (std::size_t j = 0; j < 3; ++j) {
+                CHECK(std::abs(logs[i][j] - twists[i][j]) < 1e-10);
+            }
+        }
+    }
+
+    TEST_CASE("Exp from arrays") {
+        constexpr std::size_t N = 8;
+        std::mt19937 rng(789);
+        std::uniform_real_distribution<double> dist(-0.5, 0.5);
+
+        double vx[N], vy[N], theta[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            vx[i] = dist(rng);
+            vy[i] = dist(rng);
+            theta[i] = dist(rng);
+        }
+
+        auto batch = SE2Batch<double, N>::exp(vx, vy, theta);
+
+        // Verify each element against scalar exp
+        for (std::size_t i = 0; i < N; ++i) {
+            dp::mat::vector<double, 3> twist{vx[i], vy[i], theta[i]};
+            auto expected = SE2d::exp(twist);
+
+            CHECK(batch[i].so2().is_approx(expected.so2(), 1e-5));
+            auto t_result = batch[i].translation();
+            auto t_expected = expected.translation();
+            CHECK(std::abs(t_result[0] - t_expected[0]) < 1e-5);
+            CHECK(std::abs(t_result[1] - t_expected[1]) < 1e-5);
+        }
+    }
+
+    TEST_CASE("Translation norms") {
+        constexpr std::size_t N = 4;
+        SE2Batch<double, N> batch;
+
+        batch.set(0, SE2d::trans(3, 4)); // norm = 5
+        batch.set(1, SE2d::trans(0, 0)); // norm = 0
+        batch.set(2, SE2d::trans(1, 1)); // norm = sqrt(2)
+        batch.set(3, SE2d::trans(6, 8)); // norm = 10
+
+        double norms[N];
+        batch.translation_norms(norms);
+
+        CHECK(std::abs(norms[0] - 5.0) < 1e-10);
+        CHECK(std::abs(norms[1]) < 1e-10);
+        CHECK(std::abs(norms[2] - std::sqrt(2.0)) < 1e-10);
+        CHECK(std::abs(norms[3] - 10.0) < 1e-10);
+    }
+
+    TEST_CASE("Iterator support") {
+        SE2Batch<double, 4> batch;
+        batch.set(0, SE2d::trans(1, 0));
+        batch.set(1, SE2d::trans(0, 1));
+        batch.set(2, SE2d::trans(1, 1));
+        batch.set(3, SE2d::rot(0.5));
+
+        std::size_t count = 0;
+        for (const auto &elem : batch) {
+            (void)elem;
+            ++count;
+        }
+        CHECK(count == 4);
+    }
+
+    TEST_CASE("Inverse transform") {
+        constexpr std::size_t N = 4;
+        SE2Batch<double, N> batch;
+
+        batch.set(0, SE2d::trans(1, 2) * SE2d::rot(0.5));
+        batch.set(1, SE2d::trans(-1, 0) * SE2d::rot(0.3));
+        batch.set(2, SE2d::rot(1.0) * SE2d::trans(0, 5));
+        batch.set(3, SE2d::identity());
+
+        // Transform then inverse transform should be identity
+        double px[N] = {1, 2, 3, 4};
+        double py[N] = {5, 6, 7, 8};
+
+        double px_orig[N], py_orig[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            px_orig[i] = px[i];
+            py_orig[i] = py[i];
+        }
+
+        batch.transform(px, py);
+        batch.inverse_transform(px, py);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(std::abs(px[i] - px_orig[i]) < 1e-10);
+            CHECK(std::abs(py[i] - py_orig[i]) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Large batch transform consistency") {
+        constexpr std::size_t N = 32;
+        SE2Batch<double, N> batch;
+
+        // Create poses with increasing translation
+        for (std::size_t i = 0; i < N; ++i) {
+            batch.set(i, SE2d::trans(static_cast<double>(i), 0));
+        }
+
+        // Transform origin points
+        double px[N], py[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            px[i] = py[i] = 0.0;
+        }
+
+        batch.transform(px, py);
+
+        // Verify
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(std::abs(px[i] - static_cast<double>(i)) < 1e-10);
+            CHECK(std::abs(py[i]) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Float type support") {
+        constexpr std::size_t N = 8;
+        SE2Batch<float, N> batch;
+
+        for (std::size_t i = 0; i < N; ++i) {
+            batch.set(i, SE2f::trans(static_cast<float>(i), static_cast<float>(i * 2)));
+        }
+
+        float px[N], py[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            px[i] = 0.0f;
+            py[i] = 0.0f;
+        }
+
+        batch.transform(px, py);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(std::abs(px[i] - static_cast<float>(i)) < 1e-5f);
+            CHECK(std::abs(py[i] - static_cast<float>(i * 2)) < 1e-5f);
+        }
+    }
+}
+
+// ============================================================================
 // SO3Batch Tests
 // ============================================================================
 
@@ -942,5 +1277,369 @@ TEST_SUITE("Batch SIMD Operations") {
         for (std::size_t i = 0; i < N; ++i) {
             CHECK(left[i].is_approx(right[i], 1e-10));
         }
+    }
+}
+
+// ============================================================================
+// RxSO3Batch Tests
+// ============================================================================
+
+TEST_SUITE("RxSO3Batch") {
+
+    TEST_CASE("Default construction is identity") {
+        RxSO3Batch<double, 4> batch;
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            CHECK(batch[i].is_identity(1e-10));
+            CHECK(std::abs(batch[i].scale() - 1.0) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Broadcast construction") {
+        auto elem = RxSO3d(2.0, SO3d::rot_x(0.5));
+        RxSO3Batch<double, 4> batch(elem);
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            CHECK(batch[i].is_approx(elem, 1e-10));
+        }
+    }
+
+    TEST_CASE("Element access and modification") {
+        RxSO3Batch<double, 4> batch;
+
+        auto elem0 = RxSO3d(1.5, SO3d::rot_x(0.1));
+        auto elem1 = RxSO3d(2.0, SO3d::rot_y(0.2));
+        auto elem2 = RxSO3d(0.5, SO3d::rot_z(0.3));
+        auto elem3 = RxSO3d(3.0, SO3d::identity());
+
+        batch.set(0, elem0);
+        batch.set(1, elem1);
+        batch.set(2, elem2);
+        batch.set(3, elem3);
+
+        CHECK(batch[0].is_approx(elem0, 1e-10));
+        CHECK(batch[1].is_approx(elem1, 1e-10));
+        CHECK(batch[2].is_approx(elem2, 1e-10));
+        CHECK(batch[3].is_approx(elem3, 1e-10));
+    }
+
+    TEST_CASE("Static factory: identity") {
+        auto batch = RxSO3Batch<double, 4>::identity();
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            CHECK(batch[i].is_identity(1e-10));
+        }
+    }
+
+    TEST_CASE("Static factory: scale_only") {
+        auto batch = RxSO3Batch<double, 4>::scale_only(2.5);
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            CHECK(std::abs(batch[i].scale() - 2.5) < 1e-10);
+            CHECK(batch[i].so3().is_identity(1e-10));
+        }
+    }
+
+    TEST_CASE("Exp map from arrays") {
+        constexpr std::size_t N = 8;
+        std::mt19937 rng(123);
+        std::uniform_real_distribution<double> dist(-0.3, 0.3);
+        std::uniform_real_distribution<double> scale_dist(-0.5, 0.5);
+
+        double sigma[N], wx[N], wy[N], wz[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            sigma[i] = scale_dist(rng); // log(scale)
+            wx[i] = dist(rng);
+            wy[i] = dist(rng);
+            wz[i] = dist(rng);
+        }
+
+        auto batch = RxSO3Batch<double, N>::exp(sigma, wx, wy, wz);
+
+        // Verify against scalar exp
+        for (std::size_t i = 0; i < N; ++i) {
+            dp::mat::vector<double, 4> tangent{{sigma[i], wx[i], wy[i], wz[i]}};
+            auto expected = RxSO3d::exp(tangent);
+            CHECK(batch[i].is_approx(expected, 1e-5));
+        }
+    }
+
+    TEST_CASE("Inverse operation") {
+        constexpr std::size_t N = 4;
+        RxSO3Batch<double, N> batch;
+
+        batch.set(0, RxSO3d(2.0, SO3d::rot_x(0.5)));
+        batch.set(1, RxSO3d(0.5, SO3d::rot_y(0.3)));
+        batch.set(2, RxSO3d(1.5, SO3d::rot_z(1.0)));
+        batch.set(3, RxSO3d::identity());
+
+        auto inv_batch = batch.inverse();
+
+        for (std::size_t i = 0; i < N; ++i) {
+            auto product = batch[i] * inv_batch[i];
+            CHECK(product.is_identity(1e-10));
+        }
+    }
+
+    TEST_CASE("Group composition") {
+        constexpr std::size_t N = 4;
+        RxSO3Batch<double, N> batch1, batch2;
+
+        batch1.set(0, RxSO3d(2.0, SO3d::rot_x(0.1)));
+        batch1.set(1, RxSO3d(1.5, SO3d::rot_y(0.2)));
+        batch1.set(2, RxSO3d(0.8, SO3d::rot_z(0.3)));
+        batch1.set(3, RxSO3d::identity());
+
+        batch2.set(0, RxSO3d(0.5, SO3d::rot_z(0.1)));
+        batch2.set(1, RxSO3d(2.0, SO3d::rot_x(0.2)));
+        batch2.set(2, RxSO3d(1.0, SO3d::rot_y(0.3)));
+        batch2.set(3, RxSO3d(3.0, SO3d::rot_x(0.5)));
+
+        auto result = batch1 * batch2;
+
+        for (std::size_t i = 0; i < N; ++i) {
+            auto expected = batch1[i] * batch2[i];
+            CHECK(result[i].is_approx(expected, 1e-10));
+        }
+    }
+
+    TEST_CASE("Transform vectors") {
+        constexpr std::size_t N = 4;
+        RxSO3Batch<double, N> batch;
+
+        // Scale=2, no rotation
+        batch.set(0, RxSO3d(2.0, SO3d::identity()));
+        // Scale=1, 90 deg rotation around Z
+        batch.set(1, RxSO3d(1.0, SO3d::rot_z(M_PI / 2)));
+        // Scale=0.5, 90 deg rotation around X
+        batch.set(2, RxSO3d(0.5, SO3d::rot_x(M_PI / 2)));
+        // Identity
+        batch.set(3, RxSO3d::identity());
+
+        double vx[N] = {1, 1, 0, 5};
+        double vy[N] = {0, 0, 1, 6};
+        double vz[N] = {0, 0, 0, 7};
+
+        batch.transform(vx, vy, vz);
+
+        // Scale=2, identity: (1,0,0) -> (2,0,0)
+        CHECK(std::abs(vx[0] - 2.0) < 1e-10);
+        CHECK(std::abs(vy[0]) < 1e-10);
+        CHECK(std::abs(vz[0]) < 1e-10);
+
+        // Scale=1, rot_z(90): (1,0,0) -> (0,1,0)
+        CHECK(std::abs(vx[1]) < 1e-10);
+        CHECK(std::abs(vy[1] - 1.0) < 1e-10);
+        CHECK(std::abs(vz[1]) < 1e-10);
+
+        // Scale=0.5, rot_x(90): (0,1,0) -> (0,0,0.5)
+        CHECK(std::abs(vx[2]) < 1e-10);
+        CHECK(std::abs(vy[2]) < 1e-10);
+        CHECK(std::abs(vz[2] - 0.5) < 1e-10);
+
+        // Identity: unchanged
+        CHECK(std::abs(vx[3] - 5.0) < 1e-10);
+        CHECK(std::abs(vy[3] - 6.0) < 1e-10);
+        CHECK(std::abs(vz[3] - 7.0) < 1e-10);
+    }
+
+    TEST_CASE("Scale extraction") {
+        constexpr std::size_t N = 4;
+        RxSO3Batch<double, N> batch;
+
+        batch.set(0, RxSO3d(2.0, SO3d::rot_x(0.1)));
+        batch.set(1, RxSO3d(0.5, SO3d::rot_y(0.2)));
+        batch.set(2, RxSO3d(1.0, SO3d::rot_z(0.3)));
+        batch.set(3, RxSO3d(3.0, SO3d::identity()));
+
+        double scales[N];
+        batch.scales(scales);
+
+        CHECK(std::abs(scales[0] - 2.0) < 1e-10);
+        CHECK(std::abs(scales[1] - 0.5) < 1e-10);
+        CHECK(std::abs(scales[2] - 1.0) < 1e-10);
+        CHECK(std::abs(scales[3] - 3.0) < 1e-10);
+    }
+
+    TEST_CASE("SO3 extraction") {
+        constexpr std::size_t N = 4;
+        RxSO3Batch<double, N> batch;
+
+        auto rot0 = SO3d::rot_x(0.1);
+        auto rot1 = SO3d::rot_y(0.2);
+        auto rot2 = SO3d::rot_z(0.3);
+        auto rot3 = SO3d::identity();
+
+        batch.set(0, RxSO3d(2.0, rot0));
+        batch.set(1, RxSO3d(0.5, rot1));
+        batch.set(2, RxSO3d(1.5, rot2));
+        batch.set(3, RxSO3d(3.0, rot3));
+
+        auto so3_batch = batch.so3();
+
+        CHECK(so3_batch[0].is_approx(rot0, 1e-10));
+        CHECK(so3_batch[1].is_approx(rot1, 1e-10));
+        CHECK(so3_batch[2].is_approx(rot2, 1e-10));
+        CHECK(so3_batch[3].is_approx(rot3, 1e-10));
+    }
+
+    TEST_CASE("Set scale (uniform)") {
+        constexpr std::size_t N = 4;
+        RxSO3Batch<double, N> batch;
+
+        auto rot0 = SO3d::rot_x(0.1);
+        auto rot1 = SO3d::rot_y(0.2);
+        auto rot2 = SO3d::rot_z(0.3);
+        auto rot3 = SO3d::identity();
+
+        batch.set(0, RxSO3d(2.0, rot0));
+        batch.set(1, RxSO3d(0.5, rot1));
+        batch.set(2, RxSO3d(1.5, rot2));
+        batch.set(3, RxSO3d(3.0, rot3));
+
+        batch.set_scale(1.0);
+
+        // Rotations should be preserved
+        CHECK(batch[0].so3().is_approx(rot0, 1e-10));
+        CHECK(batch[1].so3().is_approx(rot1, 1e-10));
+        CHECK(batch[2].so3().is_approx(rot2, 1e-10));
+        CHECK(batch[3].so3().is_approx(rot3, 1e-10));
+
+        // All scales should be 1.0
+        double scales[N];
+        batch.scales(scales);
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(std::abs(scales[i] - 1.0) < 1e-10);
+        }
+    }
+
+    TEST_CASE("SLERP interpolation") {
+        constexpr std::size_t N = 4;
+        RxSO3Batch<double, N> batch1(RxSO3d(1.0, SO3d::identity()));
+        RxSO3Batch<double, N> batch2(RxSO3d(3.0, SO3d::rot_z(M_PI / 2)));
+
+        auto mid = batch1.slerp(batch2, 0.5);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            // Scale should be interpolated: (1 + 3) / 2 = 2
+            CHECK(std::abs(mid[i].scale() - 2.0) < 1e-6);
+
+            // Rotation should be approximately rot_z(pi/4)
+            auto expected_rot = SO3d::rot_z(M_PI / 4);
+            CHECK(mid[i].so3().is_approx(expected_rot, 1e-4));
+        }
+    }
+
+    TEST_CASE("Log/exp round trip") {
+        constexpr std::size_t N = 8;
+        std::mt19937 rng(456);
+        std::uniform_real_distribution<double> dist(-0.3, 0.3);
+        std::uniform_real_distribution<double> scale_dist(-0.5, 0.5);
+
+        double sigma[N], wx[N], wy[N], wz[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            sigma[i] = scale_dist(rng);
+            wx[i] = dist(rng);
+            wy[i] = dist(rng);
+            wz[i] = dist(rng);
+        }
+
+        auto batch = RxSO3Batch<double, N>::exp(sigma, wx, wy, wz);
+
+        double sigma_out[N], wx_out[N], wy_out[N], wz_out[N];
+        batch.log(sigma_out, wx_out, wy_out, wz_out);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(std::abs(sigma_out[i] - sigma[i]) < 1e-6);
+            CHECK(std::abs(wx_out[i] - wx[i]) < 1e-6);
+            CHECK(std::abs(wy_out[i] - wy[i]) < 1e-6);
+            CHECK(std::abs(wz_out[i] - wz[i]) < 1e-6);
+        }
+    }
+
+    TEST_CASE("Iterator support") {
+        RxSO3Batch<double, 4> batch;
+        batch.set(0, RxSO3d(1.0, SO3d::rot_x(0.1)));
+        batch.set(1, RxSO3d(2.0, SO3d::rot_y(0.2)));
+        batch.set(2, RxSO3d(0.5, SO3d::rot_z(0.3)));
+        batch.set(3, RxSO3d::identity());
+
+        std::size_t count = 0;
+        for (const auto &elem : batch) {
+            (void)elem;
+            ++count;
+        }
+        CHECK(count == 4);
+    }
+
+    TEST_CASE("Validation") {
+        RxSO3Batch<double, 4> batch;
+
+        // All identity should be valid
+        CHECK(batch.all_valid());
+        CHECK(batch.all_identity());
+
+        // After modification, not all identity
+        batch.set(0, RxSO3d(2.0, SO3d::rot_x(0.1)));
+        CHECK(batch.all_valid());
+        CHECK_FALSE(batch.all_identity());
+    }
+
+    TEST_CASE("Large batch consistency") {
+        constexpr std::size_t N = 32;
+        RxSO3Batch<double, N> batch;
+
+        std::mt19937 rng(789);
+        std::uniform_real_distribution<double> angle_dist(-M_PI, M_PI);
+        std::uniform_real_distribution<double> scale_dist(0.5, 2.0);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            auto rot = SO3d::rot_x(angle_dist(rng)) * SO3d::rot_y(angle_dist(rng)) * SO3d::rot_z(angle_dist(rng));
+            batch.set(i, RxSO3d(scale_dist(rng), rot));
+        }
+
+        // Test inverse consistency
+        auto inv_batch = batch.inverse();
+        for (std::size_t i = 0; i < N; ++i) {
+            auto product = batch[i] * inv_batch[i];
+            CHECK(product.is_identity(1e-10));
+        }
+    }
+
+    TEST_CASE("Composition associativity") {
+        constexpr std::size_t N = 8;
+
+        RxSO3Batch<double, N> A, B, C;
+
+        std::mt19937 rng(321);
+        std::uniform_real_distribution<double> angle_dist(-0.5, 0.5);
+        std::uniform_real_distribution<double> scale_dist(0.5, 2.0);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            A.set(i, RxSO3d(scale_dist(rng), SO3d::rot_x(angle_dist(rng))));
+            B.set(i, RxSO3d(scale_dist(rng), SO3d::rot_y(angle_dist(rng))));
+            C.set(i, RxSO3d(scale_dist(rng), SO3d::rot_z(angle_dist(rng))));
+        }
+
+        // (A * B) * C == A * (B * C)
+        auto left = (A * B) * C;
+        auto right = A * (B * C);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(left[i].is_approx(right[i], 1e-10));
+        }
+    }
+
+    TEST_CASE("Float type support") {
+        RxSO3Batch<float, 8> batch;
+
+        batch.set(0, RxSO3f(2.0f, SO3f::rot_x(0.1f)));
+        batch.set(1, RxSO3f(0.5f, SO3f::rot_y(0.2f)));
+
+        auto inv = batch.inverse();
+        auto product = batch * inv;
+
+        CHECK(product[0].is_identity(1e-5f));
+        CHECK(product[1].is_identity(1e-5f));
     }
 }
