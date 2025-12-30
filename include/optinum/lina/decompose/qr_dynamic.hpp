@@ -6,6 +6,8 @@
 // Uses SIMD for column operations where memory is contiguous.
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
@@ -18,6 +20,8 @@
 
 namespace optinum::lina {
 
+    namespace dp = ::datapod;
+
     /**
      * @brief Result of dynamic QR decomposition
      *
@@ -25,18 +29,53 @@ namespace optinum::lina {
      * such that A = Q * R.
      */
     template <typename T> struct QRDynamic {
+        // Owning storage
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> q_storage;
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> r_storage;
+        // Views over the storage
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> q;
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> r;
 
         QRDynamic() = default;
 
-        QRDynamic(std::size_t m, std::size_t n) : q(m, m), r(m, n) {
+        QRDynamic(std::size_t m, std::size_t n) : q_storage(m, m), r_storage(m, n), q(q_storage), r(r_storage) {
             // Initialize Q to identity
             q.fill(T{});
             r.fill(T{});
             for (std::size_t i = 0; i < m; ++i) {
                 q(i, i) = T{1};
             }
+        }
+
+        // Copy constructor - need to re-establish views
+        QRDynamic(const QRDynamic &other)
+            : q_storage(other.q_storage), r_storage(other.r_storage), q(q_storage), r(r_storage) {}
+
+        // Move constructor - need to re-establish views
+        QRDynamic(QRDynamic &&other) noexcept
+            : q_storage(std::move(other.q_storage)), r_storage(std::move(other.r_storage)), q(q_storage), r(r_storage) {
+        }
+
+        // Copy assignment
+        QRDynamic &operator=(const QRDynamic &other) {
+            if (this != &other) {
+                q_storage = other.q_storage;
+                r_storage = other.r_storage;
+                q = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(q_storage);
+                r = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(r_storage);
+            }
+            return *this;
+        }
+
+        // Move assignment
+        QRDynamic &operator=(QRDynamic &&other) noexcept {
+            if (this != &other) {
+                q_storage = std::move(other.q_storage);
+                r_storage = std::move(other.r_storage);
+                q = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(q_storage);
+                r = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(r_storage);
+            }
+            return *this;
         }
     };
 
@@ -110,7 +149,8 @@ namespace optinum::lina {
 
             // Compute v = Q * w (only w[k:m-1] is non-zero)
             // v[i] = sum_{j=k}^{m-1} Q[i,j] * w[j]
-            simd::Vector<T, simd::Dynamic> v(m);
+            dp::mat::vector<T, dp::mat::Dynamic> v_storage(m);
+            simd::Vector<T, simd::Dynamic> v(v_storage);
             v.fill(T{});
 
             // For each column j >= k, add w[j] * Q[:,j] to v
@@ -180,7 +220,8 @@ namespace optinum::lina {
         }
 
         const std::size_t k_max = (m < n) ? m : n;
-        simd::Vector<T, simd::Dynamic> w(m);
+        dp::mat::vector<T, dp::mat::Dynamic> w_storage(m);
+        simd::Vector<T, simd::Dynamic> w(w_storage);
 
         for (std::size_t k = 0; k < k_max; ++k) {
             // Column k of R starts at out.r.data() + k*m

@@ -5,6 +5,8 @@
 // Discrete Algebraic Riccati Equation (DARE) solver
 // =============================================================================
 
+#include <datapod/adapters/error.hpp>
+#include <datapod/adapters/result.hpp>
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/lina/basic/norm.hpp>
@@ -14,9 +16,10 @@
 
 #include <cmath>
 #include <limits>
-#include <stdexcept>
 
 namespace optinum::lina {
+
+    namespace dp = ::datapod;
 
     /**
      * @brief Solve the Discrete Algebraic Riccati Equation (DARE)
@@ -60,10 +63,7 @@ namespace optinum::lina {
      * @param max_iterations Maximum number of iterations (default: 150)
      * @param tolerance Convergence tolerance (default: 1e-6)
      *
-     * @return P Solution to DARE (N x N, positive semi-definite)
-     *
-     * @throws std::invalid_argument if matrices have incompatible dimensions
-     * @throws std::runtime_error if iteration fails to converge
+     * @return Result containing P (N x N, positive semi-definite) or error
      *
      * @note For LQR gain computation: K = (R + B^T * P * B)^{-1} * B^T * P * A
      *
@@ -75,20 +75,17 @@ namespace optinum::lina {
      * Matrix<double, 4, 4> Q = ...; // State cost
      * Matrix<double, 1, 1> R = ...; // Control cost
      *
-     * auto P = dare(A, B, Q, R);
-     *
-     * // Compute LQR gain
-     * auto BT_P = matmul(transpose(B), P);
-     * auto BT_P_B = matmul(BT_P, B);
-     * auto R_plus_BT_P_B = R + BT_P_B;
-     * auto inv_term = inverse(R_plus_BT_P_B);
-     * auto K = matmul(matmul(inv_term, BT_P), A);
+     * auto result = try_dare(A, B, Q, R);
+     * if (result.is_ok()) {
+     *     auto P = result.value();
+     *     // ...
+     * }
      * ```
      */
     template <typename T, std::size_t N, std::size_t M>
-    inline datapod::mat::matrix<T, N, N> dare(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B,
-                                              const simd::Matrix<T, N, N> &Q, const simd::Matrix<T, M, M> &R,
-                                              std::size_t max_iterations = 150, T tolerance = T(1e-6)) {
+    [[nodiscard]] constexpr dp::Result<dp::mat::matrix<T, N, N>, dp::Error>
+    try_dare(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B, const simd::Matrix<T, N, N> &Q,
+             const simd::Matrix<T, M, M> &R, std::size_t max_iterations = 150, T tolerance = T(1e-6)) noexcept {
         static_assert(N != simd::Dynamic && M != simd::Dynamic, "dare() currently requires fixed-size matrices");
 
         // Validate dimensions
@@ -96,7 +93,7 @@ namespace optinum::lina {
         static_assert(M > 0, "Control dimension M must be > 0");
 
         // Initialize P with Q (standard initial guess)
-        datapod::mat::matrix<T, N, N> P;
+        dp::mat::matrix<T, N, N> P;
         for (std::size_t i = 0; i < N * N; ++i)
             P[i] = Q[i];
 
@@ -118,13 +115,19 @@ namespace optinum::lina {
             if constexpr (M == 1) {
                 T denom = R_plus_BT_P_B(0, 0);
                 if (std::abs(denom) < std::numeric_limits<T>::epsilon()) {
-                    throw std::runtime_error("dare: R + B^T*P*B is singular (near zero)");
+                    return dp::Result<dp::mat::matrix<T, N, N>, dp::Error>::err(
+                        dp::Error::invalid_argument("dare: R + B^T*P*B is singular (near zero)"));
                 }
                 T inv_denom = T(1) / denom;
                 R_plus_BT_P_B(0, 0) = inv_denom;
             } else {
-                // For matrix case, use existing inverse function
-                R_plus_BT_P_B = lina::inverse(R_plus_BT_P_B);
+                // For matrix case, use try_inverse
+                auto inv_result = lina::try_inverse<T, M>(R_plus_BT_P_B);
+                if (inv_result.is_err()) {
+                    return dp::Result<dp::mat::matrix<T, N, N>, dp::Error>::err(
+                        dp::Error::invalid_argument("dare: R + B^T*P*B is singular"));
+                }
+                R_plus_BT_P_B = inv_result.value();
             }
 
             // Step 4: Compute B^T * P * A
@@ -147,12 +150,33 @@ namespace optinum::lina {
 
             // Check convergence
             if (diff_norm < tolerance) {
-                return P;
+                return dp::Result<dp::mat::matrix<T, N, N>, dp::Error>::ok(P);
             }
         }
 
         // If we reach here, iteration did not converge
-        throw std::runtime_error("dare: Failed to converge within " + std::to_string(max_iterations) + " iterations");
+        return dp::Result<dp::mat::matrix<T, N, N>, dp::Error>::err(
+            dp::Error{10, "dare: Failed to converge within max iterations"});
+    }
+
+    /**
+     * @brief Solve the Discrete Algebraic Riccati Equation (DARE)
+     *
+     * Wrapper that returns zero matrix on error.
+     *
+     * @see try_dare for full documentation
+     */
+    template <typename T, std::size_t N, std::size_t M>
+    [[nodiscard]] constexpr dp::mat::matrix<T, N, N>
+    dare(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B, const simd::Matrix<T, N, N> &Q,
+         const simd::Matrix<T, M, M> &R, std::size_t max_iterations = 150, T tolerance = T(1e-6)) noexcept {
+        auto r = try_dare<T, N, M>(A, B, Q, R, max_iterations, tolerance);
+        if (r.is_ok()) {
+            return r.value();
+        }
+        dp::mat::matrix<T, N, N> zero;
+        zero.fill(T{});
+        return zero;
     }
 
     /**
@@ -172,11 +196,12 @@ namespace optinum::lina {
      * @param R Control cost matrix (M x M)
      * @param P DARE solution (N x N)
      *
-     * @return K LQR gain matrix (M x N)
+     * @return Result containing K LQR gain matrix (M x N) or error
      */
     template <typename T, std::size_t N, std::size_t M, typename PMatrix>
-    inline datapod::mat::matrix<T, M, N> lqr_gain(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B,
-                                                  const simd::Matrix<T, M, M> &R, const PMatrix &P) {
+    [[nodiscard]] constexpr dp::Result<dp::mat::matrix<T, M, N>, dp::Error>
+    try_lqr_gain(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B, const simd::Matrix<T, M, M> &R,
+                 const PMatrix &P) noexcept {
         static_assert(N != simd::Dynamic && M != simd::Dynamic, "lqr_gain() currently requires fixed-size matrices");
 
         // Compute B^T * P
@@ -193,7 +218,8 @@ namespace optinum::lina {
         if constexpr (M == 1) {
             T denom = R_plus_BT_P_B(0, 0);
             if (std::abs(denom) < std::numeric_limits<T>::epsilon()) {
-                throw std::runtime_error("lqr_gain: R + B^T*P*B is singular (near zero)");
+                return dp::Result<dp::mat::matrix<T, M, N>, dp::Error>::err(
+                    dp::Error::invalid_argument("lqr_gain: R + B^T*P*B is singular (near zero)"));
             }
             T inv_scalar = T(1) / denom;
 
@@ -201,16 +227,41 @@ namespace optinum::lina {
             auto BT_P_A = lina::matmul(BT_P, A);
 
             // K = (1/denom) * B^T * P * A (SIMD accelerated scalar multiplication)
-            return lina::scale(inv_scalar, BT_P_A);
+            return dp::Result<dp::mat::matrix<T, M, N>, dp::Error>::ok(lina::scale(inv_scalar, BT_P_A));
         } else {
-            auto inv_term = lina::inverse(R_plus_BT_P_B);
+            auto inv_result = lina::try_inverse<T, M>(R_plus_BT_P_B);
+            if (inv_result.is_err()) {
+                return dp::Result<dp::mat::matrix<T, M, N>, dp::Error>::err(
+                    dp::Error::invalid_argument("lqr_gain: R + B^T*P*B is singular"));
+            }
+            auto inv_term = inv_result.value();
 
             // Compute B^T * P * A
             auto BT_P_A = lina::matmul(BT_P, A);
 
             // Compute K = (R + B^T * P * B)^{-1} * B^T * P * A
-            return lina::matmul(inv_term, BT_P_A);
+            return dp::Result<dp::mat::matrix<T, M, N>, dp::Error>::ok(lina::matmul(inv_term, BT_P_A));
         }
+    }
+
+    /**
+     * @brief Compute LQR gain from DARE solution
+     *
+     * Wrapper that returns zero matrix on error.
+     *
+     * @see try_lqr_gain for full documentation
+     */
+    template <typename T, std::size_t N, std::size_t M, typename PMatrix>
+    [[nodiscard]] constexpr dp::mat::matrix<T, M, N>
+    lqr_gain(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B, const simd::Matrix<T, M, M> &R,
+             const PMatrix &P) noexcept {
+        auto r = try_lqr_gain<T, N, M>(A, B, R, P);
+        if (r.is_ok()) {
+            return r.value();
+        }
+        dp::mat::matrix<T, M, N> zero;
+        zero.fill(T{});
+        return zero;
     }
 
 } // namespace optinum::lina

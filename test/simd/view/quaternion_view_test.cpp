@@ -179,7 +179,7 @@ TEST_CASE("quaternion_view - Normalized to output") {
     quat_t output[2];
 
     auto qv_in = on::view(input);
-    (void)qv_in.normalized_to(output);
+    (void)qv_in.normalize_to(output);
 
     CHECK(output[0].w == doctest::Approx(0.6));
     CHECK(output[0].x == doctest::Approx(0.8));

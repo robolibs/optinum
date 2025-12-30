@@ -285,19 +285,20 @@ TEST_CASE("DARE: Convergence with maximum iterations") {
     dp::mat::matrix<double, 1, 1> R;
     R(0, 0) = 1.0;
 
-    // With very low tolerance and few iterations, should either converge or throw
-    // Most systems will converge quickly, so just verify it doesn't crash
-    bool converged = false;
-    try {
-        auto P = lina::dare(Matrix<double, 2, 2>(A), Matrix<double, 2, 1>(B), Matrix<double, 2, 2>(Q),
-                            Matrix<double, 1, 1>(R), 5, 1e-12); // Very strict tolerance, few iterations
-        converged = true;
+    // With very low tolerance and few iterations, should either converge or return error
+    // Use try_dare to properly handle both cases
+    auto result = lina::try_dare(Matrix<double, 2, 2>(A), Matrix<double, 2, 1>(B), Matrix<double, 2, 2>(Q),
+                                 Matrix<double, 1, 1>(R), 5, 1e-12); // Very strict tolerance, few iterations
+
+    if (result.is_ok()) {
         // If it converges, verify result is valid
+        auto P = result.value();
         CHECK(P(0, 0) > 0.0);
         CHECK(P(1, 1) > 0.0);
-    } catch (const std::runtime_error &) {
+    } else {
         // It's okay if it doesn't converge with these strict parameters
-        converged = false;
+        // Just verify we got a convergence error
+        CHECK(result.error().code == 10); // Custom convergence failure code
     }
 
     // Just verify the function handles the parameters correctly (no crash)

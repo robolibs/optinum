@@ -311,6 +311,36 @@ namespace optinum::simd {
             return *this;
         }
 
+        constexpr Matrix &operator*=(const Matrix &rhs) noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] *= rhs.ptr_[i];
+            } else {
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::mul_runtime<T>(ptr_, ptr_, rhs.ptr_, n);
+                } else {
+                    backend::mul<T, R * C>(ptr_, ptr_, rhs.ptr_);
+                }
+            }
+            return *this;
+        }
+
+        constexpr Matrix &operator/=(const Matrix &rhs) noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] /= rhs.ptr_[i];
+            } else {
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::div_runtime<T>(ptr_, ptr_, rhs.ptr_, n);
+                } else {
+                    backend::div<T, R * C>(ptr_, ptr_, rhs.ptr_);
+                }
+            }
+            return *this;
+        }
+
         // Unary negation - writes negated values to output pointer
         constexpr void negate_to(T *out) const noexcept {
             const size_type n = size();
@@ -348,6 +378,34 @@ namespace optinum::simd {
                 backend::sub_runtime<T>(out, lhs.data(), rhs.data(), lhs.size());
             } else {
                 backend::sub<T, R * C>(out, lhs.data(), rhs.data());
+            }
+        }
+    }
+
+    template <typename T, std::size_t R, std::size_t C>
+    constexpr void mul(T *out, const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] * rhs[i];
+        } else {
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::mul_runtime<T>(out, lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::mul<T, R * C>(out, lhs.data(), rhs.data());
+            }
+        }
+    }
+
+    template <typename T, std::size_t R, std::size_t C>
+    constexpr void div(T *out, const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] / rhs[i];
+        } else {
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::div_runtime<T>(out, lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::div<T, R * C>(out, lhs.data(), rhs.data());
             }
         }
     }

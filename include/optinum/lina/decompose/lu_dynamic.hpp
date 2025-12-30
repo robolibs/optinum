@@ -6,6 +6,7 @@
 // Uses SIMD for column operations (column-major layout).
 // =============================================================================
 
+#include <datapod/matrix.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
@@ -18,27 +19,79 @@
 
 namespace optinum::lina {
 
+    namespace dp = ::datapod;
+
     /**
      * @brief Result of dynamic LU decomposition with partial pivoting
      *
      * Stores L (lower triangular with unit diagonal), U (upper triangular),
      * and permutation vector P such that P*A = L*U.
+     * Uses owning storage types (dp::mat::matrix/vector) with simd views.
      */
     template <typename T> struct LUDynamic {
+        // Owning storage
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> l_storage;
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> u_storage;
+        dp::mat::vector<std::size_t, dp::mat::Dynamic> p_storage;
+
+        // Views for SIMD operations
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> l;
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> u;
         simd::Vector<std::size_t, simd::Dynamic> p;
+
         int sign = 1;
         bool singular = false;
 
         LUDynamic() = default;
 
-        explicit LUDynamic(std::size_t n) : l(n, n), u(n, n), p(n) {
+        explicit LUDynamic(std::size_t n)
+            : l_storage(n, n), u_storage(n, n), p_storage(n), l(l_storage), u(u_storage), p(p_storage) {
             l.fill(T{});
             u.fill(T{});
             for (std::size_t i = 0; i < n; ++i) {
                 p[i] = i;
             }
+        }
+
+        // Copy constructor - must re-establish views after copying storage
+        LUDynamic(const LUDynamic &other)
+            : l_storage(other.l_storage), u_storage(other.u_storage), p_storage(other.p_storage), l(l_storage),
+              u(u_storage), p(p_storage), sign(other.sign), singular(other.singular) {}
+
+        // Move constructor - must re-establish views after moving storage
+        LUDynamic(LUDynamic &&other) noexcept
+            : l_storage(std::move(other.l_storage)), u_storage(std::move(other.u_storage)),
+              p_storage(std::move(other.p_storage)), l(l_storage), u(u_storage), p(p_storage), sign(other.sign),
+              singular(other.singular) {}
+
+        // Copy assignment
+        LUDynamic &operator=(const LUDynamic &other) {
+            if (this != &other) {
+                l_storage = other.l_storage;
+                u_storage = other.u_storage;
+                p_storage = other.p_storage;
+                l = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(l_storage);
+                u = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(u_storage);
+                p = simd::Vector<std::size_t, simd::Dynamic>(p_storage);
+                sign = other.sign;
+                singular = other.singular;
+            }
+            return *this;
+        }
+
+        // Move assignment
+        LUDynamic &operator=(LUDynamic &&other) noexcept {
+            if (this != &other) {
+                l_storage = std::move(other.l_storage);
+                u_storage = std::move(other.u_storage);
+                p_storage = std::move(other.p_storage);
+                l = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(l_storage);
+                u = simd::Matrix<T, simd::Dynamic, simd::Dynamic>(u_storage);
+                p = simd::Vector<std::size_t, simd::Dynamic>(p_storage);
+                sign = other.sign;
+                singular = other.singular;
+            }
+            return *this;
         }
     };
 
@@ -124,8 +177,9 @@ namespace optinum::lina {
         const std::size_t n = a.rows();
         LUDynamic<T> out(n);
 
-        // Copy input to working matrix
-        simd::Matrix<T, simd::Dynamic, simd::Dynamic> lu_mat(n, n);
+        // Copy input to working matrix (owning storage + view)
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> lu_storage(n, n);
+        simd::Matrix<T, simd::Dynamic, simd::Dynamic> lu_mat(lu_storage);
         for (std::size_t i = 0; i < n * n; ++i) {
             lu_mat[i] = a[i];
         }
@@ -213,11 +267,15 @@ namespace optinum::lina {
      * @return Solution vector x
      */
     template <typename T>
-    [[nodiscard]] inline simd::Vector<T, simd::Dynamic> lu_solve_dynamic(const LUDynamic<T> &f,
-                                                                         const simd::Vector<T, simd::Dynamic> &b) {
+    [[nodiscard]] inline dp::mat::vector<T, dp::mat::Dynamic>
+    lu_solve_dynamic(const LUDynamic<T> &f, const simd::Vector<T, simd::Dynamic> &b) {
         const std::size_t n = b.size();
-        simd::Vector<T, simd::Dynamic> x(n);
-        simd::Vector<T, simd::Dynamic> y(n);
+
+        // Owning storage for result vectors
+        dp::mat::vector<T, dp::mat::Dynamic> x_storage(n);
+        dp::mat::vector<T, dp::mat::Dynamic> y_storage(n);
+        simd::Vector<T, simd::Dynamic> x(x_storage);
+        simd::Vector<T, simd::Dynamic> y(y_storage);
 
         // Apply permutation: y = Pb
         for (std::size_t i = 0; i < n; ++i) {
@@ -245,7 +303,7 @@ namespace optinum::lina {
             x[i] = sum / f.u(i, i);
         }
 
-        return x;
+        return x_storage;
     }
 
 } // namespace optinum::lina

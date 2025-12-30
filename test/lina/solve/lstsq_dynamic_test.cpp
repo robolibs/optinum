@@ -9,14 +9,23 @@ using optinum::lina::lstsq_dynamic;
 using optinum::lina::lstsq_residual_dynamic;
 using optinum::lina::try_lstsq_dynamic;
 using optinum::simd::Dynamic;
+using optinum::simd::Matrix;
+using optinum::simd::Vector;
 
-// Use owning types for dynamic matrices/vectors
-using DynMat = datapod::mat::matrix<double, Dynamic, Dynamic>;
-using DynVec = datapod::mat::vector<double, Dynamic>;
+namespace dp = datapod;
+
+// Owning storage types
+using DynMatStorage = dp::mat::matrix<double, dp::mat::Dynamic, dp::mat::Dynamic>;
+using DynVecStorage = dp::mat::vector<double, dp::mat::Dynamic>;
+
+// View types
+using DynMat = Matrix<double, Dynamic, Dynamic>;
+using DynVec = Vector<double, Dynamic>;
 
 TEST_CASE("lina::lstsq_dynamic recovers exact solution for consistent overdetermined system") {
     // A (3x2), x_true (2), b = A * x_true
-    DynMat a(3, 2);
+    DynMatStorage a_storage(3, 2);
+    DynMat a(a_storage);
     a(0, 0) = 1.0;
     a(0, 1) = 4.0;
     a(1, 0) = 2.0;
@@ -24,12 +33,14 @@ TEST_CASE("lina::lstsq_dynamic recovers exact solution for consistent overdeterm
     a(2, 0) = 3.0;
     a(2, 1) = 6.0;
 
-    DynVec x_true(2);
+    DynVecStorage x_true_storage(2);
+    DynVec x_true(x_true_storage);
     x_true[0] = 1.0;
     x_true[1] = -1.0;
 
     // b = A * x_true
-    DynVec b(3);
+    DynVecStorage b_storage(3);
+    DynVec b(b_storage);
     for (std::size_t i = 0; i < 3; ++i) {
         b[i] = a(i, 0) * x_true[0] + a(i, 1) * x_true[1];
     }
@@ -43,7 +54,8 @@ TEST_CASE("lina::lstsq_dynamic recovers exact solution for consistent overdeterm
 TEST_CASE("lina::lstsq_dynamic solves overdetermined system (line fitting)") {
     // Fit y = a + b*x to points (0,1), (1,2), (2,3), (3,4)
     // This is exactly y = 1 + x
-    DynMat a(4, 2);
+    DynMatStorage a_storage(4, 2);
+    DynMat a(a_storage);
     a(0, 0) = 1.0;
     a(0, 1) = 0.0;
     a(1, 0) = 1.0;
@@ -53,7 +65,8 @@ TEST_CASE("lina::lstsq_dynamic solves overdetermined system (line fitting)") {
     a(3, 0) = 1.0;
     a(3, 1) = 3.0;
 
-    DynVec b(4);
+    DynVecStorage b_storage(4);
+    DynVec b(b_storage);
     b[0] = 1.0;
     b[1] = 2.0;
     b[2] = 3.0;
@@ -69,7 +82,8 @@ TEST_CASE("lina::lstsq_dynamic solves overdetermined system (line fitting)") {
 TEST_CASE("lina::lstsq_dynamic handles noisy data") {
     // Fit y = a + b*x to noisy data
     // True line: y = 2 + 0.5*x
-    DynMat a(5, 2);
+    DynMatStorage a_storage(5, 2);
+    DynMat a(a_storage);
     a(0, 0) = 1.0;
     a(0, 1) = 0.0;
     a(1, 0) = 1.0;
@@ -81,7 +95,8 @@ TEST_CASE("lina::lstsq_dynamic handles noisy data") {
     a(4, 0) = 1.0;
     a(4, 1) = 4.0;
 
-    DynVec b(5);
+    DynVecStorage b_storage(5);
+    DynVec b(b_storage);
     b[0] = 2.1;
     b[1] = 2.4;
     b[2] = 3.1;
@@ -97,7 +112,8 @@ TEST_CASE("lina::lstsq_dynamic handles noisy data") {
 
 TEST_CASE("lina::try_lstsq_dynamic returns error for underdetermined system") {
     // m < n is not allowed
-    DynMat a(2, 3);
+    DynMatStorage a_storage(2, 3);
+    DynMat a(a_storage);
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(0, 2) = 3.0;
@@ -105,7 +121,8 @@ TEST_CASE("lina::try_lstsq_dynamic returns error for underdetermined system") {
     a(1, 1) = 5.0;
     a(1, 2) = 6.0;
 
-    DynVec b(2);
+    DynVecStorage b_storage(2);
+    DynVec b(b_storage);
     b[0] = 1.0;
     b[1] = 2.0;
 
@@ -115,13 +132,15 @@ TEST_CASE("lina::try_lstsq_dynamic returns error for underdetermined system") {
 
 TEST_CASE("lina::lstsq_dynamic for square system") {
     // Square system should give exact solution
-    DynMat a(2, 2);
+    DynMatStorage a_storage(2, 2);
+    DynMat a(a_storage);
     a(0, 0) = 2.0;
     a(0, 1) = 1.0;
     a(1, 0) = 1.0;
     a(1, 1) = 3.0;
 
-    DynVec b(2);
+    DynVecStorage b_storage(2);
+    DynVec b(b_storage);
     b[0] = 5.0;
     b[1] = 8.0;
 
@@ -136,7 +155,8 @@ TEST_CASE("lina::lstsq_dynamic for square system") {
 
 TEST_CASE("lina::lstsq_residual_dynamic computes residual norm") {
     // Overdetermined system with no exact solution
-    DynMat a(3, 2);
+    DynMatStorage a_storage(3, 2);
+    DynMat a(a_storage);
     a(0, 0) = 1.0;
     a(0, 1) = 0.0;
     a(1, 0) = 0.0;
@@ -144,12 +164,14 @@ TEST_CASE("lina::lstsq_residual_dynamic computes residual norm") {
     a(2, 0) = 1.0;
     a(2, 1) = 1.0;
 
-    DynVec b(3);
+    DynVecStorage b_storage(3);
+    DynVec b(b_storage);
     b[0] = 1.0;
     b[1] = 2.0;
     b[2] = 4.0; // No exact solution
 
-    const auto x = lstsq_dynamic(a, b);
+    const auto x_result = lstsq_dynamic(a, b);
+    DynVec x(x_result);
     const auto residual = lstsq_residual_dynamic(a, x, b);
 
     // Residual should be positive (no exact solution)
@@ -169,7 +191,8 @@ TEST_CASE("lina::lstsq_residual_dynamic computes residual norm") {
 
 TEST_CASE("lina::lstsq_dynamic for consistent system has zero residual") {
     // Consistent overdetermined system
-    DynMat a(3, 2);
+    DynMatStorage a_storage(3, 2);
+    DynMat a(a_storage);
     a(0, 0) = 1.0;
     a(0, 1) = 0.0;
     a(1, 0) = 0.0;
@@ -177,17 +200,20 @@ TEST_CASE("lina::lstsq_dynamic for consistent system has zero residual") {
     a(2, 0) = 1.0;
     a(2, 1) = 1.0;
 
-    DynVec x_true(2);
+    DynVecStorage x_true_storage(2);
+    DynVec x_true(x_true_storage);
     x_true[0] = 1.0;
     x_true[1] = 2.0;
 
     // b = A * x_true (consistent)
-    DynVec b(3);
+    DynVecStorage b_storage(3);
+    DynVec b(b_storage);
     for (std::size_t i = 0; i < 3; ++i) {
         b[i] = a(i, 0) * x_true[0] + a(i, 1) * x_true[1];
     }
 
-    const auto x = lstsq_dynamic(a, b);
+    const auto x_result = lstsq_dynamic(a, b);
+    DynVec x(x_result);
     const auto residual = lstsq_residual_dynamic(a, x, b);
 
     CHECK(residual == doctest::Approx(0.0).epsilon(1e-9));
@@ -195,7 +221,8 @@ TEST_CASE("lina::lstsq_dynamic for consistent system has zero residual") {
 
 TEST_CASE("lina::lstsq_dynamic with multiple RHS") {
     // A (4x2), B (4x3)
-    DynMat a(4, 2);
+    DynMatStorage a_storage(4, 2);
+    DynMat a(a_storage);
     a(0, 0) = 1.0;
     a(0, 1) = 0.0;
     a(1, 0) = 0.0;
@@ -206,7 +233,8 @@ TEST_CASE("lina::lstsq_dynamic with multiple RHS") {
     a(3, 1) = 1.0;
 
     // Create consistent RHS
-    DynMat x_true(2, 3);
+    DynMatStorage x_true_storage(2, 3);
+    DynMat x_true(x_true_storage);
     x_true(0, 0) = 1.0;
     x_true(0, 1) = 2.0;
     x_true(0, 2) = 3.0;
@@ -214,7 +242,8 @@ TEST_CASE("lina::lstsq_dynamic with multiple RHS") {
     x_true(1, 1) = 5.0;
     x_true(1, 2) = 6.0;
 
-    DynMat b(4, 3);
+    DynMatStorage b_storage(4, 3);
+    DynMat b(b_storage);
     for (std::size_t i = 0; i < 4; ++i) {
         for (std::size_t col = 0; col < 3; ++col) {
             b(i, col) = a(i, 0) * x_true(0, col) + a(i, 1) * x_true(1, col);
@@ -233,8 +262,10 @@ TEST_CASE("lina::lstsq_dynamic with multiple RHS") {
 
 TEST_CASE("lina::lstsq_dynamic for larger system (10x3)") {
     // Polynomial fitting: y = a + b*x + c*x^2
-    DynMat a(10, 3);
-    DynVec b(10);
+    DynMatStorage a_storage(10, 3);
+    DynMat a(a_storage);
+    DynVecStorage b_storage(10);
+    DynVec b(b_storage);
 
     // True coefficients
     double a0 = 1.0, a1 = 2.0, a2 = -0.5;

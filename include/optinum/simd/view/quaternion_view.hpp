@@ -172,7 +172,7 @@ namespace optinum::simd {
         }
 
         // Normalize all quaternions
-        [[nodiscard]] quaternion_view normalized_to(value_type *out) const noexcept {
+        [[nodiscard]] quaternion_view normalize_to(value_type *out) const noexcept {
             quaternion_view result(out, size_);
             for (std::size_t i = 0; i < num_packs(); ++i) {
                 auto p = load_pack_safe(i);

@@ -196,7 +196,7 @@ namespace optinum::simd {
         }
 
         // Normalize to output
-        [[nodiscard]] complex_view normalized_to(value_type *out) const noexcept {
+        [[nodiscard]] complex_view normalize_to(value_type *out) const noexcept {
             complex_view result(out, size_);
             for (std::size_t i = 0; i < num_packs(); ++i) {
                 auto p = load_pack_safe(i);

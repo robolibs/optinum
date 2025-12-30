@@ -19,7 +19,7 @@
 
 #include <cmath>
 #include <limits>
-#include <stdexcept>
+#include <optional>
 #include <string>
 
 namespace optinum::opti {
@@ -209,19 +209,19 @@ namespace optinum::opti {
                 if (verbose) {
                     std::cout << "Calling solve_linear_system..." << std::endl;
                 }
-                vector_type dx;
-                try {
-                    dx = solve_linear_system<N>(J, r);
+                std::string solver_error;
+                auto dx_opt = solve_linear_system<N>(J, r, solver_error);
+                if (!dx_opt.has_value()) {
                     if (verbose) {
-                        std::cout << "solve_linear_system returned, dx.size() = " << dx.size() << std::endl;
+                        std::cout << "Linear solver failed: " << solver_error << std::endl;
                     }
-                } catch (const std::exception &e) {
-                    if (verbose) {
-                        std::cout << "Linear solver failed: " << e.what() << std::endl;
-                    }
-                    termination_reason = "Failed: " + std::string(e.what());
+                    termination_reason = "Failed: " + solver_error;
                     converged = false;
                     break;
+                }
+                vector_type dx = std::move(dx_opt.value());
+                if (verbose) {
+                    std::cout << "solve_linear_system returned, dx.size() = " << dx.size() << std::endl;
                 }
 
                 // Check step norm for convergence
@@ -407,10 +407,16 @@ namespace optinum::opti {
          * Supports multiple solvers:
          * - "cholesky": Fast, requires J^T*J to be positive definite
          * - "qr": More stable, handles rank-deficient problems
+         *
+         * @param J Jacobian matrix
+         * @param r Residual vector
+         * @param error_msg Output parameter for error message on failure
+         * @return Solution vector if successful, std::nullopt on failure
          */
         template <std::size_t N, std::size_t M>
-        dp::mat::vector<T, N> solve_linear_system(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
-                                                  const dp::mat::vector<T, M> &r) {
+        std::optional<dp::mat::vector<T, N>>
+        solve_linear_system(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
+                            const dp::mat::vector<T, M> &r, std::string &error_msg) {
             const std::size_t m = J.rows();
             const std::size_t n = J.cols();
 
@@ -509,7 +515,8 @@ namespace optinum::opti {
 
                     // Check for singularity
                     if (max_val < T(1e-14)) {
-                        throw std::runtime_error("Matrix is singular or nearly singular");
+                        error_msg = "Matrix is singular or nearly singular";
+                        return std::nullopt;
                     }
 
                     // Swap rows
@@ -553,7 +560,9 @@ namespace optinum::opti {
                 }
 
             } else {
-                throw std::runtime_error("Unknown linear solver: " + linear_solver + ". Use 'qr' or 'normal'");
+                // Programming error: invalid linear_solver configuration
+                error_msg = "Unknown linear solver: " + linear_solver + ". Use 'qr' or 'normal'";
+                return std::nullopt;
             }
 
             return dx;

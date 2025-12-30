@@ -52,7 +52,7 @@ namespace optinum::lina {
      * @return Result containing solution vector x (n elements), or error
      */
     template <typename T>
-    [[nodiscard]] inline dp::Result<simd::Vector<T, simd::Dynamic>, dp::Error>
+    [[nodiscard]] inline dp::Result<dp::mat::vector<T, dp::mat::Dynamic>, dp::Error>
     try_lstsq_dynamic(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &a,
                       const simd::Vector<T, simd::Dynamic> &b) noexcept {
         static_assert(std::is_floating_point_v<T>, "lstsq_dynamic() requires floating-point type");
@@ -61,7 +61,7 @@ namespace optinum::lina {
         const std::size_t n = a.cols();
 
         if (m < n) {
-            return dp::Result<simd::Vector<T, simd::Dynamic>, dp::Error>::err(
+            return dp::Result<dp::mat::vector<T, dp::mat::Dynamic>, dp::Error>::err(
                 dp::Error::invalid_argument("lstsq requires m >= n (overdetermined system)"));
         }
 
@@ -70,11 +70,13 @@ namespace optinum::lina {
         // Compute y = Q^T * b using SIMD
         // Q is m x m column-major, so Q[:,i] is contiguous
         // y[i] = sum_j Q[j,i] * b[j] = dot(Q[:,i], b)
-        simd::Vector<T, simd::Dynamic> y(m);
+        dp::mat::vector<T, dp::mat::Dynamic> y_storage(m);
+        simd::Vector<T, simd::Dynamic> y(y_storage);
         lstsq_dynamic_detail::mat_transpose_vec_simd(y.data(), f.q, b.data(), m);
 
         // Solve R(0:n-1, 0:n-1) * x = y(0:n-1) via back substitution
-        simd::Vector<T, simd::Dynamic> x(n);
+        dp::mat::vector<T, dp::mat::Dynamic> x_storage(n);
+        simd::Vector<T, simd::Dynamic> x(x_storage);
         for (std::size_t ii = 0; ii < n; ++ii) {
             const std::size_t i = n - 1 - ii;
             T sum = y[i];
@@ -83,13 +85,13 @@ namespace optinum::lina {
             }
             const T diag = f.r(i, i);
             if (std::abs(diag) < std::numeric_limits<T>::epsilon() * T{100}) {
-                return dp::Result<simd::Vector<T, simd::Dynamic>, dp::Error>::err(
+                return dp::Result<dp::mat::vector<T, dp::mat::Dynamic>, dp::Error>::err(
                     dp::Error::invalid_argument("rank deficient R"));
             }
             x[i] = sum / diag;
         }
 
-        return dp::Result<simd::Vector<T, simd::Dynamic>, dp::Error>::ok(x);
+        return dp::Result<dp::mat::vector<T, dp::mat::Dynamic>, dp::Error>::ok(x_storage);
     }
 
     /**
@@ -103,14 +105,14 @@ namespace optinum::lina {
      * @return Solution vector x (n elements), or zeros on error
      */
     template <typename T>
-    [[nodiscard]] inline simd::Vector<T, simd::Dynamic>
+    [[nodiscard]] inline dp::mat::vector<T, dp::mat::Dynamic>
     lstsq_dynamic(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &a,
                   const simd::Vector<T, simd::Dynamic> &b) noexcept {
         auto r = try_lstsq_dynamic(a, b);
         if (r.is_ok()) {
             return r.value();
         }
-        simd::Vector<T, simd::Dynamic> result(a.cols());
+        dp::mat::vector<T, dp::mat::Dynamic> result(a.cols());
         result.fill(T{});
         return result;
     }
@@ -124,7 +126,7 @@ namespace optinum::lina {
      * @return Result containing solution matrix X (n x k), or error
      */
     template <typename T>
-    [[nodiscard]] inline dp::Result<simd::Matrix<T, simd::Dynamic, simd::Dynamic>, dp::Error>
+    [[nodiscard]] inline dp::Result<dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>, dp::Error>
     try_lstsq_dynamic(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &a,
                       const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &b) noexcept {
         static_assert(std::is_floating_point_v<T>, "lstsq_dynamic() requires floating-point type");
@@ -134,13 +136,14 @@ namespace optinum::lina {
         const std::size_t k = b.cols();
 
         if (m < n) {
-            return dp::Result<simd::Matrix<T, simd::Dynamic, simd::Dynamic>, dp::Error>::err(
+            return dp::Result<dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>, dp::Error>::err(
                 dp::Error::invalid_argument("lstsq requires m >= n (overdetermined system)"));
         }
 
         const auto f = qr_dynamic(a);
 
-        simd::Matrix<T, simd::Dynamic, simd::Dynamic> x(n, k);
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> x_storage(n, k);
+        simd::Matrix<T, simd::Dynamic, simd::Dynamic> x(x_storage);
 
         // Solve for each column of B
         for (std::size_t col = 0; col < k; ++col) {
@@ -148,11 +151,13 @@ namespace optinum::lina {
             const T *b_col = b.data() + col * m;
 
             // Compute y = Q^T * b_col using SIMD
-            simd::Vector<T, simd::Dynamic> y(m);
+            dp::mat::vector<T, dp::mat::Dynamic> y_storage(m);
+            simd::Vector<T, simd::Dynamic> y(y_storage);
             lstsq_dynamic_detail::mat_transpose_vec_simd(y.data(), f.q, b_col, m);
 
             // Back substitution
-            simd::Vector<T, simd::Dynamic> x_col(n);
+            dp::mat::vector<T, dp::mat::Dynamic> x_col_storage(n);
+            simd::Vector<T, simd::Dynamic> x_col(x_col_storage);
             for (std::size_t ii = 0; ii < n; ++ii) {
                 const std::size_t i = n - 1 - ii;
                 T sum = y[i];
@@ -161,7 +166,7 @@ namespace optinum::lina {
                 }
                 const T diag = f.r(i, i);
                 if (std::abs(diag) < std::numeric_limits<T>::epsilon() * T{100}) {
-                    return dp::Result<simd::Matrix<T, simd::Dynamic, simd::Dynamic>, dp::Error>::err(
+                    return dp::Result<dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>, dp::Error>::err(
                         dp::Error::invalid_argument("rank deficient R"));
                 }
                 x_col[i] = sum / diag;
@@ -174,7 +179,7 @@ namespace optinum::lina {
             }
         }
 
-        return dp::Result<simd::Matrix<T, simd::Dynamic, simd::Dynamic>, dp::Error>::ok(x);
+        return dp::Result<dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>, dp::Error>::ok(x_storage);
     }
 
     /**
@@ -183,14 +188,14 @@ namespace optinum::lina {
      * Returns zero matrix on error.
      */
     template <typename T>
-    [[nodiscard]] inline simd::Matrix<T, simd::Dynamic, simd::Dynamic>
+    [[nodiscard]] inline dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>
     lstsq_dynamic(const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &a,
                   const simd::Matrix<T, simd::Dynamic, simd::Dynamic> &b) noexcept {
         auto r = try_lstsq_dynamic(a, b);
         if (r.is_ok()) {
             return r.value();
         }
-        simd::Matrix<T, simd::Dynamic, simd::Dynamic> result(a.cols(), b.cols());
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> result(a.cols(), b.cols());
         result.fill(T{});
         return result;
     }
@@ -214,7 +219,8 @@ namespace optinum::lina {
         const std::size_t n = a.cols();
 
         // Compute r = Ax - b
-        simd::Vector<T, simd::Dynamic> r(m);
+        dp::mat::vector<T, dp::mat::Dynamic> r_storage(m);
+        simd::Vector<T, simd::Dynamic> r(r_storage);
 
         // Ax: for column-major A, A[:,j] is contiguous
         // (Ax)[i] = sum_j A[i,j] * x[j]
@@ -245,6 +251,97 @@ namespace optinum::lina {
         // ||r||_2 using SIMD dot
         T norm_sq = simd::backend::dot_runtime<T>(r.data(), r.data(), m);
         return std::sqrt(norm_sq);
+    }
+
+    // =========================================================================
+    // Overloads accepting owning types (dp::mat::matrix/vector)
+    // =========================================================================
+
+    /**
+     * @brief Solve least squares problem for owning matrix/vector types
+     */
+    template <typename T>
+    [[nodiscard]] inline dp::Result<dp::mat::vector<T, dp::mat::Dynamic>, dp::Error>
+    try_lstsq_dynamic(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &a,
+                      const dp::mat::vector<T, dp::mat::Dynamic> &b) noexcept {
+        simd::Matrix<T, simd::Dynamic, simd::Dynamic> a_view(a);
+        simd::Vector<T, simd::Dynamic> b_view(b);
+        auto result = try_lstsq_dynamic(a_view, b_view);
+        if (result.is_err()) {
+            return dp::Result<dp::mat::vector<T, dp::mat::Dynamic>, dp::Error>::err(result.error());
+        }
+        // Copy view result to owning type
+        dp::mat::vector<T, dp::mat::Dynamic> x(result.value().size());
+        for (std::size_t i = 0; i < x.size(); ++i) {
+            x[i] = result.value()[i];
+        }
+        return dp::Result<dp::mat::vector<T, dp::mat::Dynamic>, dp::Error>::ok(x);
+    }
+
+    /**
+     * @brief Solve least squares problem for owning types (returns zero on error)
+     */
+    template <typename T>
+    [[nodiscard]] inline dp::mat::vector<T, dp::mat::Dynamic>
+    lstsq_dynamic(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &a,
+                  const dp::mat::vector<T, dp::mat::Dynamic> &b) noexcept {
+        auto r = try_lstsq_dynamic(a, b);
+        if (r.is_ok()) {
+            return r.value();
+        }
+        dp::mat::vector<T, dp::mat::Dynamic> result(a.cols());
+        result.fill(T{});
+        return result;
+    }
+
+    /**
+     * @brief Solve multiple least squares problems for owning types
+     */
+    template <typename T>
+    [[nodiscard]] inline dp::Result<dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>, dp::Error>
+    try_lstsq_dynamic(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &a,
+                      const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &b) noexcept {
+        simd::Matrix<T, simd::Dynamic, simd::Dynamic> a_view(a);
+        simd::Matrix<T, simd::Dynamic, simd::Dynamic> b_view(b);
+        auto result = try_lstsq_dynamic(a_view, b_view);
+        if (result.is_err()) {
+            return dp::Result<dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>, dp::Error>::err(result.error());
+        }
+        // Copy view result to owning type
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> x(result.value().rows(), result.value().cols());
+        for (std::size_t i = 0; i < x.size(); ++i) {
+            x[i] = result.value()[i];
+        }
+        return dp::Result<dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>, dp::Error>::ok(x);
+    }
+
+    /**
+     * @brief Solve multiple least squares problems for owning types (returns zero on error)
+     */
+    template <typename T>
+    [[nodiscard]] inline dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>
+    lstsq_dynamic(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &a,
+                  const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &b) noexcept {
+        auto r = try_lstsq_dynamic(a, b);
+        if (r.is_ok()) {
+            return r.value();
+        }
+        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> result(a.cols(), b.cols());
+        result.fill(T{});
+        return result;
+    }
+
+    /**
+     * @brief Compute residual for owning types
+     */
+    template <typename T>
+    [[nodiscard]] inline T lstsq_residual_dynamic(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &a,
+                                                  const dp::mat::vector<T, dp::mat::Dynamic> &x,
+                                                  const dp::mat::vector<T, dp::mat::Dynamic> &b) noexcept {
+        simd::Matrix<T, simd::Dynamic, simd::Dynamic> a_view(a);
+        simd::Vector<T, simd::Dynamic> x_view(x);
+        simd::Vector<T, simd::Dynamic> b_view(b);
+        return lstsq_residual_dynamic(a_view, x_view, b_view);
     }
 
 } // namespace optinum::lina

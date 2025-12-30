@@ -103,6 +103,54 @@ namespace optinum::simd {
             return *this;
         }
 
+        // Fill with sequential values: 0, 1, 2, ...
+        constexpr Tensor &iota() noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] = static_cast<T>(i);
+            } else {
+                backend::iota<T, total_size>(ptr_, T{0}, T{1});
+            }
+            return *this;
+        }
+
+        // Fill with sequential values starting from 'start'
+        constexpr Tensor &iota(T start) noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] = start + static_cast<T>(i);
+            } else {
+                backend::iota<T, total_size>(ptr_, start, T{1});
+            }
+            return *this;
+        }
+
+        // Fill with sequential values with custom start and step
+        constexpr Tensor &iota(T start, T step) noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] = start + static_cast<T>(i) * step;
+            } else {
+                backend::iota<T, total_size>(ptr_, start, step);
+            }
+            return *this;
+        }
+
+        // Reverse elements in-place
+        constexpr Tensor &reverse() noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n / 2; ++i)
+                    std::swap(ptr_[i], ptr_[n - 1 - i]);
+            } else {
+                backend::reverse<T, total_size>(ptr_);
+            }
+            return *this;
+        }
+
         // Compound assignment (element-wise)
         constexpr Tensor &operator+=(const Tensor &rhs) noexcept {
             if (std::is_constant_evaluated()) {

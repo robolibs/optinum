@@ -152,7 +152,7 @@ namespace optinum::simd {
 
         void conjugate_to(value_type *out) const noexcept { (void)as_view().conjugate_to(out); }
 
-        void normalized_to(value_type *out) const noexcept { (void)as_view().normalized_to(out); }
+        void normalize_to(value_type *out) const noexcept { (void)as_view().normalize_to(out); }
 
         // ===== BINARY OPERATIONS (writing to output) =====
 

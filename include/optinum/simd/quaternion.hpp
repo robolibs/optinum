@@ -130,7 +130,7 @@ namespace optinum::simd {
 
         void conjugate_to(pointer out) const noexcept { (void)as_view().conjugate_to(out); }
 
-        void normalized_to(pointer out) const noexcept { (void)as_view().normalized_to(out); }
+        void normalize_to(pointer out) const noexcept { (void)as_view().normalize_to(out); }
 
         void inverse_to(pointer out) const noexcept { (void)as_view().inverse_to(out); }
 
