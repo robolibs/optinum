@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/backend.hpp>
 
 namespace optinum::opti {
 
@@ -84,7 +85,70 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            for (std::size_t i = 0; i < n; ++i) {
+            // SIMD-optimized AMSGrad update
+            // Use pack width based on double (moments are stored as double)
+            constexpr std::size_t W = 4; // AVX: 4 doubles
+            using pack_t = simd::pack<double, W>;
+
+            const pack_t beta1_pack(beta1);
+            const pack_t beta2_pack(beta2);
+            const pack_t one_m_beta1(one_minus_beta1);
+            const pack_t one_m_beta2(one_minus_beta2);
+            const pack_t step_corr(step_correction);
+            const pack_t eps(epsilon);
+
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient (convert to double if needed)
+                pack_t g;
+                if constexpr (std::is_same_v<T, double>) {
+                    g = pack_t::loadu(g_ptr + i);
+                } else {
+                    // Convert float to double
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g = pack_t::loadu(g_tmp);
+                }
+
+                // Load moments
+                auto m_pack = pack_t::loadu(m_ptr + i);
+                auto v_pack = pack_t::loadu(v_ptr + i);
+                auto v_hat_pack = pack_t::loadu(v_hat_ptr + i);
+
+                // Update first moment: m = beta1 * m + (1 - beta1) * g
+                m_pack = pack_t::fma(beta1_pack, m_pack, one_m_beta1 * g);
+
+                // Update second moment: v = beta2 * v + (1 - beta2) * g²
+                v_pack = pack_t::fma(beta2_pack, v_pack, one_m_beta2 * g * g);
+
+                // AMSGrad key: v_hat = max(v_hat, v) using SIMD max
+                v_hat_pack = pack_t::max(v_hat_pack, v_pack);
+
+                // Store updated moments
+                m_pack.storeu(m_ptr + i);
+                v_pack.storeu(v_ptr + i);
+                v_hat_pack.storeu(v_hat_ptr + i);
+
+                // Compute update: step_correction * m / (sqrt(v_hat) + eps)
+                auto update = step_corr * m_pack / (v_hat_pack.sqrt() + eps);
+
+                // Apply update to x
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack - update).storeu(x_ptr + i);
+                } else {
+                    // Convert back to float
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] -= T(update[j]);
+                    }
+                }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
                 double g_i = double(g_ptr[i]);
                 // Update biased first moment: m = beta1 * m + (1 - beta1) * g
                 m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;

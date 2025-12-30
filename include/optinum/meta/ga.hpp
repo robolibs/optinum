@@ -564,8 +564,38 @@ namespace optinum::meta {
             }
 
             case GACrossover::Uniform: {
-                // Uniform crossover
-                for (std::size_t d = 0; d < dim; ++d) {
+                // Uniform crossover - SIMD accelerated using pack blend
+                constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+                using pack_t = simd::pack<T, W>;
+
+                const std::size_t main = simd::backend::main_loop_count_runtime(dim, W);
+
+                // SIMD loop - generate random mask and blend
+                for (std::size_t d = 0; d < main; d += W) {
+                    auto p1 = pack_t::loadu(parent1.data() + d);
+                    auto p2 = pack_t::loadu(parent2.data() + d);
+
+                    // Generate random mask for each lane
+                    alignas(32) T mask_vals[W];
+                    for (std::size_t j = 0; j < W; ++j) {
+                        mask_vals[j] = uniform(rng) < T{0.5} ? T{1} : T{0};
+                    }
+                    auto mask = pack_t::loadu(mask_vals);
+
+                    // Blend: child1 = mask * p1 + (1-mask) * p2
+                    // child2 = mask * p2 + (1-mask) * p1
+                    auto one = pack_t(T{1});
+                    auto inv_mask = one - mask;
+
+                    auto c1 = mask * p1 + inv_mask * p2;
+                    auto c2 = mask * p2 + inv_mask * p1;
+
+                    c1.storeu(child1.data() + d);
+                    c2.storeu(child2.data() + d);
+                }
+
+                // Scalar tail
+                for (std::size_t d = main; d < dim; ++d) {
                     if (uniform(rng) < T{0.5}) {
                         child1[d] = parent1[d];
                         child2[d] = parent2[d];
@@ -578,16 +608,17 @@ namespace optinum::meta {
             }
 
             case GACrossover::SinglePoint: {
-                // Single-point crossover
+                // Single-point crossover - SIMD accelerated
                 std::size_t point = static_cast<std::size_t>(uniform(rng) * dim) % dim;
-                for (std::size_t d = 0; d < dim; ++d) {
-                    if (d < point) {
-                        child1[d] = parent1[d];
-                        child2[d] = parent2[d];
-                    } else {
-                        child1[d] = parent2[d];
-                        child2[d] = parent1[d];
-                    }
+                // Copy first part: child1 gets parent1[0:point], child2 gets parent2[0:point]
+                if (point > 0) {
+                    simd::backend::copy_runtime<T>(child1.data(), parent1.data(), point);
+                    simd::backend::copy_runtime<T>(child2.data(), parent2.data(), point);
+                }
+                // Copy second part: child1 gets parent2[point:], child2 gets parent1[point:]
+                if (point < dim) {
+                    simd::backend::copy_runtime<T>(child1.data() + point, parent2.data() + point, dim - point);
+                    simd::backend::copy_runtime<T>(child2.data() + point, parent1.data() + point, dim - point);
                 }
                 break;
             }

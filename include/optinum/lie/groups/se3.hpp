@@ -419,28 +419,30 @@ namespace optinum::lie {
             return adj;
         }
 
-        // Lie bracket [a, b] for se(3)
+        // Lie bracket [a, b] for se(3) - SIMD accelerated cross products
         [[nodiscard]] static Tangent lie_bracket(const Tangent &a, const Tangent &b) noexcept {
             // [a, b] = [[omega_a x v_b - omega_b x v_a], [omega_a x omega_b]]
-            dp::mat::vector<T, 3> va{a[0], a[1], a[2]};
-            dp::mat::vector<T, 3> wa{a[3], a[4], a[5]};
-            dp::mat::vector<T, 3> vb{b[0], b[1], b[2]};
-            dp::mat::vector<T, 3> wb{b[3], b[4], b[5]};
+            const T *va = a.data();     // v_a = [a[0], a[1], a[2]]
+            const T *wa = a.data() + 3; // omega_a = [a[3], a[4], a[5]]
+            const T *vb = b.data();     // v_b = [b[0], b[1], b[2]]
+            const T *wb = b.data() + 3; // omega_b = [b[3], b[4], b[5]]
 
-            // omega_a x v_b
-            dp::mat::vector<T, 3> wa_cross_vb{wa[1] * vb[2] - wa[2] * vb[1], wa[2] * vb[0] - wa[0] * vb[2],
-                                              wa[0] * vb[1] - wa[1] * vb[0]};
+            Tangent result;
 
-            // omega_b x v_a
-            dp::mat::vector<T, 3> wb_cross_va{wb[1] * va[2] - wb[2] * va[1], wb[2] * va[0] - wb[0] * va[2],
-                                              wb[0] * va[1] - wb[1] * va[0]};
+            // omega_a x v_b - omega_b x v_a (translational part)
+            // Using cross_scale_add: result = wa x vb + (-1) * (wb x va)
+            T wa_cross_vb[3];
+            simd::backend::cross(wa, vb, wa_cross_vb);
+            T wb_cross_va[3];
+            simd::backend::cross(wb, va, wb_cross_va);
+            result[0] = wa_cross_vb[0] - wb_cross_va[0];
+            result[1] = wa_cross_vb[1] - wb_cross_va[1];
+            result[2] = wa_cross_vb[2] - wb_cross_va[2];
 
-            // omega_a x omega_b
-            dp::mat::vector<T, 3> wa_cross_wb{wa[1] * wb[2] - wa[2] * wb[1], wa[2] * wb[0] - wa[0] * wb[2],
-                                              wa[0] * wb[1] - wa[1] * wb[0]};
+            // omega_a x omega_b (rotational part)
+            simd::backend::cross(wa, wb, result.data() + 3);
 
-            return Tangent{{wa_cross_vb[0] - wb_cross_va[0], wa_cross_vb[1] - wb_cross_va[1],
-                            wa_cross_vb[2] - wb_cross_va[2], wa_cross_wb[0], wa_cross_wb[1], wa_cross_wb[2]}};
+            return result;
         }
 
         // Generator matrices (6 generators for SE3)

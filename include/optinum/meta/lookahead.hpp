@@ -32,6 +32,7 @@
 #include <cstddef>
 
 #include <datapod/matrix.hpp>
+#include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
@@ -124,9 +125,50 @@ namespace optinum::meta {
                 T *x_ptr = x.data();
                 double *slow_ptr = slow_weights_.data();
 
-                // Update slow weights: phi = phi + alpha * (theta - phi)
-                // Then reset fast weights: theta = phi
-                for (std::size_t i = 0; i < n; ++i) {
+                // SIMD-accelerated slow weight update and reset
+                // slow = slow + alpha * (fast - slow) = (1-alpha)*slow + alpha*fast
+                constexpr std::size_t W = 4; // AVX: 4 doubles
+                using pack_t = simd::pack<double, W>;
+
+                const pack_t alpha_pack(config.alpha);
+                const pack_t one_minus_alpha(1.0 - config.alpha);
+
+                const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+                // SIMD loop
+                for (std::size_t i = 0; i < main; i += W) {
+                    // Load fast weights (convert to double if needed)
+                    pack_t fast;
+                    if constexpr (std::is_same_v<T, double>) {
+                        fast = pack_t::loadu(x_ptr + i);
+                    } else {
+                        alignas(32) double fast_tmp[W];
+                        for (std::size_t j = 0; j < W; ++j)
+                            fast_tmp[j] = static_cast<double>(x_ptr[i + j]);
+                        fast = pack_t::loadu(fast_tmp);
+                    }
+
+                    // Load slow weights
+                    auto slow = pack_t::loadu(slow_ptr + i);
+
+                    // Interpolate: slow = (1-alpha)*slow + alpha*fast
+                    slow = pack_t::fma(one_minus_alpha, slow, alpha_pack * fast);
+
+                    // Store updated slow weights
+                    slow.storeu(slow_ptr + i);
+
+                    // Reset fast weights to slow weights
+                    if constexpr (std::is_same_v<T, double>) {
+                        slow.storeu(x_ptr + i);
+                    } else {
+                        for (std::size_t j = 0; j < W; ++j) {
+                            x_ptr[i + j] = static_cast<T>(slow[j]);
+                        }
+                    }
+                }
+
+                // Scalar tail
+                for (std::size_t i = main; i < n; ++i) {
                     double fast_i = static_cast<double>(x_ptr[i]);
                     double slow_i = slow_ptr[i];
 

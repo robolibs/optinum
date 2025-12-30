@@ -1,6 +1,8 @@
 #pragma once
 
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/dot.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 
 namespace optinum::opti {
 
@@ -21,33 +23,25 @@ namespace optinum::opti {
     template <typename T, std::size_t N> struct Sphere {
         using tensor_type = dp::mat::vector<T, N>;
 
-        /// Evaluate f(x) = sum(x_i^2)
+        /// Evaluate f(x) = sum(x_i^2) using SIMD dot product
         T evaluate(const tensor_type &x) const noexcept {
-            T sum{};
             const std::size_t n = x.size();
-            for (std::size_t i = 0; i < n; ++i) {
-                sum += x[i] * x[i];
-            }
-            return sum;
+            return simd::backend::dot_runtime<T>(x.data(), x.data(), n);
         }
 
-        /// Compute gradient: g_i = 2 * x_i
+        /// Compute gradient: g_i = 2 * x_i using SIMD scalar multiply
         void gradient(const tensor_type &x, tensor_type &g) const noexcept {
             const std::size_t n = x.size();
-            for (std::size_t i = 0; i < n; ++i) {
-                g[i] = T{2} * x[i];
-            }
+            simd::backend::mul_scalar_runtime<T>(g.data(), x.data(), T{2}, n);
         }
 
-        /// Evaluate and compute gradient in one pass
+        /// Evaluate and compute gradient in one pass using SIMD
         T evaluate_with_gradient(const tensor_type &x, tensor_type &g) const noexcept {
-            T sum{};
             const std::size_t n = x.size();
-            for (std::size_t i = 0; i < n; ++i) {
-                sum += x[i] * x[i];
-                g[i] = T{2} * x[i];
-            }
-            return sum;
+            // Compute gradient: g = 2 * x
+            simd::backend::mul_scalar_runtime<T>(g.data(), x.data(), T{2}, n);
+            // Compute value: sum(x^2) = dot(x, x)
+            return simd::backend::dot_runtime<T>(x.data(), x.data(), n);
         }
     };
 

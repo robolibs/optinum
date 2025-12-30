@@ -6,6 +6,7 @@
 
 #include <datapod/matrix/matrix.hpp>
 #include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -58,43 +59,37 @@ namespace optinum::lina {
         return r;
     }
 
-    // Scale - returns owning type
+    // Scale - returns owning type (SIMD-accelerated)
     template <typename T, std::size_t R, std::size_t C>
-    [[nodiscard]] constexpr dp::mat::matrix<T, R, C> scale(const simd::Matrix<T, R, C> &a, T s) noexcept {
+    [[nodiscard]] dp::mat::matrix<T, R, C> scale(const simd::Matrix<T, R, C> &a, T s) noexcept {
         dp::mat::matrix<T, R, C> result;
-        for (std::size_t i = 0; i < R * C; ++i) {
-            result[i] = a[i] * s;
-        }
+        simd::backend::mul_scalar<T, R * C>(result.data(), a.data(), s);
         return result;
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr dp::mat::vector<T, N> scale(const simd::Vector<T, N> &x, T s) noexcept {
+    [[nodiscard]] dp::mat::vector<T, N> scale(const simd::Vector<T, N> &x, T s) noexcept {
         dp::mat::vector<T, N> result;
-        for (std::size_t i = 0; i < N; ++i) {
-            result[i] = x[i] * s;
-        }
+        simd::backend::mul_scalar<T, N>(result.data(), x.data(), s);
         return result;
     }
 
-    // axpy: alpha*x + y - returns owning type
+    // axpy: alpha*x + y - returns owning type (SIMD-accelerated with FMA)
     template <typename T, std::size_t R, std::size_t C>
-    [[nodiscard]] constexpr dp::mat::matrix<T, R, C> axpy(T alpha, const simd::Matrix<T, R, C> &x,
-                                                          const simd::Matrix<T, R, C> &y) noexcept {
+    [[nodiscard]] dp::mat::matrix<T, R, C> axpy(T alpha, const simd::Matrix<T, R, C> &x,
+                                                const simd::Matrix<T, R, C> &y) noexcept {
         dp::mat::matrix<T, R, C> result;
-        for (std::size_t i = 0; i < R * C; ++i) {
-            result[i] = alpha * x[i] + y[i];
-        }
+        // axpy: result = y + alpha * x, using axpy_runtime(dst, y, alpha, x, n)
+        simd::backend::axpy_runtime<T>(result.data(), y.data(), alpha, x.data(), R * C);
         return result;
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr dp::mat::vector<T, N> axpy(T alpha, const simd::Vector<T, N> &x,
-                                                       const simd::Vector<T, N> &y) noexcept {
+    [[nodiscard]] dp::mat::vector<T, N> axpy(T alpha, const simd::Vector<T, N> &x,
+                                             const simd::Vector<T, N> &y) noexcept {
         dp::mat::vector<T, N> result;
-        for (std::size_t i = 0; i < N; ++i) {
-            result[i] = alpha * x[i] + y[i];
-        }
+        // axpy: result = y + alpha * x, using axpy_runtime(dst, y, alpha, x, n)
+        simd::backend::axpy_runtime<T>(result.data(), y.data(), alpha, x.data(), N);
         return result;
     }
 

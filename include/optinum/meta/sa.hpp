@@ -31,6 +31,7 @@
 #include <vector>
 
 #include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
@@ -196,15 +197,14 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
             std::uniform_int_distribution<std::size_t> dim_dist(0, dim - 1);
 
-            // Initialize current and best solutions
+            // Initialize current and best solutions using SIMD copy
             dp::mat::vector<T, dp::mat::Dynamic> current(initial.size());
-            for (std::size_t i = 0; i < initial.size(); ++i) {
-                current[i] = initial[i];
-            }
+            simd::backend::copy_runtime<T>(current.data(), initial.data(), dim);
             T current_value = objective(current);
             std::size_t total_evals = 1;
 
-            dp::mat::vector<T, dp::mat::Dynamic> best = current;
+            dp::mat::vector<T, dp::mat::Dynamic> best(dim);
+            simd::backend::copy_runtime<T>(best.data(), current.data(), dim);
             T best_value = current_value;
 
             // Temperature and step size
@@ -281,7 +281,7 @@ namespace optinum::meta {
 
                     // Update best if improved
                     if (current_value < best_value) {
-                        best = current;
+                        simd::backend::copy_runtime<T>(best.data(), current.data(), dim);
                         best_value = current_value;
                     }
                 }
@@ -292,16 +292,16 @@ namespace optinum::meta {
                 if (config.adaptive_step && total_moves % acceptance_window == 0) {
                     T acceptance_ratio = static_cast<T>(window_accepted) / static_cast<T>(acceptance_window);
 
-                    // Adjust step size to target acceptance ratio
+                    // Adjust step size to target acceptance ratio using SIMD
                     if (acceptance_ratio > config.target_acceptance + T{0.1}) {
                         // Too many acceptances - increase step size
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            range[d] *= T{1.1};
-                        }
+                        simd::backend::mul_scalar_runtime<T>(range.data(), range.data(), T{1.1}, dim);
                     } else if (acceptance_ratio < config.target_acceptance - T{0.1}) {
                         // Too few acceptances - decrease step size
+                        simd::backend::mul_scalar_runtime<T>(range.data(), range.data(), T{0.9}, dim);
+                        // Clamp to minimum (scalar loop needed for max)
                         for (std::size_t d = 0; d < dim; ++d) {
-                            range[d] = std::max(range[d] * T{0.9}, config.step_size_min);
+                            range[d] = std::max(range[d], config.step_size_min);
                         }
                     }
 
