@@ -11,6 +11,332 @@ using namespace optinum::lie;
 namespace dp = datapod;
 
 // ============================================================================
+// SO2Batch Tests
+// ============================================================================
+
+TEST_SUITE("SO2Batch") {
+
+    TEST_CASE("Default construction is identity") {
+        SO2Batch<double, 4> batch;
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            auto elem = batch[i];
+            CHECK(elem.is_identity());
+            CHECK(std::abs(elem.real() - 1.0) < 1e-10);
+            CHECK(std::abs(elem.imag()) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Broadcast construction") {
+        auto R = SO2d(0.5);
+        SO2Batch<double, 8> batch(R);
+
+        for (std::size_t i = 0; i < 8; ++i) {
+            CHECK(batch[i].is_approx(R, 1e-10));
+        }
+    }
+
+    TEST_CASE("Element access and modification") {
+        SO2Batch<double, 4> batch;
+
+        batch.set(0, SO2d(0.1));
+        batch.set(1, SO2d(0.2));
+        batch.set(2, SO2d(0.3));
+        batch.set(3, SO2d(0.4));
+
+        CHECK(batch[0].is_approx(SO2d(0.1), 1e-10));
+        CHECK(batch[1].is_approx(SO2d(0.2), 1e-10));
+        CHECK(batch[2].is_approx(SO2d(0.3), 1e-10));
+        CHECK(batch[3].is_approx(SO2d(0.4), 1e-10));
+    }
+
+    TEST_CASE("Static factory: identity") {
+        auto batch = SO2Batch<double, 4>::identity();
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            CHECK(batch[i].is_identity());
+        }
+    }
+
+    TEST_CASE("Static factory: rot") {
+        auto batch = SO2Batch<double, 4>::rot(0.5);
+
+        for (std::size_t i = 0; i < 4; ++i) {
+            CHECK(batch[i].is_approx(SO2d(0.5), 1e-10));
+        }
+    }
+
+    TEST_CASE("Exp map from array") {
+        constexpr std::size_t N = 8;
+        double theta[N];
+
+        // Create random angles
+        std::mt19937 rng(42);
+        std::uniform_real_distribution<double> dist(-M_PI, M_PI);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            theta[i] = dist(rng);
+        }
+
+        auto batch = SO2Batch<double, N>::exp(theta);
+
+        // Verify each element (relaxed tolerance for SIMD sin/cos)
+        for (std::size_t i = 0; i < N; ++i) {
+            auto expected = SO2d::exp(theta[i]);
+            CHECK(batch[i].is_approx(expected, 1e-5));
+        }
+    }
+
+    TEST_CASE("Inverse operation") {
+        constexpr std::size_t N = 4;
+        SO2Batch<double, N> batch;
+
+        batch.set(0, SO2d(0.5));
+        batch.set(1, SO2d(-0.3));
+        batch.set(2, SO2d(1.2));
+        batch.set(3, SO2d(0.8));
+
+        auto inv_batch = batch.inverse();
+
+        for (std::size_t i = 0; i < N; ++i) {
+            auto product = batch[i] * inv_batch[i];
+            CHECK(product.is_identity(1e-10));
+        }
+    }
+
+    TEST_CASE("Group composition") {
+        constexpr std::size_t N = 4;
+        SO2Batch<double, N> batch1, batch2;
+
+        batch1.set(0, SO2d(0.1));
+        batch1.set(1, SO2d(0.2));
+        batch1.set(2, SO2d(0.3));
+        batch1.set(3, SO2d::identity());
+
+        batch2.set(0, SO2d(0.4));
+        batch2.set(1, SO2d(0.5));
+        batch2.set(2, SO2d(0.6));
+        batch2.set(3, SO2d(0.7));
+
+        auto result = batch1 * batch2;
+
+        for (std::size_t i = 0; i < N; ++i) {
+            auto expected = batch1[i] * batch2[i];
+            CHECK(result[i].is_approx(expected, 1e-10));
+        }
+    }
+
+    TEST_CASE("Rotate vectors") {
+        constexpr std::size_t N = 4;
+        SO2Batch<double, N> batch;
+
+        batch.set(0, SO2d(M_PI / 2));  // 90 deg
+        batch.set(1, SO2d(M_PI));      // 180 deg
+        batch.set(2, SO2d(-M_PI / 2)); // -90 deg
+        batch.set(3, SO2d::identity());
+
+        double vx[N] = {1, 1, 1, 1};
+        double vy[N] = {0, 0, 0, 0};
+
+        batch.rotate(vx, vy);
+
+        // rot(90): (1,0) -> (0,1)
+        CHECK(std::abs(vx[0]) < 1e-10);
+        CHECK(std::abs(vy[0] - 1.0) < 1e-10);
+
+        // rot(180): (1,0) -> (-1,0)
+        CHECK(std::abs(vx[1] + 1.0) < 1e-10);
+        CHECK(std::abs(vy[1]) < 1e-10);
+
+        // rot(-90): (1,0) -> (0,-1)
+        CHECK(std::abs(vx[2]) < 1e-10);
+        CHECK(std::abs(vy[2] + 1.0) < 1e-10);
+
+        // identity: (1,0) -> (1,0)
+        CHECK(std::abs(vx[3] - 1.0) < 1e-10);
+        CHECK(std::abs(vy[3]) < 1e-10);
+    }
+
+    TEST_CASE("SLERP interpolation") {
+        constexpr std::size_t N = 4;
+        SO2Batch<double, N> batch1(SO2d::identity());
+        SO2Batch<double, N> batch2(SO2d(M_PI / 2));
+
+        auto mid = batch1.slerp(batch2, 0.5);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            // Mid-point should be rot(pi/4)
+            auto expected = SO2d(M_PI / 4);
+            // Relaxed tolerance due to SIMD sin/cos precision
+            CHECK(mid[i].is_approx(expected, 1e-4));
+        }
+    }
+
+    TEST_CASE("NLERP interpolation") {
+        constexpr std::size_t N = 4;
+        SO2Batch<double, N> batch1(SO2d::identity());
+        SO2Batch<double, N> batch2(SO2d(M_PI / 2));
+
+        auto mid = batch1.nlerp(batch2, 0.5);
+
+        // NLERP should be close to SLERP for small angles
+        for (std::size_t i = 0; i < N; ++i) {
+            auto expected = SO2d(M_PI / 4);
+            CHECK(mid[i].is_approx(expected, 1e-2)); // Relaxed tolerance for nlerp
+        }
+    }
+
+    TEST_CASE("Normalize in place") {
+        constexpr std::size_t N = 4;
+        SO2Batch<double, N> batch;
+
+        // Manually set unnormalized complex numbers
+        for (std::size_t i = 0; i < N; ++i) {
+            batch.complex(i).real = 2.0;
+            batch.complex(i).imag = 0.0;
+        }
+
+        batch.normalize_inplace();
+
+        CHECK(batch.all_unit(1e-10));
+    }
+
+    TEST_CASE("Log/exp round trip") {
+        constexpr std::size_t N = 8;
+        std::mt19937 rng(123);
+
+        std::array<double, N> thetas;
+        std::uniform_real_distribution<double> dist(-2.0, 2.0);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            thetas[i] = dist(rng);
+        }
+
+        auto batch = SO2Batch<double, N>::exp(thetas);
+        auto logs = batch.log();
+
+        // The log should return the same angle (relaxed tolerance for SIMD precision)
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(std::abs(logs[i] - thetas[i]) < 1e-3);
+        }
+    }
+
+    TEST_CASE("Iterator support") {
+        SO2Batch<double, 4> batch;
+        batch.set(0, SO2d(0.1));
+        batch.set(1, SO2d(0.2));
+        batch.set(2, SO2d(0.3));
+        batch.set(3, SO2d::identity());
+
+        std::size_t count = 0;
+        for (const auto &elem : batch) {
+            (void)elem;
+            ++count;
+        }
+        CHECK(count == 4);
+    }
+
+    TEST_CASE("Angular distance") {
+        constexpr std::size_t N = 4;
+        SO2Batch<double, N> batch1, batch2;
+
+        batch1.set(0, SO2d(0.0));
+        batch1.set(1, SO2d(0.0));
+        batch1.set(2, SO2d(0.0));
+        batch1.set(3, SO2d(M_PI - 0.1));
+
+        batch2.set(0, SO2d(0.5));         // dist = 0.5
+        batch2.set(1, SO2d(-0.5));        // dist = 0.5
+        batch2.set(2, SO2d(0.0));         // dist = 0
+        batch2.set(3, SO2d(-M_PI + 0.1)); // dist = 0.2 (wrapped)
+
+        double dists[N];
+        batch1.angular_distance(batch2, dists);
+
+        CHECK(std::abs(dists[0] - 0.5) < 1e-6);
+        CHECK(std::abs(dists[1] - 0.5) < 1e-6);
+        CHECK(std::abs(dists[2]) < 1e-10);
+        CHECK(std::abs(dists[3] - 0.2) < 1e-6);
+    }
+
+    TEST_CASE("Large batch rotation consistency") {
+        constexpr std::size_t N = 64;
+        SO2Batch<double, N> batch;
+
+        // Create various rotations
+        for (std::size_t i = 0; i < N; ++i) {
+            double angle = static_cast<double>(i) * 0.1;
+            batch.set(i, SO2d(angle));
+        }
+
+        // Create test vectors
+        double vx[N], vy[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            vx[i] = 1.0;
+            vy[i] = 0.0;
+        }
+
+        // Rotate using batch (SIMD)
+        batch.rotate(vx, vy);
+
+        // Verify results
+        for (std::size_t i = 0; i < N; ++i) {
+            double angle = static_cast<double>(i) * 0.1;
+            double expected_x = std::cos(angle);
+            double expected_y = std::sin(angle);
+
+            CHECK(std::abs(vx[i] - expected_x) < 1e-10);
+            CHECK(std::abs(vy[i] - expected_y) < 1e-10);
+        }
+    }
+
+    TEST_CASE("Batch composition associativity") {
+        constexpr std::size_t N = 8;
+
+        SO2Batch<double, N> A, B, C;
+
+        std::mt19937 rng(789);
+        std::uniform_real_distribution<double> dist(-M_PI, M_PI);
+        for (std::size_t i = 0; i < N; ++i) {
+            A.set(i, SO2d(dist(rng)));
+            B.set(i, SO2d(dist(rng)));
+            C.set(i, SO2d(dist(rng)));
+        }
+
+        // (A * B) * C == A * (B * C)
+        auto left = (A * B) * C;
+        auto right = A * (B * C);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            CHECK(left[i].is_approx(right[i], 1e-10));
+        }
+    }
+
+    TEST_CASE("Float type support") {
+        constexpr std::size_t N = 8;
+        SO2Batch<float, N> batch;
+
+        for (std::size_t i = 0; i < N; ++i) {
+            batch.set(i, SO2f(static_cast<float>(i) * 0.1f));
+        }
+
+        float vx[N], vy[N];
+        for (std::size_t i = 0; i < N; ++i) {
+            vx[i] = 1.0f;
+            vy[i] = 0.0f;
+        }
+
+        batch.rotate(vx, vy);
+
+        for (std::size_t i = 0; i < N; ++i) {
+            float angle = static_cast<float>(i) * 0.1f;
+            CHECK(std::abs(vx[i] - std::cos(angle)) < 1e-5f);
+            CHECK(std::abs(vy[i] - std::sin(angle)) < 1e-5f);
+        }
+    }
+}
+
+// ============================================================================
 // SO3Batch Tests
 // ============================================================================
 

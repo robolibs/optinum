@@ -48,7 +48,9 @@
 #include <optinum/lie/groups/sim3.hpp>
 
 // Batched operations (SIMD-accelerated)
+#include <optinum/lie/batch/so2_batch.hpp>
 #include <optinum/lie/batch/so3_batch.hpp>
+#include <optinum/lie/batch/rxso3_batch.hpp>
 #include <optinum/lie/batch/se3_batch.hpp>
 
 // Algorithms
