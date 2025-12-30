@@ -34,6 +34,20 @@ namespace optinum::lina {
         return true;
     }
 
+    // Overload for dp::mat::matrix (owning type)
+    template <typename T, std::size_t N>
+    [[nodiscard]] bool is_symmetric(const datapod::mat::matrix<T, N, N> &a,
+                                    T tol = std::numeric_limits<T>::epsilon()) noexcept {
+        for (std::size_t i = 0; i < N; ++i) {
+            for (std::size_t j = i + 1; j < N; ++j) {
+                if (std::abs(a(i, j) - a(j, i)) > tol) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     /**
      * Check if matrix is Hermitian (A == A^H for complex, A == A^T for real)
      *
@@ -62,6 +76,26 @@ namespace optinum::lina {
      */
     template <typename T, std::size_t N>
     [[nodiscard]] bool is_positive_definite(const simd::Matrix<T, N, N> &a) noexcept {
+        // First check symmetry
+        if (!is_symmetric(a)) {
+            return false;
+        }
+
+        // Try Cholesky decomposition - it succeeds only for SPD matrices
+        // For now, we'll do a simple check on diagonal elements
+        // TODO: Use actual Cholesky when we integrate it
+        for (std::size_t i = 0; i < N; ++i) {
+            if (a(i, i) <= T{0}) {
+                return false; // Diagonal must be positive
+            }
+        }
+
+        return true; // Simplified check
+    }
+
+    // Overload for dp::mat::matrix (owning type)
+    template <typename T, std::size_t N>
+    [[nodiscard]] bool is_positive_definite(const datapod::mat::matrix<T, N, N> &a) noexcept {
         // First check symmetry
         if (!is_symmetric(a)) {
             return false;

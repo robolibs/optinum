@@ -8,6 +8,7 @@
 
 using namespace optinum;
 using namespace optinum::lie;
+namespace dp = datapod;
 
 // ============================================================================
 // SO3Batch Tests
@@ -89,7 +90,7 @@ TEST_SUITE("SO3Batch") {
 
         // Verify each element
         for (std::size_t i = 0; i < N; ++i) {
-            simd::Vector<double, 3> omega{omega_x[i], omega_y[i], omega_z[i]};
+            dp::mat::vector<double, 3> omega{omega_x[i], omega_y[i], omega_z[i]};
             auto expected = SO3d::exp(omega);
             CHECK(batch[i].is_approx(expected, 1e-10));
         }
@@ -241,7 +242,7 @@ TEST_SUITE("SO3Batch") {
         constexpr std::size_t N = 8;
         std::mt19937 rng(123);
 
-        std::array<simd::Vector<double, 3>, N> omegas;
+        std::array<dp::mat::vector<double, 3>, N> omegas;
         std::uniform_real_distribution<double> dist(-0.5, 0.5);
 
         for (std::size_t i = 0; i < N; ++i) {
@@ -452,7 +453,7 @@ TEST_SUITE("SE3Batch") {
         std::mt19937 rng(456);
         std::uniform_real_distribution<double> dist(-0.3, 0.3);
 
-        std::array<simd::Vector<double, 6>, N> twists;
+        std::array<dp::mat::vector<double, 6>, N> twists;
         for (std::size_t i = 0; i < N; ++i) {
             twists[i] = {dist(rng), dist(rng), dist(rng), dist(rng), dist(rng), dist(rng)};
         }

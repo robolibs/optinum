@@ -3,12 +3,15 @@
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/se3.hpp>
 #include <optinum/lie/groups/twist.hpp>
-#include <optinum/simd/vector.hpp>
+
+#include <datapod/matrix/vector.hpp>
 
 #include <cmath>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== WRENCH CLASS =====
     //
@@ -39,23 +42,23 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = simd::Vector<T, 3>;
-        using Vector6 = simd::Vector<T, 6>;
+        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
+        using Vector6 = dp::mat::vector<T, 6>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
         /// Default constructor: zero wrench
-        constexpr Wrench() noexcept : force_{T(0), T(0), T(0)}, torque_{T(0), T(0), T(0)} {}
+        constexpr Wrench() noexcept : force_{{T(0), T(0), T(0)}}, torque_{{T(0), T(0), T(0)}} {}
 
         /// Construct from force and torque vectors
         constexpr Wrench(const Vector3 &force, const Vector3 &torque) noexcept : force_(force), torque_(torque) {}
 
         /// Construct from 6 components [fx, fy, fz, τx, τy, τz]
-        constexpr Wrench(T fx, T fy, T fz, T tx, T ty, T tz) noexcept : force_{fx, fy, fz}, torque_{tx, ty, tz} {}
+        constexpr Wrench(T fx, T fy, T fz, T tx, T ty, T tz) noexcept : force_{{fx, fy, fz}}, torque_{{tx, ty, tz}} {}
 
         /// Construct from Vector6 [f; τ]
         explicit constexpr Wrench(const Vector6 &vec) noexcept
-            : force_{vec[0], vec[1], vec[2]}, torque_{vec[3], vec[4], vec[5]} {}
+            : force_{{vec[0], vec[1], vec[2]}}, torque_{{vec[3], vec[4], vec[5]}} {}
 
         // ===== STATIC FACTORY METHODS =====
 
@@ -67,22 +70,22 @@ namespace optinum::lie {
 
         /// Pure force (no torque)
         [[nodiscard]] static constexpr Wrench pure_force(const Vector3 &force) noexcept {
-            return Wrench(force, Vector3{T(0), T(0), T(0)});
+            return Wrench(force, Vector3{{T(0), T(0), T(0)}});
         }
 
         /// Pure force (no torque)
         [[nodiscard]] static constexpr Wrench pure_force(T fx, T fy, T fz) noexcept {
-            return Wrench(Vector3{fx, fy, fz}, Vector3{T(0), T(0), T(0)});
+            return Wrench(Vector3{{fx, fy, fz}}, Vector3{{T(0), T(0), T(0)}});
         }
 
         /// Pure torque (no force)
         [[nodiscard]] static constexpr Wrench pure_torque(const Vector3 &torque) noexcept {
-            return Wrench(Vector3{T(0), T(0), T(0)}, torque);
+            return Wrench(Vector3{{T(0), T(0), T(0)}}, torque);
         }
 
         /// Pure torque (no force)
         [[nodiscard]] static constexpr Wrench pure_torque(T tx, T ty, T tz) noexcept {
-            return Wrench(Vector3{T(0), T(0), T(0)}, Vector3{tx, ty, tz});
+            return Wrench(Vector3{{T(0), T(0), T(0)}}, Vector3{{tx, ty, tz}});
         }
 
         // ===== ACCESSORS =====
@@ -97,7 +100,7 @@ namespace optinum::lie {
 
         /// Get as Vector6 [f; τ]
         [[nodiscard]] Vector6 vector() const noexcept {
-            return Vector6{force_[0], force_[1], force_[2], torque_[0], torque_[1], torque_[2]};
+            return Vector6{{force_[0], force_[1], force_[2], torque_[0], torque_[1], torque_[2]}};
         }
 
         /// Get individual components
@@ -205,29 +208,30 @@ namespace optinum::lie {
 
         [[nodiscard]] Wrench operator+(const Wrench &other) const noexcept {
             return Wrench(
-                Vector3{force_[0] + other.force_[0], force_[1] + other.force_[1], force_[2] + other.force_[2]},
-                Vector3{torque_[0] + other.torque_[0], torque_[1] + other.torque_[1], torque_[2] + other.torque_[2]});
+                Vector3{{force_[0] + other.force_[0], force_[1] + other.force_[1], force_[2] + other.force_[2]}},
+                Vector3{{torque_[0] + other.torque_[0], torque_[1] + other.torque_[1], torque_[2] + other.torque_[2]}});
         }
 
         [[nodiscard]] Wrench operator-(const Wrench &other) const noexcept {
             return Wrench(
-                Vector3{force_[0] - other.force_[0], force_[1] - other.force_[1], force_[2] - other.force_[2]},
-                Vector3{torque_[0] - other.torque_[0], torque_[1] - other.torque_[1], torque_[2] - other.torque_[2]});
+                Vector3{{force_[0] - other.force_[0], force_[1] - other.force_[1], force_[2] - other.force_[2]}},
+                Vector3{{torque_[0] - other.torque_[0], torque_[1] - other.torque_[1], torque_[2] - other.torque_[2]}});
         }
 
         [[nodiscard]] Wrench operator*(T scalar) const noexcept {
-            return Wrench(Vector3{force_[0] * scalar, force_[1] * scalar, force_[2] * scalar},
-                          Vector3{torque_[0] * scalar, torque_[1] * scalar, torque_[2] * scalar});
+            return Wrench(Vector3{{force_[0] * scalar, force_[1] * scalar, force_[2] * scalar}},
+                          Vector3{{torque_[0] * scalar, torque_[1] * scalar, torque_[2] * scalar}});
         }
 
         [[nodiscard]] Wrench operator/(T scalar) const noexcept {
             const T inv = T(1) / scalar;
-            return Wrench(Vector3{force_[0] * inv, force_[1] * inv, force_[2] * inv},
-                          Vector3{torque_[0] * inv, torque_[1] * inv, torque_[2] * inv});
+            return Wrench(Vector3{{force_[0] * inv, force_[1] * inv, force_[2] * inv}},
+                          Vector3{{torque_[0] * inv, torque_[1] * inv, torque_[2] * inv}});
         }
 
         [[nodiscard]] Wrench operator-() const noexcept {
-            return Wrench(Vector3{-force_[0], -force_[1], -force_[2]}, Vector3{-torque_[0], -torque_[1], -torque_[2]});
+            return Wrench(Vector3{{-force_[0], -force_[1], -force_[2]}},
+                          Vector3{{-torque_[0], -torque_[1], -torque_[2]}});
         }
 
         Wrench &operator+=(const Wrench &other) noexcept {
@@ -311,10 +315,10 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] Wrench<NewScalar> cast() const noexcept {
             return Wrench<NewScalar>(
-                simd::Vector<NewScalar, 3>{static_cast<NewScalar>(force_[0]), static_cast<NewScalar>(force_[1]),
-                                           static_cast<NewScalar>(force_[2])},
-                simd::Vector<NewScalar, 3>{static_cast<NewScalar>(torque_[0]), static_cast<NewScalar>(torque_[1]),
-                                           static_cast<NewScalar>(torque_[2])});
+                dp::mat::vector<NewScalar, 3>{{static_cast<NewScalar>(force_[0]), static_cast<NewScalar>(force_[1]),
+                                               static_cast<NewScalar>(force_[2])}},
+                dp::mat::vector<NewScalar, 3>{{static_cast<NewScalar>(torque_[0]), static_cast<NewScalar>(torque_[1]),
+                                               static_cast<NewScalar>(torque_[2])}});
         }
 
       private:

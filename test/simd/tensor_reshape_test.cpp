@@ -14,9 +14,11 @@ namespace on = optinum;
 
 TEST_CASE("Tensor reshape() - Basic functionality") {
     using namespace on::simd;
+    namespace dp = datapod;
 
     SUBCASE("Reshape 2x3x4 to 3x2x4") {
-        Tensor<float, 2, 3, 4> t;
+        dp::mat::tensor<float, 2, 3, 4> storage;
+        Tensor<float, 2, 3, 4> t(storage);
         t.fill(0.0f);
 
         // Set some values to verify correct data copying
@@ -29,14 +31,15 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
         static_assert(std::is_same_v<decltype(reshaped), Tensor<float, 3, 2, 4>>, "Wrong reshape type");
         CHECK(reshaped.size() == 24);
 
-        // Verify data is copied correctly (linear order preserved)
+        // Verify data is shared (same underlying storage, different view)
         for (std::size_t i = 0; i < 24; ++i) {
             CHECK(reshaped[i] == doctest::Approx(static_cast<float>(i)));
         }
     }
 
     SUBCASE("Reshape 2x2x2 to 4x2x1") {
-        Tensor<int, 2, 2, 2> t;
+        dp::mat::tensor<int, 2, 2, 2> storage;
+        Tensor<int, 2, 2, 2> t(storage);
         for (std::size_t i = 0; i < 8; ++i) {
             t[i] = static_cast<int>(i + 1);
         }
@@ -50,7 +53,8 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
     }
 
     SUBCASE("Reshape 3x3x3 to 9x3x1") {
-        Tensor<double, 3, 3, 3> t;
+        dp::mat::tensor<double, 3, 3, 3> storage;
+        Tensor<double, 3, 3, 3> t(storage);
         for (std::size_t i = 0; i < 27; ++i) {
             t[i] = static_cast<double>(i * 0.5);
         }
@@ -64,7 +68,8 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
     }
 
     SUBCASE("Reshape to same dimensions (no-op)") {
-        Tensor<float, 2, 3, 4> t;
+        dp::mat::tensor<float, 2, 3, 4> storage;
+        Tensor<float, 2, 3, 4> t(storage);
         t.fill(42.0f);
 
         auto reshaped = t.reshape<2, 3, 4>();
@@ -80,9 +85,11 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
 
 TEST_CASE("Tensor reshape() - 4D tensors") {
     using namespace on::simd;
+    namespace dp = datapod;
 
     SUBCASE("Reshape 2x2x2x3 to 3x4x2x1") {
-        Tensor<float, 2, 2, 2, 3> t;
+        dp::mat::tensor<float, 2, 2, 2, 3> storage;
+        Tensor<float, 2, 2, 2, 3> t(storage);
         constexpr std::size_t total = 2 * 2 * 2 * 3;
 
         for (std::size_t i = 0; i < total; ++i) {
@@ -98,7 +105,8 @@ TEST_CASE("Tensor reshape() - 4D tensors") {
     }
 
     SUBCASE("Reshape 3x2x2x2 to 2x2x2x3") {
-        Tensor<int, 3, 2, 2, 2> t;
+        dp::mat::tensor<int, 3, 2, 2, 2> storage;
+        Tensor<int, 3, 2, 2, 2> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<int>(i * 2);
         }
@@ -115,11 +123,8 @@ TEST_CASE("Tensor reshape() - Constexpr compatibility") {
     using namespace on::simd;
 
     // The reshape operation should be usable in constant expressions
-    constexpr auto test_reshape = []() {
-        Tensor<int, 2, 2, 2> t;
-        // Note: fill() may not be constexpr, so we can't fully test this at compile time
-        return true;
-    };
+    // Note: since Tensor is now a view, constexpr usage is limited to views over constexpr data
+    constexpr auto test_reshape = []() { return true; };
 
     constexpr bool result = test_reshape();
     CHECK(result == true);
@@ -131,9 +136,11 @@ TEST_CASE("Tensor reshape() - Constexpr compatibility") {
 
 TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     using namespace on::simd;
+    namespace dp = datapod;
 
     SUBCASE("squeeze<1, N, M> -> <N, M, 1>") {
-        Tensor<float, 1, 3, 4> t;
+        dp::mat::tensor<float, 1, 3, 4> storage;
+        Tensor<float, 1, 3, 4> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i);
         }
@@ -149,7 +156,8 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, 1, M> -> <N, M, 1>") {
-        Tensor<float, 3, 1, 4> t;
+        dp::mat::tensor<float, 3, 1, 4> storage;
+        Tensor<float, 3, 1, 4> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i * 2);
         }
@@ -165,7 +173,8 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, 1> -> <N, M, 1> (no-op)") {
-        Tensor<float, 3, 4, 1> t;
+        dp::mat::tensor<float, 3, 4, 1> storage;
+        Tensor<float, 3, 4, 1> t(storage);
         t.fill(7.5f);
 
         auto squeezed = squeeze(t);
@@ -179,7 +188,8 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, P> with all > 1 -> no-op") {
-        Tensor<float, 2, 3, 4> t;
+        dp::mat::tensor<float, 2, 3, 4> storage;
+        Tensor<float, 2, 3, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i);
         }
@@ -197,9 +207,11 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
 
 TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     using namespace on::simd;
+    namespace dp = datapod;
 
     SUBCASE("squeeze<1, N, M, P> -> <N, M, P>") {
-        Tensor<float, 1, 2, 3, 4> t;
+        dp::mat::tensor<float, 1, 2, 3, 4> storage;
+        Tensor<float, 1, 2, 3, 4> t(storage);
         constexpr std::size_t total = 24;
 
         for (std::size_t i = 0; i < total; ++i) {
@@ -217,7 +229,8 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, 1, M, P> -> <N, M, P>") {
-        Tensor<float, 2, 1, 3, 4> t;
+        dp::mat::tensor<float, 2, 1, 3, 4> storage;
+        Tensor<float, 2, 1, 3, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i + 10);
         }
@@ -232,7 +245,8 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, 1, P> -> <N, M, P>") {
-        Tensor<float, 2, 3, 1, 4> t;
+        dp::mat::tensor<float, 2, 3, 1, 4> storage;
+        Tensor<float, 2, 3, 1, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i * 0.5);
         }
@@ -247,7 +261,8 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, P, 1> -> <N, M, P>") {
-        Tensor<float, 2, 3, 4, 1> t;
+        dp::mat::tensor<float, 2, 3, 4, 1> storage;
+        Tensor<float, 2, 3, 4, 1> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(100 - i);
         }
@@ -264,9 +279,11 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
 
 TEST_CASE("Tensor squeeze() - Multiple dimensions of size 1") {
     using namespace on::simd;
+    namespace dp = datapod;
 
     SUBCASE("squeeze<1, 1, N, M> -> <N, M, 1>") {
-        Tensor<float, 1, 1, 3, 4> t;
+        dp::mat::tensor<float, 1, 1, 3, 4> storage;
+        Tensor<float, 1, 1, 3, 4> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i * 3);
         }
@@ -282,7 +299,8 @@ TEST_CASE("Tensor squeeze() - Multiple dimensions of size 1") {
     }
 
     SUBCASE("squeeze<N, 1, M, 1> -> <N, M, 1>") {
-        Tensor<float, 3, 1, 4, 1> t;
+        dp::mat::tensor<float, 3, 1, 4, 1> storage;
+        Tensor<float, 3, 1, 4, 1> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i + 0.5);
         }
@@ -299,9 +317,11 @@ TEST_CASE("Tensor squeeze() - Multiple dimensions of size 1") {
 
 TEST_CASE("Tensor reshape() and squeeze() - Integration") {
     using namespace on::simd;
+    namespace dp = datapod;
 
     SUBCASE("Reshape then squeeze") {
-        Tensor<float, 2, 3, 4> t;
+        dp::mat::tensor<float, 2, 3, 4> storage;
+        Tensor<float, 2, 3, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i);
         }
@@ -321,7 +341,8 @@ TEST_CASE("Tensor reshape() and squeeze() - Integration") {
     }
 
     SUBCASE("Multiple reshape operations") {
-        Tensor<int, 2, 2, 2> t;
+        dp::mat::tensor<int, 2, 2, 2> storage;
+        Tensor<int, 2, 2, 2> t(storage);
         for (std::size_t i = 0; i < 8; ++i) {
             t[i] = static_cast<int>(i);
         }
@@ -334,7 +355,7 @@ TEST_CASE("Tensor reshape() and squeeze() - Integration") {
         // Should end up back at original dimensions
         static_assert(std::is_same_v<decltype(r4), Tensor<int, 2, 2, 2>>, "Should be back to <2, 2, 2>");
 
-        // Data should be preserved
+        // Data should be preserved (all views point to same storage)
         for (std::size_t i = 0; i < 8; ++i) {
             CHECK(r4[i] == static_cast<int>(i));
         }
@@ -343,8 +364,10 @@ TEST_CASE("Tensor reshape() and squeeze() - Integration") {
 
 TEST_CASE("Tensor reshape() - Element access after reshape") {
     using namespace on::simd;
+    namespace dp = datapod;
 
-    Tensor<float, 2, 3, 4> t;
+    dp::mat::tensor<float, 2, 3, 4> storage;
+    Tensor<float, 2, 3, 4> t(storage);
     // Initialize with a pattern
     for (std::size_t i = 0; i < 2; ++i) {
         for (std::size_t j = 0; j < 3; ++j) {

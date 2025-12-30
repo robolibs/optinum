@@ -4,11 +4,16 @@
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
+
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== SO2: Special Orthogonal Group in 2D =====
     //
@@ -29,11 +34,11 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = T;                 // R^1, just the angle
-        using Params = simd::Vector<T, 2>; // Unit complex (cos, sin)
-        using Point = simd::Vector<T, 2>;  // 2D point
-        using RotationMatrix = simd::Matrix<T, 2, 2>;
-        using AdjointMatrix = T; // 1x1 matrix = scalar
+        using Tangent = T;                               // R^1, just the angle
+        using Params = dp::mat::vector<T, 2>;            // Unit complex (cos, sin) - owning
+        using Point = dp::mat::vector<T, 2>;             // 2D point - owning
+        using RotationMatrix = dp::mat::matrix<T, 2, 2>; // owning
+        using AdjointMatrix = T;                         // 1x1 matrix = scalar
 
         // ===== CONSTANTS =====
         static constexpr std::size_t DoF = 1;
@@ -42,10 +47,10 @@ namespace optinum::lie {
         // ===== CONSTRUCTORS =====
 
         // Default: identity rotation (theta = 0)
-        constexpr SO2() noexcept : z_{T(1), T(0)} {}
+        constexpr SO2() noexcept : z_{{T(1), T(0)}} {}
 
         // From angle (theta in radians)
-        explicit SO2(Scalar theta) noexcept : z_{std::cos(theta), std::sin(theta)} {}
+        explicit SO2(Scalar theta) noexcept : z_{{std::cos(theta), std::sin(theta)}} {}
 
         // From unit complex number (cos, sin) - normalizes if needed
         SO2(Scalar real, Scalar imag) noexcept {

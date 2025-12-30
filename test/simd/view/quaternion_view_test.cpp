@@ -468,19 +468,30 @@ TEST_CASE("quaternion_view - Spatial Quaternion support") {
 }
 
 // =============================================================================
-// Quaternion Container (owning) Tests
+// Quaternion View (non-owning) Tests
 // =============================================================================
 
-TEST_CASE("Quaternion container - Basic operations") {
-    on::Quaternion<double, 4> quats;
+TEST_CASE("Quaternion view - Basic operations") {
+    // Storage for the view
+    dp::mat::vector<dp::mat::quaternion<double>, 4> storage;
+    on::Quaternion<double, 4> quats(storage);
 
-    SUBCASE("Default construction") { CHECK(quats.size() == 4); }
+    SUBCASE("Default construction - null view") {
+        on::Quaternion<double, 4> null_view;
+        CHECK(!null_view.valid());
+        CHECK(!null_view);
+    }
 
-    SUBCASE("Identity factory") {
-        auto id = on::Quaternion<double, 4>::identity();
+    SUBCASE("Construction from storage") {
+        CHECK(quats.valid());
+        CHECK(quats.size() == 4);
+    }
+
+    SUBCASE("Fill with identity") {
+        quats.fill(dp::mat::quaternion<double>::identity());
         for (std::size_t i = 0; i < 4; ++i) {
-            CHECK(id[i].w == doctest::Approx(1.0));
-            CHECK(id[i].x == doctest::Approx(0.0));
+            CHECK(quats[i].w == doctest::Approx(1.0));
+            CHECK(quats[i].x == doctest::Approx(0.0));
         }
     }
 
@@ -496,8 +507,11 @@ TEST_CASE("Quaternion container - Basic operations") {
         CHECK(quats[0].x == doctest::Approx(0.8));
     }
 
-    SUBCASE("Hamilton product") {
-        on::Quaternion<double, 2> a, b;
+    SUBCASE("Hamilton product - multiply_to") {
+        dp::mat::vector<dp::mat::quaternion<double>, 2> a_storage, b_storage, result_storage;
+        on::Quaternion<double, 2> a(a_storage);
+        on::Quaternion<double, 2> b(b_storage);
+        on::Quaternion<double, 2> result(result_storage);
 
         // i * j = k
         a[0] = {0.0, 1.0, 0.0, 0.0};
@@ -505,16 +519,33 @@ TEST_CASE("Quaternion container - Basic operations") {
         b[0] = {0.0, 0.0, 1.0, 0.0};
         b[1] = {0.707, 0.0, 0.707, 0.0};
 
-        auto result = a * b;
+        a.multiply_to(b, result.data());
 
         CHECK(result[0].z == doctest::Approx(1.0));
         CHECK(result[1].w == doctest::Approx(0.707));
     }
 
+    SUBCASE("Hamilton product - multiply_inplace") {
+        dp::mat::vector<dp::mat::quaternion<double>, 2> a_storage, b_storage;
+        on::Quaternion<double, 2> a(a_storage);
+        on::Quaternion<double, 2> b(b_storage);
+
+        // i * j = k
+        a[0] = {0.0, 1.0, 0.0, 0.0};
+        a[1] = {1.0, 0.0, 0.0, 0.0};
+        b[0] = {0.0, 0.0, 1.0, 0.0};
+        b[1] = {0.707, 0.0, 0.707, 0.0};
+
+        a.multiply_inplace(b);
+
+        CHECK(a[0].z == doctest::Approx(1.0));
+        CHECK(a[1].w == doctest::Approx(0.707));
+    }
+
     SUBCASE("Iteration") {
-        auto id = on::Quaternion<double, 4>::identity();
+        quats.fill(dp::mat::quaternion<double>::identity());
         int count = 0;
-        for (const auto &q : id) {
+        for (const auto &q : quats) {
             CHECK(q.w == doctest::Approx(1.0));
             count++;
         }

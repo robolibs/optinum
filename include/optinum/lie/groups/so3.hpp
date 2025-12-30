@@ -39,11 +39,11 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = simd::Vector<T, 3>; // R^3 (rotation vector)
+        using Tangent = dp::mat::vector<T, 3>; // R^3 (rotation vector) - owning type
         using Quaternion = dp::mat::quaternion<T>;
-        using Point = simd::Vector<T, 3>; // 3D point
-        using RotationMatrix = simd::Matrix<T, 3, 3>;
-        using AdjointMatrix = simd::Matrix<T, 3, 3>; // Adj = R for SO3
+        using Point = dp::mat::vector<T, 3>;             // 3D point - owning type
+        using RotationMatrix = dp::mat::matrix<T, 3, 3>; // Owning type for return values
+        using AdjointMatrix = dp::mat::matrix<T, 3, 3>;  // Owning type for return values
 
         // ===== CONSTANTS =====
         static constexpr std::size_t DoF = 3;
@@ -182,8 +182,8 @@ namespace optinum::lie {
             // Normalize vectors
             const T inv_norm1 = T(1) / norm1;
             const T inv_norm2 = T(1) / norm2;
-            const Point u1{v1[0] * inv_norm1, v1[1] * inv_norm1, v1[2] * inv_norm1};
-            const Point u2{v2[0] * inv_norm2, v2[1] * inv_norm2, v2[2] * inv_norm2};
+            const Point u1{{v1[0] * inv_norm1, v1[1] * inv_norm1, v1[2] * inv_norm1}};
+            const Point u2{{v2[0] * inv_norm2, v2[1] * inv_norm2, v2[2] * inv_norm2}};
 
             // Compute dot product (cosine of angle)
             const T dot = u1[0] * u2[0] + u1[1] * u2[1] + u1[2] * u2[2];
@@ -207,16 +207,16 @@ namespace optinum::lie {
                 Point ortho;
                 if (std::abs(u1[0]) < T(0.9)) {
                     // Cross with x-axis: [1,0,0] x u1 = [0, u1[2], -u1[1]]
-                    ortho = Point{T(0), u1[2], -u1[1]};
+                    ortho = Point{{T(0), u1[2], -u1[1]}};
                 } else {
                     // Cross with y-axis: [0,1,0] x u1 = [-u1[2], 0, u1[0]]
-                    ortho = Point{-u1[2], T(0), u1[0]};
+                    ortho = Point{{-u1[2], T(0), u1[0]}};
                 }
 
                 // Normalize the orthogonal axis
                 const T ortho_norm = std::sqrt(ortho[0] * ortho[0] + ortho[1] * ortho[1] + ortho[2] * ortho[2]);
                 const T inv_ortho_norm = T(1) / ortho_norm;
-                const Point axis{ortho[0] * inv_ortho_norm, ortho[1] * inv_ortho_norm, ortho[2] * inv_ortho_norm};
+                const Point axis{{ortho[0] * inv_ortho_norm, ortho[1] * inv_ortho_norm, ortho[2] * inv_ortho_norm}};
 
                 // 180° rotation around the orthogonal axis
                 return from_axis_angle(axis, pi<T>);
@@ -244,7 +244,7 @@ namespace optinum::lie {
 
             if (v_norm_sq < epsilon<T> * epsilon<T>) {
                 // Near identity: omega ≈ 2 * v
-                return Tangent{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z};
+                return Tangent{{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z}};
             }
 
             const T v_norm = std::sqrt(v_norm_sq);
@@ -253,7 +253,7 @@ namespace optinum::lie {
 
             // omega = theta * v / |v|
             const T scale = theta / v_norm;
-            return Tangent{scale * q_.x, scale * q_.y, scale * q_.z};
+            return Tangent{{scale * q_.x, scale * q_.y, scale * q_.z}};
         }
 
         // Log that also returns the angle
@@ -261,14 +261,14 @@ namespace optinum::lie {
             const T v_norm_sq = q_.x * q_.x + q_.y * q_.y + q_.z * q_.z;
 
             if (v_norm_sq < epsilon<T> * epsilon<T>) {
-                return {Tangent{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z}, T(0)};
+                return {Tangent{{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z}}, T(0)};
             }
 
             const T v_norm = std::sqrt(v_norm_sq);
             const T theta = T(2) * std::atan2(v_norm, q_.w);
             const T scale = theta / v_norm;
 
-            return {Tangent{scale * q_.x, scale * q_.y, scale * q_.z}, theta};
+            return {Tangent{{scale * q_.x, scale * q_.y, scale * q_.z}}, theta};
         }
 
         // Inverse: quaternion conjugate (for unit quaternion)
@@ -362,8 +362,8 @@ namespace optinum::lie {
         // vee: 3x3 skew-symmetric matrix -> omega
         [[nodiscard]] static Tangent vee(const RotationMatrix &Omega) noexcept {
             // Extract from skew-symmetric (average for numerical stability)
-            return Tangent{(Omega(2, 1) - Omega(1, 2)) / T(2), (Omega(0, 2) - Omega(2, 0)) / T(2),
-                           (Omega(1, 0) - Omega(0, 1)) / T(2)};
+            return Tangent{{(Omega(2, 1) - Omega(1, 2)) / T(2), (Omega(0, 2) - Omega(2, 0)) / T(2),
+                            (Omega(1, 0) - Omega(0, 1)) / T(2)}};
         }
 
         // Adjoint representation: Adj = R for SO3
@@ -371,7 +371,7 @@ namespace optinum::lie {
 
         // Lie bracket [a, b] = a x b (cross product for so(3))
         [[nodiscard]] static Tangent lie_bracket(const Tangent &a, const Tangent &b) noexcept {
-            return Tangent{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
+            return Tangent{{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]}};
         }
 
         // Generator matrices (3 generators for SO3)
@@ -505,9 +505,9 @@ namespace optinum::lie {
         [[nodiscard]] Tangent axis() const noexcept {
             const T v_norm = std::sqrt(q_.x * q_.x + q_.y * q_.y + q_.z * q_.z);
             if (v_norm < epsilon<T>) {
-                return Tangent{T(1), T(0), T(0)}; // Default to x-axis
+                return Tangent{{T(1), T(0), T(0)}}; // Default to x-axis
             }
-            return Tangent{q_.x / v_norm, q_.y / v_norm, q_.z / v_norm};
+            return Tangent{{q_.x / v_norm, q_.y / v_norm, q_.z / v_norm}};
         }
 
         // Extract Euler angles (ZYX convention: roll, pitch, yaw)
@@ -533,7 +533,7 @@ namespace optinum::lie {
             const T cosy_cosp = T(1) - T(2) * (y * y + z * z);
             const T yaw = std::atan2(siny_cosp, cosy_cosp);
 
-            return Tangent{roll, pitch, yaw};
+            return Tangent{{roll, pitch, yaw}};
         }
 
         // Raw data pointer

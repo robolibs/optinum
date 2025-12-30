@@ -1,17 +1,26 @@
 // Test for 8 parity functions
 #include <cmath>
 #include <iostream>
-#include <optinum/optinum.hpp>
+#include <optinum/lina/lina.hpp>
+#include <optinum/simd/matrix.hpp>
+#include <optinum/simd/vector.hpp>
 
-namespace on = optinum;
 namespace lina = optinum::lina;
+using optinum::simd::Matrix;
+
+namespace dp = datapod;
+
 constexpr double TOL = 1e-9;
 bool approx_equal(double a, double b, double tol = TOL) { return std::abs(a - b) < tol; }
 
 void test_rank() {
-    on::Matrix<double, 3, 3> A;
-    A.set_identity();
-    auto r = lina::rank(A);
+    dp::mat::matrix<double, 3, 3> A;
+    for (std::size_t i = 0; i < 9; ++i)
+        A[i] = 0.0;
+    A(0, 0) = 1.0;
+    A(1, 1) = 1.0;
+    A(2, 2) = 1.0;
+    auto r = lina::rank(Matrix<double, 3, 3>(A));
     if (r != 3) {
         std::cerr << "rank() failed: expected 3, got " << r << "\n";
         std::exit(1);
@@ -20,9 +29,13 @@ void test_rank() {
 }
 
 void test_cond() {
-    on::Matrix<double, 3, 3> I;
-    I.set_identity();
-    auto c = lina::cond(I);
+    dp::mat::matrix<double, 3, 3> I;
+    for (std::size_t i = 0; i < 9; ++i)
+        I[i] = 0.0;
+    I(0, 0) = 1.0;
+    I(1, 1) = 1.0;
+    I(2, 2) = 1.0;
+    auto c = lina::cond(Matrix<double, 3, 3>(I));
     if (!approx_equal(c, 1.0, 1e-6)) {
         std::cerr << "cond() failed: expected ~1.0, got " << c << "\n";
         std::exit(1);
@@ -31,9 +44,13 @@ void test_cond() {
 }
 
 void test_rcond() {
-    on::Matrix<double, 3, 3> I;
-    I.set_identity();
-    auto rc = lina::rcond(I);
+    dp::mat::matrix<double, 3, 3> I;
+    for (std::size_t i = 0; i < 9; ++i)
+        I[i] = 0.0;
+    I(0, 0) = 1.0;
+    I(1, 1) = 1.0;
+    I(2, 2) = 1.0;
+    auto rc = lina::rcond(Matrix<double, 3, 3>(I));
     if (!approx_equal(rc, 1.0, 1e-6)) {
         std::cerr << "rcond() failed: expected ~1.0, got " << rc << "\n";
         std::exit(1);
@@ -42,7 +59,7 @@ void test_rcond() {
 }
 
 void test_pinv() {
-    on::Matrix<double, 3, 3> A;
+    dp::mat::matrix<double, 3, 3> A;
     A(0, 0) = 1.0;
     A(0, 1) = 0.0;
     A(0, 2) = 0.0;
@@ -53,7 +70,7 @@ void test_pinv() {
     A(2, 1) = 0.0;
     A(2, 2) = 3.0;
 
-    auto A_pinv = lina::pinv(A);
+    auto A_pinv = lina::pinv(Matrix<double, 3, 3>(A));
     auto I = lina::matmul(A, A_pinv);
 
     for (std::size_t i = 0; i < 3; ++i) {
@@ -69,9 +86,13 @@ void test_pinv() {
 }
 
 void test_null() {
-    on::Matrix<double, 3, 3> A;
-    A.set_identity();
-    auto N = lina::null(A);
+    dp::mat::matrix<double, 3, 3> A;
+    for (std::size_t i = 0; i < 9; ++i)
+        A[i] = 0.0;
+    A(0, 0) = 1.0;
+    A(1, 1) = 1.0;
+    A(2, 2) = 1.0;
+    auto N = lina::null(Matrix<double, 3, 3>(A));
     auto r = lina::rank(N);
     if (r != 0) {
         std::cerr << "null() failed: expected rank 0, got " << r << "\n";
@@ -81,9 +102,13 @@ void test_null() {
 }
 
 void test_orth() {
-    on::Matrix<double, 3, 3> A;
-    A.set_identity();
-    auto Q = lina::orth(A);
+    dp::mat::matrix<double, 3, 3> A;
+    for (std::size_t i = 0; i < 9; ++i)
+        A[i] = 0.0;
+    A(0, 0) = 1.0;
+    A(1, 1) = 1.0;
+    A(2, 2) = 1.0;
+    auto Q = lina::orth(Matrix<double, 3, 3>(A));
     auto QtQ = lina::matmul(lina::transpose(Q), Q);
 
     for (std::size_t i = 0; i < 3; ++i) {
@@ -99,19 +124,19 @@ void test_orth() {
 }
 
 void test_kron() {
-    on::Matrix<double, 2, 2> A;
+    dp::mat::matrix<double, 2, 2> A;
     A(0, 0) = 1.0;
     A(0, 1) = 2.0;
     A(1, 0) = 3.0;
     A(1, 1) = 4.0;
 
-    on::Matrix<double, 2, 2> B;
+    dp::mat::matrix<double, 2, 2> B;
     B(0, 0) = 0.0;
     B(0, 1) = 5.0;
     B(1, 0) = 6.0;
     B(1, 1) = 7.0;
 
-    auto C = lina::kron(A, B);
+    auto C = lina::kron(Matrix<double, 2, 2>(A), Matrix<double, 2, 2>(B));
     if (C.rows() != 4 || C.cols() != 4) {
         std::cerr << "kron() shape failed: expected 4x4, got " << C.rows() << "x" << C.cols() << "\n";
         std::exit(1);
@@ -120,7 +145,7 @@ void test_kron() {
 }
 
 void test_is_symmetric() {
-    on::Matrix<double, 3, 3> A;
+    dp::mat::matrix<double, 3, 3> A;
     A(0, 0) = 1.0;
     A(0, 1) = 2.0;
     A(0, 2) = 3.0;
@@ -131,7 +156,7 @@ void test_is_symmetric() {
     A(2, 1) = 5.0;
     A(2, 2) = 6.0;
 
-    if (!lina::is_symmetric(A)) {
+    if (!lina::is_symmetric(Matrix<double, 3, 3>(A))) {
         std::cerr << "is_symmetric() failed: expected true\n";
         std::exit(1);
     }
@@ -139,7 +164,7 @@ void test_is_symmetric() {
 }
 
 void test_is_positive_definite() {
-    on::Matrix<double, 3, 3> A;
+    dp::mat::matrix<double, 3, 3> A;
     A(0, 0) = 4.0;
     A(0, 1) = 2.0;
     A(0, 2) = 1.0;
@@ -150,7 +175,7 @@ void test_is_positive_definite() {
     A(2, 1) = 2.0;
     A(2, 2) = 6.0;
 
-    if (!lina::is_positive_definite(A)) {
+    if (!lina::is_positive_definite(Matrix<double, 3, 3>(A))) {
         std::cerr << "is_positive_definite() failed: expected true\n";
         std::exit(1);
     }

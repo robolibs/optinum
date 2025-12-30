@@ -9,6 +9,8 @@
 using namespace optinum::lie;
 using namespace optinum;
 
+namespace dp = ::datapod;
+
 // ===== HELPER FUNCTIONS =====
 
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
@@ -69,7 +71,7 @@ TEST_CASE("SO2 construction from complex normalizes") {
 
 TEST_CASE("SO2 construction from rotation matrix") {
     const double theta = 0.5;
-    simd::Matrix<double, 2, 2> R_mat;
+    dp::mat::matrix<double, 2, 2> R_mat;
     R_mat(0, 0) = std::cos(theta);
     R_mat(0, 1) = -std::sin(theta);
     R_mat(1, 0) = std::sin(theta);
@@ -209,14 +211,14 @@ TEST_CASE("SO2 composition") {
 
 TEST_CASE("SO2 rotates points correctly") {
     SUBCASE("identity doesn't change point") {
-        simd::Vector<double, 2> p{1.0, 2.0};
+        dp::mat::vector<double, 2> p{{1.0, 2.0}};
         auto p2 = SO2d::identity() * p;
         CHECK(approx_equal(p2[0], 1.0));
         CHECK(approx_equal(p2[1], 2.0));
     }
 
     SUBCASE("90 degree rotation") {
-        simd::Vector<double, 2> p{1.0, 0.0};
+        dp::mat::vector<double, 2> p{{1.0, 0.0}};
         SO2d R(std::numbers::pi / 2);
         auto p2 = R * p;
         CHECK(approx_equal(p2[0], 0.0, 1e-10));
@@ -224,7 +226,7 @@ TEST_CASE("SO2 rotates points correctly") {
     }
 
     SUBCASE("180 degree rotation") {
-        simd::Vector<double, 2> p{1.0, 0.0};
+        dp::mat::vector<double, 2> p{{1.0, 0.0}};
         SO2d R(std::numbers::pi);
         auto p2 = R * p;
         CHECK(approx_equal(p2[0], -1.0, 1e-10));
@@ -232,7 +234,7 @@ TEST_CASE("SO2 rotates points correctly") {
     }
 
     SUBCASE("rotation preserves norm") {
-        simd::Vector<double, 2> p{3.0, 4.0}; // norm = 5
+        dp::mat::vector<double, 2> p{{3.0, 4.0}}; // norm = 5
         SO2d R(0.7);
         auto p2 = R * p;
         const double norm_before = std::sqrt(p[0] * p[0] + p[1] * p[1]);

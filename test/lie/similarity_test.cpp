@@ -7,6 +7,7 @@
 
 using namespace optinum;
 using namespace optinum::lie;
+namespace dp = ::datapod;
 
 // ============================================================================
 // RxSO2 Tests
@@ -35,7 +36,7 @@ TEST_SUITE("RxSO2") {
     }
 
     TEST_CASE("Exp/log round trip") {
-        simd::Vector<double, 2> tangent{0.5, M_PI / 6}; // [log(scale), angle]
+        dp::mat::vector<double, 2> tangent{{0.5, M_PI / 6}}; // [log(scale), angle]
         auto r = RxSO2d::exp(tangent);
         auto recovered = r.log();
 
@@ -64,7 +65,7 @@ TEST_SUITE("RxSO2") {
 
     TEST_CASE("Point transformation") {
         RxSO2d r(2.0, M_PI / 2); // Scale by 2, rotate 90 degrees
-        simd::Vector<double, 2> p{1.0, 0.0};
+        dp::mat::vector<double, 2> p{{1.0, 0.0}};
         auto p_transformed = r * p;
 
         // (1, 0) scaled by 2 and rotated 90 deg -> (0, 2)
@@ -109,7 +110,7 @@ TEST_SUITE("RxSO3") {
     }
 
     TEST_CASE("Exp/log round trip") {
-        simd::Vector<double, 4> tangent{0.3, 0.1, 0.2, 0.15}; // [sigma, wx, wy, wz]
+        dp::mat::vector<double, 4> tangent{{0.3, 0.1, 0.2, 0.15}}; // [sigma, wx, wy, wz]
         auto r = RxSO3d::exp(tangent);
         auto recovered = r.log();
 
@@ -137,7 +138,7 @@ TEST_SUITE("RxSO3") {
 
     TEST_CASE("Point transformation") {
         RxSO3d r(2.0, SO3d::rot_z(M_PI / 2)); // Scale by 2, rotate 90 deg around z
-        simd::Vector<double, 3> p{1.0, 0.0, 0.0};
+        dp::mat::vector<double, 3> p{{1.0, 0.0, 0.0}};
         auto p_transformed = r * p;
 
         // (1, 0, 0) scaled by 2 and rotated 90 deg around z -> (0, 2, 0)
@@ -185,7 +186,7 @@ TEST_SUITE("Sim2") {
     }
 
     TEST_CASE("Construction from SE2") {
-        SE2d se2(SO2d(M_PI / 6), simd::Vector<double, 2>{1.0, 2.0});
+        SE2d se2(SO2d(M_PI / 6), dp::mat::vector<double, 2>{{1.0, 2.0}});
         Sim2d sim(se2);
 
         CHECK(std::abs(sim.scale() - 1.0) < 1e-10);
@@ -195,7 +196,7 @@ TEST_SUITE("Sim2") {
     }
 
     TEST_CASE("Inverse operation") {
-        Sim2d sim(RxSO2d(2.0, M_PI / 4), simd::Vector<double, 2>{1.0, 2.0});
+        Sim2d sim(RxSO2d(2.0, M_PI / 4), dp::mat::vector<double, 2>{{1.0, 2.0}});
         auto sim_inv = sim.inverse();
         auto identity = sim * sim_inv;
 
@@ -213,8 +214,8 @@ TEST_SUITE("Sim2") {
     }
 
     TEST_CASE("Point transformation") {
-        Sim2d sim(RxSO2d(2.0, M_PI / 2), simd::Vector<double, 2>{1.0, 0.0});
-        simd::Vector<double, 2> p{1.0, 0.0};
+        Sim2d sim(RxSO2d(2.0, M_PI / 2), dp::mat::vector<double, 2>{{1.0, 0.0}});
+        dp::mat::vector<double, 2> p{{1.0, 0.0}};
         auto p_transformed = sim * p;
 
         // sR*p + t = 2*rot90*(1,0) + (1,0) = 2*(0,1) + (1,0) = (1, 2)
@@ -223,7 +224,7 @@ TEST_SUITE("Sim2") {
     }
 
     TEST_CASE("Matrix representation") {
-        Sim2d sim(RxSO2d(2.0, M_PI / 2), simd::Vector<double, 2>{1.0, 2.0});
+        Sim2d sim(RxSO2d(2.0, M_PI / 2), dp::mat::vector<double, 2>{{1.0, 2.0}});
         auto M = sim.matrix();
 
         // Should be 3x3 homogeneous matrix
@@ -235,7 +236,7 @@ TEST_SUITE("Sim2") {
     }
 
     TEST_CASE("Exp/log consistency near identity") {
-        simd::Vector<double, 4> twist{0.1, 0.1, 0.2, 0.3}; // small values
+        dp::mat::vector<double, 4> twist{{0.1, 0.1, 0.2, 0.3}}; // small values
         auto sim = Sim2d::exp(twist);
         auto recovered = sim.log();
 
@@ -282,7 +283,7 @@ TEST_SUITE("Sim3") {
     }
 
     TEST_CASE("Construction from SE3") {
-        SE3d se3(SO3d::rot_z(M_PI / 6), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+        SE3d se3(SO3d::rot_z(M_PI / 6), dp::mat::vector<double, 3>{{1.0, 2.0, 3.0}});
         Sim3d sim(se3);
 
         CHECK(std::abs(sim.scale() - 1.0) < 1e-10);
@@ -293,7 +294,7 @@ TEST_SUITE("Sim3") {
     }
 
     TEST_CASE("Inverse operation") {
-        Sim3d sim(RxSO3d(2.0, SO3d::rot_x(0.5)), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+        Sim3d sim(RxSO3d(2.0, SO3d::rot_x(0.5)), dp::mat::vector<double, 3>{{1.0, 2.0, 3.0}});
         auto sim_inv = sim.inverse();
         auto identity = sim * sim_inv;
 
@@ -314,8 +315,8 @@ TEST_SUITE("Sim3") {
     }
 
     TEST_CASE("Point transformation") {
-        Sim3d sim(RxSO3d(2.0, SO3d::rot_z(M_PI / 2)), simd::Vector<double, 3>{1.0, 0.0, 0.0});
-        simd::Vector<double, 3> p{1.0, 0.0, 0.0};
+        Sim3d sim(RxSO3d(2.0, SO3d::rot_z(M_PI / 2)), dp::mat::vector<double, 3>{{1.0, 0.0, 0.0}});
+        dp::mat::vector<double, 3> p{{1.0, 0.0, 0.0}};
         auto p_transformed = sim * p;
 
         // sR*p + t = 2*rotz90*(1,0,0) + (1,0,0) = 2*(0,1,0) + (1,0,0) = (1, 2, 0)
@@ -325,7 +326,7 @@ TEST_SUITE("Sim3") {
     }
 
     TEST_CASE("Matrix representation") {
-        Sim3d sim(RxSO3d(2.0, SO3d::rot_z(M_PI / 2)), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+        Sim3d sim(RxSO3d(2.0, SO3d::rot_z(M_PI / 2)), dp::mat::vector<double, 3>{{1.0, 2.0, 3.0}});
         auto M = sim.matrix();
 
         // Should be 4x4 homogeneous matrix
@@ -339,7 +340,7 @@ TEST_SUITE("Sim3") {
     }
 
     TEST_CASE("Exp/log consistency near identity") {
-        simd::Vector<double, 7> twist{0.1, 0.05, 0.08, 0.06, 0.2, 0.3, 0.4};
+        dp::mat::vector<double, 7> twist{{0.1, 0.05, 0.08, 0.06, 0.2, 0.3, 0.4}};
         auto sim = Sim3d::exp(twist);
         auto recovered = sim.log();
 
@@ -350,7 +351,7 @@ TEST_SUITE("Sim3") {
     }
 
     TEST_CASE("SE3 extraction") {
-        Sim3d sim(RxSO3d(2.0, SO3d::rot_x(0.5)), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+        Sim3d sim(RxSO3d(2.0, SO3d::rot_x(0.5)), dp::mat::vector<double, 3>{{1.0, 2.0, 3.0}});
         auto se3 = sim.se3();
 
         CHECK(se3.so3().is_approx(sim.so3(), 1e-10));
@@ -360,7 +361,7 @@ TEST_SUITE("Sim3") {
     }
 
     TEST_CASE("Scale preserves rotation") {
-        Sim3d sim(RxSO3d(2.0, SO3d::rot_z(M_PI / 4)), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+        Sim3d sim(RxSO3d(2.0, SO3d::rot_z(M_PI / 4)), dp::mat::vector<double, 3>{{1.0, 2.0, 3.0}});
         sim.set_scale(3.0);
 
         CHECK(std::abs(sim.scale() - 3.0) < 1e-10);
@@ -386,9 +387,9 @@ TEST_SUITE("Similarity Group Cross-Tests") {
 
     TEST_CASE("RxSO2 vs Sim2 with zero translation") {
         RxSO2d rxso2(2.0, M_PI / 4);
-        Sim2d sim2(rxso2, simd::Vector<double, 2>{0, 0});
+        Sim2d sim2(rxso2, dp::mat::vector<double, 2>{{0, 0}});
 
-        simd::Vector<double, 2> p{1.0, 0.0};
+        dp::mat::vector<double, 2> p{{1.0, 0.0}};
         auto p1 = rxso2 * p;
         auto p2 = sim2 * p;
 
@@ -398,9 +399,9 @@ TEST_SUITE("Similarity Group Cross-Tests") {
 
     TEST_CASE("RxSO3 vs Sim3 with zero translation") {
         RxSO3d rxso3(2.0, SO3d::rot_z(M_PI / 4));
-        Sim3d sim3(rxso3, simd::Vector<double, 3>{0, 0, 0});
+        Sim3d sim3(rxso3, dp::mat::vector<double, 3>{{0, 0, 0}});
 
-        simd::Vector<double, 3> p{1.0, 0.0, 0.0};
+        dp::mat::vector<double, 3> p{{1.0, 0.0, 0.0}};
         auto p1 = rxso3 * p;
         auto p2 = sim3 * p;
 
@@ -410,10 +411,10 @@ TEST_SUITE("Similarity Group Cross-Tests") {
     }
 
     TEST_CASE("Scale=1 Sim3 equals SE3") {
-        SE3d se3(SO3d::rot_y(0.5), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+        SE3d se3(SO3d::rot_y(0.5), dp::mat::vector<double, 3>{{1.0, 2.0, 3.0}});
         Sim3d sim3(se3);
 
-        simd::Vector<double, 3> p{1.0, 2.0, 3.0};
+        dp::mat::vector<double, 3> p{{1.0, 2.0, 3.0}};
         auto p_se3 = se3 * p;
         auto p_sim3 = sim3 * p;
 

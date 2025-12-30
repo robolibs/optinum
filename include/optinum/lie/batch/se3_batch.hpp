@@ -44,9 +44,9 @@ namespace optinum::lie {
         // ===== TYPE ALIASES =====
         using Scalar = T;
         using Quaternion = dp::mat::quaternion<T>;
-        using Translation = simd::Vector<T, 3>;
-        using Tangent = simd::Vector<T, 6>; // [vx, vy, vz, wx, wy, wz]
-        using Point = simd::Vector<T, 3>;
+        using Translation = dp::mat::vector<T, 3>;
+        using Tangent = dp::mat::vector<T, 6>; // [vx, vy, vz, wx, wy, wz]
+        using Point = dp::mat::vector<T, 3>;
         using Element = SE3<T>;
         using Rotation = SO3<T>;
         using RotationBatch = SO3Batch<T, N>;
@@ -197,7 +197,7 @@ namespace optinum::lie {
 
             // Handle remaining elements with scalar fallback
             for (; i < N; ++i) {
-                Tangent twist{vx[i], vy[i], vz[i], wx[i], wy[i], wz[i]};
+                Tangent twist{{vx[i], vy[i], vz[i], wx[i], wy[i], wz[i]}};
                 auto elem = Element::exp(twist);
                 // Rotation already set by SO3Batch::exp above
                 const auto &t = elem.translation();
@@ -246,7 +246,7 @@ namespace optinum::lie {
         // ===== ELEMENT ACCESS =====
 
         [[nodiscard]] Element operator[](std::size_t i) const noexcept {
-            return Element(rotations_[i], Translation{tx_[i], ty_[i], tz_[i]});
+            return Element(rotations_[i], Translation{{tx_[i], ty_[i], tz_[i]}});
         }
 
         // Set element
@@ -272,7 +272,7 @@ namespace optinum::lie {
 
         // Get translation at index
         [[nodiscard]] Translation translation(std::size_t i) const noexcept {
-            return Translation{tx_[i], ty_[i], tz_[i]};
+            return Translation{{tx_[i], ty_[i], tz_[i]}};
         }
 
         // ===== CORE OPERATIONS =====

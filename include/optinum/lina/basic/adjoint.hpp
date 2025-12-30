@@ -20,6 +20,7 @@
 //
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
 #include <optinum/lina/basic/cofactor.hpp>
 #include <optinum/lina/basic/transpose.hpp>
 #include <optinum/simd/matrix.hpp>
@@ -31,8 +32,8 @@ namespace optinum::lina {
     // =========================================================================
     // For 2x2: adj(A) = [[a11, -a01], [-a10, a00]]
     template <typename T>
-    [[nodiscard]] constexpr simd::Matrix<T, 2, 2> adjoint(const simd::Matrix<T, 2, 2> &a) noexcept {
-        simd::Matrix<T, 2, 2> result;
+    [[nodiscard]] constexpr datapod::mat::matrix<T, 2, 2> adjoint(const simd::Matrix<T, 2, 2> &a) noexcept {
+        datapod::mat::matrix<T, 2, 2> result;
 
         result(0, 0) = a(1, 1);  // adj_00 = a11
         result(0, 1) = -a(0, 1); // adj_01 = -a01
@@ -48,8 +49,8 @@ namespace optinum::lina {
     // For 3x3: adj(A) = cofactor(A)^T
     // Directly compute to avoid intermediate matrix
     template <typename T>
-    [[nodiscard]] constexpr simd::Matrix<T, 3, 3> adjoint(const simd::Matrix<T, 3, 3> &a) noexcept {
-        simd::Matrix<T, 3, 3> result;
+    [[nodiscard]] constexpr datapod::mat::matrix<T, 3, 3> adjoint(const simd::Matrix<T, 3, 3> &a) noexcept {
+        datapod::mat::matrix<T, 3, 3> result;
 
         // Compute cofactor matrix elements and transpose simultaneously
         // adj(A) = C^T, so adj_ij = C_ji
@@ -77,7 +78,7 @@ namespace optinum::lina {
     // =========================================================================
     // adj(A) = cofactor(A)^T
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr simd::Matrix<T, N, N> adjoint(const simd::Matrix<T, N, N> &a) noexcept
+    [[nodiscard]] constexpr datapod::mat::matrix<T, N, N> adjoint(const simd::Matrix<T, N, N> &a) noexcept
     requires(N > 3)
     {
         // Compute cofactor matrix then transpose
@@ -86,10 +87,38 @@ namespace optinum::lina {
     }
 
     // =========================================================================
+    // Overloads for dp::mat::matrix (owning type)
+    // =========================================================================
+    template <typename T>
+    [[nodiscard]] constexpr datapod::mat::matrix<T, 2, 2> adjoint(const datapod::mat::matrix<T, 2, 2> &a) noexcept {
+        simd::Matrix<T, 2, 2> view(const_cast<datapod::mat::matrix<T, 2, 2> &>(a));
+        return adjoint(view);
+    }
+
+    template <typename T>
+    [[nodiscard]] constexpr datapod::mat::matrix<T, 3, 3> adjoint(const datapod::mat::matrix<T, 3, 3> &a) noexcept {
+        simd::Matrix<T, 3, 3> view(const_cast<datapod::mat::matrix<T, 3, 3> &>(a));
+        return adjoint(view);
+    }
+
+    template <typename T, std::size_t N>
+    [[nodiscard]] constexpr datapod::mat::matrix<T, N, N> adjoint(const datapod::mat::matrix<T, N, N> &a) noexcept
+    requires(N > 3)
+    {
+        simd::Matrix<T, N, N> view(const_cast<datapod::mat::matrix<T, N, N> &>(a));
+        return adjoint(view);
+    }
+
+    // =========================================================================
     // Convenience alias - adjugate is the standard mathematical term
     // =========================================================================
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr simd::Matrix<T, N, N> adjugate(const simd::Matrix<T, N, N> &a) noexcept {
+    [[nodiscard]] constexpr datapod::mat::matrix<T, N, N> adjugate(const simd::Matrix<T, N, N> &a) noexcept {
+        return adjoint(a);
+    }
+
+    template <typename T, std::size_t N>
+    [[nodiscard]] constexpr datapod::mat::matrix<T, N, N> adjugate(const datapod::mat::matrix<T, N, N> &a) noexcept {
         return adjoint(a);
     }
 

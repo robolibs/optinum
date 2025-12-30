@@ -2,12 +2,15 @@
 
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/so3.hpp>
-#include <optinum/simd/vector.hpp>
+
+#include <datapod/matrix/vector.hpp>
 
 #include <cmath>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== ANGULAR VELOCITY CLASSES =====
     //
@@ -44,15 +47,15 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = simd::Vector<T, 3>;
+        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
         /// Default constructor: zero angular velocity
-        constexpr LocalAngularVelocity() noexcept : omega_{T(0), T(0), T(0)} {}
+        constexpr LocalAngularVelocity() noexcept : omega_{{T(0), T(0), T(0)}} {}
 
         /// Construct from components (ωx, ωy, ωz) in rad/s
-        constexpr LocalAngularVelocity(T wx, T wy, T wz) noexcept : omega_{wx, wy, wz} {}
+        constexpr LocalAngularVelocity(T wx, T wy, T wz) noexcept : omega_{{wx, wy, wz}} {}
 
         /// Construct from Vector3
         explicit constexpr LocalAngularVelocity(const Vector3 &omega) noexcept : omega_(omega) {}
@@ -114,7 +117,7 @@ namespace optinum::lie {
         /// Returns the rotation R such that: R_new = R_old * R
         /// This is the exponential map: exp(ω * dt)
         [[nodiscard]] SO3<T> integrate(T dt) const noexcept {
-            Vector3 omega_dt{omega_[0] * dt, omega_[1] * dt, omega_[2] * dt};
+            Vector3 omega_dt{{omega_[0] * dt, omega_[1] * dt, omega_[2] * dt}};
             return SO3<T>::exp(omega_dt);
         }
 
@@ -214,15 +217,15 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = simd::Vector<T, 3>;
+        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
         /// Default constructor: zero angular velocity
-        constexpr GlobalAngularVelocity() noexcept : omega_{T(0), T(0), T(0)} {}
+        constexpr GlobalAngularVelocity() noexcept : omega_{{T(0), T(0), T(0)}} {}
 
         /// Construct from components (ωx, ωy, ωz) in rad/s
-        constexpr GlobalAngularVelocity(T wx, T wy, T wz) noexcept : omega_{wx, wy, wz} {}
+        constexpr GlobalAngularVelocity(T wx, T wy, T wz) noexcept : omega_{{wx, wy, wz}} {}
 
         /// Construct from Vector3
         explicit constexpr GlobalAngularVelocity(const Vector3 &omega) noexcept : omega_(omega) {}
@@ -292,7 +295,7 @@ namespace optinum::lie {
         /// Returns the rotation R such that: R_new = R * R_old
         /// This is the exponential map: exp(ω * dt)
         [[nodiscard]] SO3<T> integrate(T dt) const noexcept {
-            Vector3 omega_dt{omega_[0] * dt, omega_[1] * dt, omega_[2] * dt};
+            Vector3 omega_dt{{omega_[0] * dt, omega_[1] * dt, omega_[2] * dt}};
             return SO3<T>::exp(omega_dt);
         }
 

@@ -5,11 +5,16 @@
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
+
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== SE3: Special Euclidean Group in 3D =====
     //
@@ -33,13 +38,13 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = simd::Vector<T, 6>; // [vx, vy, vz, wx, wy, wz]
-        using Translation = simd::Vector<T, 3>;
-        using Point = simd::Vector<T, 3>;
-        using Params = simd::Vector<T, 7>; // [qw, qx, qy, qz, tx, ty, tz]
-        using HomogeneousMatrix = simd::Matrix<T, 4, 4>;
-        using TransformMatrix = simd::Matrix<T, 3, 4>; // Compact form
-        using AdjointMatrix = simd::Matrix<T, 6, 6>;
+        using Tangent = dp::mat::vector<T, 6>;              // [vx, vy, vz, wx, wy, wz] - owning
+        using Translation = dp::mat::vector<T, 3>;          // owning
+        using Point = dp::mat::vector<T, 3>;                // owning
+        using Params = dp::mat::vector<T, 7>;               // [qw, qx, qy, qz, tx, ty, tz] - owning
+        using HomogeneousMatrix = dp::mat::matrix<T, 4, 4>; // owning
+        using TransformMatrix = dp::mat::matrix<T, 3, 4>;   // Compact form - owning
+        using AdjointMatrix = dp::mat::matrix<T, 6, 6>;     // owning
         using Rotation = SO3<T>;
 
         // ===== CONSTANTS =====
@@ -49,7 +54,7 @@ namespace optinum::lie {
         // ===== CONSTRUCTORS =====
 
         // Default: identity transform
-        constexpr SE3() noexcept : so3_(), translation_{T(0), T(0), T(0)} {}
+        constexpr SE3() noexcept : so3_(), translation_{{T(0), T(0), T(0)}} {}
 
         // From SO3 rotation and translation
         SE3(const Rotation &rotation, const Translation &translation) noexcept
@@ -87,34 +92,34 @@ namespace optinum::lie {
 
         // Pure rotation (no translation)
         [[nodiscard]] static SE3 rot_x(T angle) noexcept {
-            return SE3(Rotation::rot_x(angle), Translation{T(0), T(0), T(0)});
+            return SE3(Rotation::rot_x(angle), Translation{{T(0), T(0), T(0)}});
         }
 
         [[nodiscard]] static SE3 rot_y(T angle) noexcept {
-            return SE3(Rotation::rot_y(angle), Translation{T(0), T(0), T(0)});
+            return SE3(Rotation::rot_y(angle), Translation{{T(0), T(0), T(0)}});
         }
 
         [[nodiscard]] static SE3 rot_z(T angle) noexcept {
-            return SE3(Rotation::rot_z(angle), Translation{T(0), T(0), T(0)});
+            return SE3(Rotation::rot_z(angle), Translation{{T(0), T(0), T(0)}});
         }
 
         // Pure translation (no rotation)
         [[nodiscard]] static SE3 trans(T tx, T ty, T tz) noexcept {
-            return SE3(Rotation::identity(), Translation{tx, ty, tz});
+            return SE3(Rotation::identity(), Translation{{tx, ty, tz}});
         }
 
         [[nodiscard]] static SE3 trans(const Translation &t) noexcept { return SE3(Rotation::identity(), t); }
 
         [[nodiscard]] static SE3 trans_x(T tx) noexcept {
-            return SE3(Rotation::identity(), Translation{tx, T(0), T(0)});
+            return SE3(Rotation::identity(), Translation{{tx, T(0), T(0)}});
         }
 
         [[nodiscard]] static SE3 trans_y(T ty) noexcept {
-            return SE3(Rotation::identity(), Translation{T(0), ty, T(0)});
+            return SE3(Rotation::identity(), Translation{{T(0), ty, T(0)}});
         }
 
         [[nodiscard]] static SE3 trans_z(T tz) noexcept {
-            return SE3(Rotation::identity(), Translation{T(0), T(0), tz});
+            return SE3(Rotation::identity(), Translation{{T(0), T(0), tz}});
         }
 
         // Exponential map: twist -> SE3
@@ -171,7 +176,7 @@ namespace optinum::lie {
         [[nodiscard]] static SE3 sample_uniform(RNG &rng, T translation_range = T(10)) noexcept {
             std::uniform_real_distribution<T> trans_dist(-translation_range, translation_range);
 
-            return SE3(Rotation::sample_uniform(rng), Translation{trans_dist(rng), trans_dist(rng), trans_dist(rng)});
+            return SE3(Rotation::sample_uniform(rng), Translation{{trans_dist(rng), trans_dist(rng), trans_dist(rng)}});
         }
 
         // Fit closest SE3 to arbitrary 4x4 matrix
@@ -184,7 +189,7 @@ namespace optinum::lie {
                 }
             }
 
-            return SE3(Rotation::fit_to_SO3(R_mat), Translation{M(0, 3), M(1, 3), M(2, 3)});
+            return SE3(Rotation::fit_to_SO3(R_mat), Translation{{M(0, 3), M(1, 3), M(2, 3)}});
         }
 
         // ===== CORE OPERATIONS =====
@@ -434,12 +439,8 @@ namespace optinum::lie {
             dp::mat::vector<T, 3> wa_cross_wb{wa[1] * wb[2] - wa[2] * wb[1], wa[2] * wb[0] - wa[0] * wb[2],
                                               wa[0] * wb[1] - wa[1] * wb[0]};
 
-            return Tangent{wa_cross_vb[0] - wb_cross_va[0],
-                           wa_cross_vb[1] - wb_cross_va[1],
-                           wa_cross_vb[2] - wb_cross_va[2],
-                           wa_cross_wb[0],
-                           wa_cross_wb[1],
-                           wa_cross_wb[2]};
+            return Tangent{{wa_cross_vb[0] - wb_cross_va[0], wa_cross_vb[1] - wb_cross_va[1],
+                            wa_cross_vb[2] - wb_cross_va[2], wa_cross_wb[0], wa_cross_wb[1], wa_cross_wb[2]}};
         }
 
         // Generator matrices (6 generators for SE3)
@@ -625,7 +626,7 @@ namespace optinum::lie {
         // Get parameters as vector [qw, qx, qy, qz, tx, ty, tz]
         [[nodiscard]] Params params() const noexcept {
             const auto &q = so3_.unit_quaternion();
-            return Params{q.w, q.x, q.y, q.z, translation_[0], translation_[1], translation_[2]};
+            return Params{{q.w, q.x, q.y, q.z, translation_[0], translation_[1], translation_[2]}};
         }
 
         // Raw data pointer
@@ -647,9 +648,9 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] SE3<NewScalar> cast() const noexcept {
             return SE3<NewScalar>(so3_.template cast<NewScalar>(),
-                                  simd::Vector<NewScalar, 3>{static_cast<NewScalar>(translation_[0]),
-                                                             static_cast<NewScalar>(translation_[1]),
-                                                             static_cast<NewScalar>(translation_[2])});
+                                  dp::mat::vector<NewScalar, 3>{{static_cast<NewScalar>(translation_[0]),
+                                                                 static_cast<NewScalar>(translation_[1]),
+                                                                 static_cast<NewScalar>(translation_[2])}});
         }
 
         // ===== COMPARISON =====

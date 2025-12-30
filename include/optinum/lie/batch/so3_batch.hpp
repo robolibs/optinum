@@ -48,9 +48,9 @@ namespace optinum::lie {
         // ===== TYPE ALIASES =====
         using Scalar = T;
         using Quaternion = dp::mat::quaternion<T>;
-        using Tangent = simd::Vector<T, 3>;
-        using Point = simd::Vector<T, 3>;
-        using RotationMatrix = simd::Matrix<T, 3, 3>;
+        using Tangent = dp::mat::vector<T, 3>;
+        using Point = dp::mat::vector<T, 3>;
+        using RotationMatrix = dp::mat::matrix<T, 3, 3>;
         using Element = SO3<T>;
 
         // SIMD width selection (auto-detect based on architecture)
@@ -181,7 +181,7 @@ namespace optinum::lie {
 
             // Handle remaining elements with scalar fallback
             for (; i < N; ++i) {
-                Tangent omega{omega_x[i], omega_y[i], omega_z[i]};
+                Tangent omega{{omega_x[i], omega_y[i], omega_z[i]}};
                 result.set(i, Element::exp(omega));
             }
 
@@ -413,7 +413,7 @@ namespace optinum::lie {
         // ===== JACOBIANS (batched) =====
 
         // Get all rotation matrices (for Adjoint = R in SO3)
-        void matrices(simd::Matrix<T, 3, 3> *out) const noexcept {
+        void matrices(RotationMatrix *out) const noexcept {
             for (std::size_t i = 0; i < N; ++i) {
                 out[i] = (*this)[i].matrix();
             }

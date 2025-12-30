@@ -3,12 +3,15 @@
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/angular_velocity.hpp>
 #include <optinum/lie/groups/se3.hpp>
-#include <optinum/simd/vector.hpp>
+
+#include <datapod/matrix/vector.hpp>
 
 #include <cmath>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== TWIST CLASSES =====
     //
@@ -47,28 +50,29 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = simd::Vector<T, 3>;
-        using Vector6 = simd::Vector<T, 6>;
+        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
+        using Vector6 = dp::mat::vector<T, 6>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
         /// Default constructor: zero twist
-        constexpr LocalTwist() noexcept : linear_{T(0), T(0), T(0)}, angular_{T(0), T(0), T(0)} {}
+        constexpr LocalTwist() noexcept : linear_{{T(0), T(0), T(0)}}, angular_{{T(0), T(0), T(0)}} {}
 
         /// Construct from linear and angular velocity vectors
         constexpr LocalTwist(const Vector3 &linear, const Vector3 &angular) noexcept
             : linear_(linear), angular_(angular) {}
 
         /// Construct from 6 components [vx, vy, vz, ωx, ωy, ωz]
-        constexpr LocalTwist(T vx, T vy, T vz, T wx, T wy, T wz) noexcept : linear_{vx, vy, vz}, angular_{wx, wy, wz} {}
+        constexpr LocalTwist(T vx, T vy, T vz, T wx, T wy, T wz) noexcept
+            : linear_{{vx, vy, vz}}, angular_{{wx, wy, wz}} {}
 
         /// Construct from Vector6 [v; ω]
         explicit constexpr LocalTwist(const Vector6 &vec) noexcept
-            : linear_{vec[0], vec[1], vec[2]}, angular_{vec[3], vec[4], vec[5]} {}
+            : linear_{{vec[0], vec[1], vec[2]}}, angular_{{vec[3], vec[4], vec[5]}} {}
 
         /// Construct from LocalAngularVelocity (zero linear velocity)
         explicit constexpr LocalTwist(const LocalAngularVelocity<T> &angular) noexcept
-            : linear_{T(0), T(0), T(0)}, angular_(angular.vector()) {}
+            : linear_{{T(0), T(0), T(0)}}, angular_(angular.vector()) {}
 
         // ===== STATIC FACTORY METHODS =====
 
@@ -98,7 +102,7 @@ namespace optinum::lie {
 
         /// Get as Vector6 [v; ω]
         [[nodiscard]] Vector6 vector() const noexcept {
-            return Vector6{linear_[0], linear_[1], linear_[2], angular_[0], angular_[1], angular_[2]};
+            return Vector6{{linear_[0], linear_[1], linear_[2], angular_[0], angular_[1], angular_[2]}};
         }
 
         /// Get individual components
@@ -155,8 +159,8 @@ namespace optinum::lie {
         /// Returns the transform dT such that: T_new = T_old * dT
         /// This is the exponential map: exp(twist * dt)
         [[nodiscard]] SE3<T> integrate(T dt) const noexcept {
-            Vector6 twist_dt{linear_[0] * dt,  linear_[1] * dt,  linear_[2] * dt,
-                             angular_[0] * dt, angular_[1] * dt, angular_[2] * dt};
+            Vector6 twist_dt{{linear_[0] * dt, linear_[1] * dt, linear_[2] * dt, angular_[0] * dt, angular_[1] * dt,
+                              angular_[2] * dt}};
             return SE3<T>::exp(twist_dt);
         }
 
@@ -189,32 +193,32 @@ namespace optinum::lie {
 
         [[nodiscard]] LocalTwist operator+(const LocalTwist &other) const noexcept {
             return LocalTwist(
-                Vector3{linear_[0] + other.linear_[0], linear_[1] + other.linear_[1], linear_[2] + other.linear_[2]},
-                Vector3{angular_[0] + other.angular_[0], angular_[1] + other.angular_[1],
-                        angular_[2] + other.angular_[2]});
+                Vector3{{linear_[0] + other.linear_[0], linear_[1] + other.linear_[1], linear_[2] + other.linear_[2]}},
+                Vector3{{angular_[0] + other.angular_[0], angular_[1] + other.angular_[1],
+                         angular_[2] + other.angular_[2]}});
         }
 
         [[nodiscard]] LocalTwist operator-(const LocalTwist &other) const noexcept {
             return LocalTwist(
-                Vector3{linear_[0] - other.linear_[0], linear_[1] - other.linear_[1], linear_[2] - other.linear_[2]},
-                Vector3{angular_[0] - other.angular_[0], angular_[1] - other.angular_[1],
-                        angular_[2] - other.angular_[2]});
+                Vector3{{linear_[0] - other.linear_[0], linear_[1] - other.linear_[1], linear_[2] - other.linear_[2]}},
+                Vector3{{angular_[0] - other.angular_[0], angular_[1] - other.angular_[1],
+                         angular_[2] - other.angular_[2]}});
         }
 
         [[nodiscard]] LocalTwist operator*(T scalar) const noexcept {
-            return LocalTwist(Vector3{linear_[0] * scalar, linear_[1] * scalar, linear_[2] * scalar},
-                              Vector3{angular_[0] * scalar, angular_[1] * scalar, angular_[2] * scalar});
+            return LocalTwist(Vector3{{linear_[0] * scalar, linear_[1] * scalar, linear_[2] * scalar}},
+                              Vector3{{angular_[0] * scalar, angular_[1] * scalar, angular_[2] * scalar}});
         }
 
         [[nodiscard]] LocalTwist operator/(T scalar) const noexcept {
             const T inv = T(1) / scalar;
-            return LocalTwist(Vector3{linear_[0] * inv, linear_[1] * inv, linear_[2] * inv},
-                              Vector3{angular_[0] * inv, angular_[1] * inv, angular_[2] * inv});
+            return LocalTwist(Vector3{{linear_[0] * inv, linear_[1] * inv, linear_[2] * inv}},
+                              Vector3{{angular_[0] * inv, angular_[1] * inv, angular_[2] * inv}});
         }
 
         [[nodiscard]] LocalTwist operator-() const noexcept {
-            return LocalTwist(Vector3{-linear_[0], -linear_[1], -linear_[2]},
-                              Vector3{-angular_[0], -angular_[1], -angular_[2]});
+            return LocalTwist(Vector3{{-linear_[0], -linear_[1], -linear_[2]}},
+                              Vector3{{-angular_[0], -angular_[1], -angular_[2]}});
         }
 
         LocalTwist &operator+=(const LocalTwist &other) noexcept {
@@ -295,13 +299,13 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = simd::Vector<T, 3>;
-        using Vector6 = simd::Vector<T, 6>;
+        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
+        using Vector6 = dp::mat::vector<T, 6>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
         /// Default constructor: zero twist
-        constexpr GlobalTwist() noexcept : linear_{T(0), T(0), T(0)}, angular_{T(0), T(0), T(0)} {}
+        constexpr GlobalTwist() noexcept : linear_{{T(0), T(0), T(0)}}, angular_{{T(0), T(0), T(0)}} {}
 
         /// Construct from linear and angular velocity vectors
         constexpr GlobalTwist(const Vector3 &linear, const Vector3 &angular) noexcept
@@ -309,15 +313,15 @@ namespace optinum::lie {
 
         /// Construct from 6 components [vx, vy, vz, ωx, ωy, ωz]
         constexpr GlobalTwist(T vx, T vy, T vz, T wx, T wy, T wz) noexcept
-            : linear_{vx, vy, vz}, angular_{wx, wy, wz} {}
+            : linear_{{vx, vy, vz}}, angular_{{wx, wy, wz}} {}
 
         /// Construct from Vector6 [v; ω]
         explicit constexpr GlobalTwist(const Vector6 &vec) noexcept
-            : linear_{vec[0], vec[1], vec[2]}, angular_{vec[3], vec[4], vec[5]} {}
+            : linear_{{vec[0], vec[1], vec[2]}}, angular_{{vec[3], vec[4], vec[5]}} {}
 
         /// Construct from GlobalAngularVelocity (zero linear velocity)
         explicit constexpr GlobalTwist(const GlobalAngularVelocity<T> &angular) noexcept
-            : linear_{T(0), T(0), T(0)}, angular_(angular.vector()) {}
+            : linear_{{T(0), T(0), T(0)}}, angular_(angular.vector()) {}
 
         // ===== STATIC FACTORY METHODS =====
 
@@ -363,7 +367,7 @@ namespace optinum::lie {
 
         /// Get as Vector6 [v; ω]
         [[nodiscard]] Vector6 vector() const noexcept {
-            return Vector6{linear_[0], linear_[1], linear_[2], angular_[0], angular_[1], angular_[2]};
+            return Vector6{{linear_[0], linear_[1], linear_[2], angular_[0], angular_[1], angular_[2]}};
         }
 
         /// Get individual components
@@ -437,8 +441,8 @@ namespace optinum::lie {
         /// Returns the transform dT such that: T_new = dT * T_old
         /// This is the exponential map: exp(twist * dt)
         [[nodiscard]] SE3<T> integrate(T dt) const noexcept {
-            Vector6 twist_dt{linear_[0] * dt,  linear_[1] * dt,  linear_[2] * dt,
-                             angular_[0] * dt, angular_[1] * dt, angular_[2] * dt};
+            Vector6 twist_dt{{linear_[0] * dt, linear_[1] * dt, linear_[2] * dt, angular_[0] * dt, angular_[1] * dt,
+                              angular_[2] * dt}};
             return SE3<T>::exp(twist_dt);
         }
 
@@ -450,32 +454,32 @@ namespace optinum::lie {
 
         [[nodiscard]] GlobalTwist operator+(const GlobalTwist &other) const noexcept {
             return GlobalTwist(
-                Vector3{linear_[0] + other.linear_[0], linear_[1] + other.linear_[1], linear_[2] + other.linear_[2]},
-                Vector3{angular_[0] + other.angular_[0], angular_[1] + other.angular_[1],
-                        angular_[2] + other.angular_[2]});
+                Vector3{{linear_[0] + other.linear_[0], linear_[1] + other.linear_[1], linear_[2] + other.linear_[2]}},
+                Vector3{{angular_[0] + other.angular_[0], angular_[1] + other.angular_[1],
+                         angular_[2] + other.angular_[2]}});
         }
 
         [[nodiscard]] GlobalTwist operator-(const GlobalTwist &other) const noexcept {
             return GlobalTwist(
-                Vector3{linear_[0] - other.linear_[0], linear_[1] - other.linear_[1], linear_[2] - other.linear_[2]},
-                Vector3{angular_[0] - other.angular_[0], angular_[1] - other.angular_[1],
-                        angular_[2] - other.angular_[2]});
+                Vector3{{linear_[0] - other.linear_[0], linear_[1] - other.linear_[1], linear_[2] - other.linear_[2]}},
+                Vector3{{angular_[0] - other.angular_[0], angular_[1] - other.angular_[1],
+                         angular_[2] - other.angular_[2]}});
         }
 
         [[nodiscard]] GlobalTwist operator*(T scalar) const noexcept {
-            return GlobalTwist(Vector3{linear_[0] * scalar, linear_[1] * scalar, linear_[2] * scalar},
-                               Vector3{angular_[0] * scalar, angular_[1] * scalar, angular_[2] * scalar});
+            return GlobalTwist(Vector3{{linear_[0] * scalar, linear_[1] * scalar, linear_[2] * scalar}},
+                               Vector3{{angular_[0] * scalar, angular_[1] * scalar, angular_[2] * scalar}});
         }
 
         [[nodiscard]] GlobalTwist operator/(T scalar) const noexcept {
             const T inv = T(1) / scalar;
-            return GlobalTwist(Vector3{linear_[0] * inv, linear_[1] * inv, linear_[2] * inv},
-                               Vector3{angular_[0] * inv, angular_[1] * inv, angular_[2] * inv});
+            return GlobalTwist(Vector3{{linear_[0] * inv, linear_[1] * inv, linear_[2] * inv}},
+                               Vector3{{angular_[0] * inv, angular_[1] * inv, angular_[2] * inv}});
         }
 
         [[nodiscard]] GlobalTwist operator-() const noexcept {
-            return GlobalTwist(Vector3{-linear_[0], -linear_[1], -linear_[2]},
-                               Vector3{-angular_[0], -angular_[1], -angular_[2]});
+            return GlobalTwist(Vector3{{-linear_[0], -linear_[1], -linear_[2]}},
+                               Vector3{{-angular_[0], -angular_[1], -angular_[2]}});
         }
 
         GlobalTwist &operator+=(const GlobalTwist &other) noexcept {

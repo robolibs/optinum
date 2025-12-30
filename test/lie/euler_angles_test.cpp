@@ -12,8 +12,10 @@ using namespace optinum;
 
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
 
+namespace dp = ::datapod;
+
 template <typename T, std::size_t N>
-bool vec_approx_equal(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b, T tol = T(1e-10)) {
+bool vec_approx_equal(const dp::mat::vector<T, N> &a, const dp::mat::vector<T, N> &b, T tol = T(1e-10)) {
     for (std::size_t i = 0; i < N; ++i) {
         if (std::abs(a[i] - b[i]) >= tol)
             return false;
@@ -22,7 +24,7 @@ bool vec_approx_equal(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b, 
 }
 
 template <typename T, std::size_t R, std::size_t C>
-bool mat_approx_equal(const simd::Matrix<T, R, C> &A, const simd::Matrix<T, R, C> &B, T tol = T(1e-10)) {
+bool mat_approx_equal(const dp::mat::matrix<T, R, C> &A, const dp::mat::matrix<T, R, C> &B, T tol = T(1e-10)) {
     for (std::size_t i = 0; i < R; ++i) {
         for (std::size_t j = 0; j < C; ++j) {
             if (std::abs(A(i, j) - B(i, j)) >= tol)
@@ -58,7 +60,7 @@ TEST_CASE("EulerAnglesZYX construction from angles") {
 }
 
 TEST_CASE("EulerAnglesZYX construction from vector") {
-    simd::Vector<double, 3> v{0.1, 0.2, 0.3};
+    dp::mat::vector<double, 3> v{{0.1, 0.2, 0.3}};
     EulerAnglesZYXd euler(v);
 
     CHECK(approx_equal(euler.yaw(), 0.1));
@@ -196,7 +198,7 @@ TEST_CASE("EulerAnglesZYX Jacobians") {
         auto J_inv = euler.angular_velocity_to_euler_rates();
 
         // Compute J * J_inv
-        simd::Matrix<double, 3, 3> I;
+        dp::mat::matrix<double, 3, 3> I;
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
                 double sum = 0;
@@ -249,7 +251,7 @@ TEST_CASE("EulerAnglesZYX Jacobians") {
             auto J_inv = euler.angular_velocity_to_euler_rates();
 
             // Compute J * J_inv
-            simd::Matrix<double, 3, 3> I;
+            dp::mat::matrix<double, 3, 3> I;
             for (int r = 0; r < 3; ++r) {
                 for (int c = 0; c < 3; ++c) {
                     double sum = 0;
@@ -361,7 +363,7 @@ TEST_CASE("EulerAnglesXYZ Jacobians") {
         auto J_inv = euler.angular_velocity_to_euler_rates();
 
         // Compute J * J_inv
-        simd::Matrix<double, 3, 3> I;
+        dp::mat::matrix<double, 3, 3> I;
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
                 double sum = 0;

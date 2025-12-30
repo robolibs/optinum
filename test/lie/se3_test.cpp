@@ -8,12 +8,14 @@
 using namespace optinum::lie;
 using namespace optinum;
 
+namespace dp = ::datapod;
+
 // ===== HELPER FUNCTIONS =====
 
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
 
 template <typename T, std::size_t N>
-bool vec_approx_equal(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b, T tol = T(1e-10)) {
+bool vec_approx_equal(const dp::mat::vector<T, N> &a, const dp::mat::vector<T, N> &b, T tol = T(1e-10)) {
     for (std::size_t i = 0; i < N; ++i) {
         if (std::abs(a[i] - b[i]) >= tol)
             return false;
@@ -35,7 +37,7 @@ TEST_CASE("SE3 default construction is identity") {
 
 TEST_CASE("SE3 construction from SO3 and translation") {
     SO3d R = SO3d::rot_x(0.5);
-    simd::Vector<double, 3> t{1.0, 2.0, 3.0};
+    dp::mat::vector<double, 3> t{1.0, 2.0, 3.0};
 
     SE3d T(R, t);
 
@@ -108,7 +110,7 @@ TEST_CASE("SE3 exp and log are inverses") {
     }
 
     SUBCASE("log(exp(twist)) = twist for small twists") {
-        simd::Vector<double, 6> twist{0.1, 0.2, 0.3, 0.05, 0.1, 0.15};
+        dp::mat::vector<double, 6> twist{0.1, 0.2, 0.3, 0.05, 0.1, 0.15};
         auto T = SE3d::exp(twist);
         auto twist2 = T.log();
         CHECK(vec_approx_equal(twist, twist2, 1e-9));
@@ -117,13 +119,13 @@ TEST_CASE("SE3 exp and log are inverses") {
 
 TEST_CASE("SE3 exp of specific values") {
     SUBCASE("exp(0) = identity") {
-        simd::Vector<double, 6> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        dp::mat::vector<double, 6> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         auto T = SE3d::exp(twist);
         CHECK(T.is_identity(1e-10));
     }
 
     SUBCASE("exp with zero rotation = pure translation") {
-        simd::Vector<double, 6> twist{1.0, 2.0, 3.0, 0.0, 0.0, 0.0};
+        dp::mat::vector<double, 6> twist{1.0, 2.0, 3.0, 0.0, 0.0, 0.0};
         auto T = SE3d::exp(twist);
         CHECK(T.so3().is_identity(1e-10));
         CHECK(approx_equal(T.x(), 1.0, 1e-10));
@@ -132,7 +134,7 @@ TEST_CASE("SE3 exp of specific values") {
     }
 
     SUBCASE("exp with zero translation = pure rotation") {
-        simd::Vector<double, 6> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.5};
+        dp::mat::vector<double, 6> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.5};
         auto T = SE3d::exp(twist);
         CHECK(approx_equal(T.x(), 0.0, 1e-10));
         CHECK(approx_equal(T.y(), 0.0, 1e-10));
@@ -204,13 +206,13 @@ TEST_CASE("SE3 composition") {
 
 TEST_CASE("SE3 transforms points correctly") {
     SUBCASE("identity doesn't change point") {
-        simd::Vector<double, 3> p{1.0, 2.0, 3.0};
+        dp::mat::vector<double, 3> p{1.0, 2.0, 3.0};
         auto p2 = SE3d::identity() * p;
         CHECK(vec_approx_equal(p, p2, 1e-10));
     }
 
     SUBCASE("pure rotation rotates point") {
-        simd::Vector<double, 3> p{1.0, 0.0, 0.0};
+        dp::mat::vector<double, 3> p{1.0, 0.0, 0.0};
         auto T = SE3d::rot_z(std::numbers::pi / 2);
         auto p2 = T * p;
 
@@ -220,7 +222,7 @@ TEST_CASE("SE3 transforms points correctly") {
     }
 
     SUBCASE("pure translation translates point") {
-        simd::Vector<double, 3> p{1.0, 2.0, 3.0};
+        dp::mat::vector<double, 3> p{1.0, 2.0, 3.0};
         auto T = SE3d::trans(4.0, 5.0, 6.0);
         auto p2 = T * p;
 
@@ -233,14 +235,14 @@ TEST_CASE("SE3 transforms points correctly") {
         std::mt19937 rng(42);
         auto T = SE3d::sample_uniform(rng, 10.0);
 
-        simd::Vector<double, 3> p1{1.0, 2.0, 3.0};
-        simd::Vector<double, 3> p2{4.0, 5.0, 6.0};
+        dp::mat::vector<double, 3> p1{1.0, 2.0, 3.0};
+        dp::mat::vector<double, 3> p2{4.0, 5.0, 6.0};
 
         auto p1_t = T * p1;
         auto p2_t = T * p2;
 
-        auto diff_before = simd::Vector<double, 3>{p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]};
-        auto diff_after = simd::Vector<double, 3>{p2_t[0] - p1_t[0], p2_t[1] - p1_t[1], p2_t[2] - p1_t[2]};
+        auto diff_before = dp::mat::vector<double, 3>{p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]};
+        auto diff_after = dp::mat::vector<double, 3>{p2_t[0] - p1_t[0], p2_t[1] - p1_t[1], p2_t[2] - p1_t[2]};
 
         const double dist_before = std::sqrt(diff_before[0] * diff_before[0] + diff_before[1] * diff_before[1] +
                                              diff_before[2] * diff_before[2]);
@@ -281,7 +283,7 @@ TEST_CASE("SE3 matrix representations") {
 
     SUBCASE("matrix transformation equals direct transformation") {
         auto M = T.matrix();
-        simd::Vector<double, 3> p{1.0, 2.0, 3.0};
+        dp::mat::vector<double, 3> p{1.0, 2.0, 3.0};
 
         auto p_direct = T * p;
 
@@ -300,14 +302,14 @@ TEST_CASE("SE3 matrix representations") {
 
 TEST_CASE("SE3 hat and vee") {
     SUBCASE("vee(hat(twist)) = twist") {
-        simd::Vector<double, 6> twist{1.0, 2.0, 3.0, 0.1, 0.2, 0.3};
+        dp::mat::vector<double, 6> twist{1.0, 2.0, 3.0, 0.1, 0.2, 0.3};
         auto Omega = SE3d::hat(twist);
         auto twist2 = SE3d::vee(Omega);
         CHECK(vec_approx_equal(twist, twist2, 1e-10));
     }
 
     SUBCASE("hat produces correct structure") {
-        simd::Vector<double, 6> twist{1.0, 2.0, 3.0, 0.1, 0.2, 0.3};
+        dp::mat::vector<double, 6> twist{1.0, 2.0, 3.0, 0.1, 0.2, 0.3};
         auto Omega = SE3d::hat(twist);
 
         // Bottom row is zeros
@@ -355,7 +357,7 @@ TEST_CASE("SE3 Adjoint") {
 
 TEST_CASE("SE3 left Jacobian") {
     SUBCASE("identity for zero twist") {
-        simd::Vector<double, 6> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        dp::mat::vector<double, 6> twist{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         auto J = SE3d::left_jacobian(twist);
 
         // Should be approximately identity
@@ -406,7 +408,7 @@ TEST_CASE("SE3 interpolation") {
 
 TEST_CASE("SE3 accessors") {
     // Use direct construction instead of composition
-    SE3d T(SO3d::rot_z(0.5), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+    SE3d T(SO3d::rot_z(0.5), dp::mat::vector<double, 3>{1.0, 2.0, 3.0});
 
     CHECK(approx_equal(T.x(), 1.0));
     CHECK(approx_equal(T.y(), 2.0));
@@ -420,7 +422,7 @@ TEST_CASE("SE3 accessors") {
 
 TEST_CASE("SE3 cast to different scalar type") {
     // Use direct construction
-    SE3d Td(SO3d::rot_x(0.5), simd::Vector<double, 3>{1.0, 2.0, 3.0});
+    SE3d Td(SO3d::rot_x(0.5), dp::mat::vector<double, 3>{1.0, 2.0, 3.0});
     SE3f Tf = Td.cast<float>();
 
     CHECK(approx_equal(static_cast<double>(Tf.x()), 1.0, 1e-5));
@@ -452,7 +454,7 @@ TEST_CASE("SE3 sample_uniform produces valid transforms") {
 
 TEST_CASE("SE3 edge cases") {
     SUBCASE("very small rotation") {
-        simd::Vector<double, 6> twist{1.0, 2.0, 3.0, 1e-15, 1e-15, 1e-15};
+        dp::mat::vector<double, 6> twist{1.0, 2.0, 3.0, 1e-15, 1e-15, 1e-15};
         auto T = SE3d::exp(twist);
         auto twist2 = T.log();
 

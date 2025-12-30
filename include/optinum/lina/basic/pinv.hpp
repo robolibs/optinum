@@ -5,6 +5,8 @@
 // Moore-Penrose pseudo-inverse via SVD
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
 #include <optinum/lina/decompose/svd.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
@@ -30,7 +32,7 @@ namespace optinum::lina {
      * @return Pseudo-inverse (N x M)
      */
     template <typename T, std::size_t M, std::size_t N>
-    [[nodiscard]] simd::Matrix<T, N, M> pinv(const simd::Matrix<T, M, N> &a, T tol = T{-1}) noexcept {
+    [[nodiscard]] datapod::mat::matrix<T, N, M> pinv(const simd::Matrix<T, M, N> &a, T tol = T{-1}) noexcept {
         static_assert(std::is_floating_point_v<T>, "pinv() requires floating-point type");
 
         // Compute SVD: A = U Σ V^T
@@ -45,7 +47,7 @@ namespace optinum::lina {
 
         // Compute Σ^+ (reciprocal of non-zero singular values)
         constexpr std::size_t min_dim = (M < N) ? M : N;
-        simd::Vector<T, min_dim> sigma_inv{};
+        datapod::mat::vector<T, min_dim> sigma_inv;
         for (std::size_t i = 0; i < min_dim; ++i) {
             if (svd_result.s[i] > tol) {
                 sigma_inv[i] = T{1} / svd_result.s[i];
@@ -60,7 +62,7 @@ namespace optinum::lina {
         // First: (V^T)^T Σ^+ = V Σ^+ (N x min_dim)
         // V = (V^T)^T, so V(i,j) = V^T(j,i)
         // V Σ^+ means scaling each column j of V by sigma_inv[j]
-        simd::Matrix<T, N, min_dim> v_sigma_inv{};
+        datapod::mat::matrix<T, N, min_dim> v_sigma_inv;
         for (std::size_t j = 0; j < min_dim; ++j) {
             // Column j of V is row j of V^T (contiguous in column-major V^T)
             // V(i,j) = V^T(j,i), and we want V(i,j) * sigma_inv[j]
@@ -76,7 +78,7 @@ namespace optinum::lina {
         // result(i,j) = sum_k v_sigma_inv(i,k) * U(j,k)
         // For column-major U: column k is contiguous at u.data() + k*M
         // For column-major v_sigma_inv: column k is contiguous at v_sigma_inv.data() + k*N
-        simd::Matrix<T, N, M> result{};
+        datapod::mat::matrix<T, N, M> result;
         for (std::size_t i = 0; i < N; ++i) {
             for (std::size_t j = 0; j < M; ++j) {
                 // Dot product of row i of v_sigma_inv with row j of U
@@ -102,6 +104,13 @@ namespace optinum::lina {
         }
 
         return result;
+    }
+
+    // Overload for dp::mat::matrix (owning type)
+    template <typename T, std::size_t M, std::size_t N>
+    [[nodiscard]] datapod::mat::matrix<T, N, M> pinv(const datapod::mat::matrix<T, M, N> &a, T tol = T{-1}) noexcept {
+        simd::Matrix<T, M, N> view(const_cast<datapod::mat::matrix<T, M, N> &>(a));
+        return pinv(view, tol);
     }
 
 } // namespace optinum::lina

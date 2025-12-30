@@ -6,6 +6,7 @@
 // Uses SIMD for column operations where memory is contiguous.
 // =============================================================================
 
+#include <optinum/lina/basic/identity.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/pack/pack.hpp>
@@ -17,8 +18,8 @@
 namespace optinum::lina {
 
     template <typename T, std::size_t M, std::size_t N> struct QR {
-        simd::Matrix<T, M, M> q{};
-        simd::Matrix<T, M, N> r{};
+        datapod::mat::matrix<T, M, M> q{};
+        datapod::mat::matrix<T, M, N> r{};
     };
 
     namespace qr_detail {
@@ -107,8 +108,14 @@ namespace optinum::lina {
         static_assert(std::is_floating_point_v<T>, "qr() currently requires floating-point T");
 
         QR<T, M, N> out;
-        out.r = a;
-        out.q = simd::identity<T, M>();
+        // Copy input to out.r
+        for (std::size_t i = 0; i < M * N; ++i)
+            out.r[i] = a[i];
+        out.q = identity<T, M>();
+
+        // Create views for in-place operations
+        simd::Matrix<T, M, N> r_view(out.r);
+        simd::Matrix<T, M, M> q_view(out.q);
 
         constexpr std::size_t K = (M < N) ? M : N;
         T w[M]; // Householder vector (full length, but zeros before k)
@@ -117,7 +124,7 @@ namespace optinum::lina {
             // Compute norm of x = R[k:M-1, k] using SIMD
             // Column k is contiguous at &out.r(k, k)
             const std::size_t len = M - k;
-            T norm_x = qr_detail::dot_partial(&out.r(k, k), &out.r(k, k), len);
+            T norm_x = qr_detail::dot_partial(&r_view(k, k), &r_view(k, k), len);
             norm_x = std::sqrt(norm_x);
             if (norm_x == T{}) {
                 continue;
@@ -127,11 +134,11 @@ namespace optinum::lina {
             for (std::size_t i = 0; i < M; ++i)
                 w[i] = T{};
 
-            const T x0 = out.r(k, k);
+            const T x0 = r_view(k, k);
             const T alpha = (x0 >= T{}) ? -norm_x : norm_x;
             w[k] = x0 - alpha;
             for (std::size_t i = k + 1; i < M; ++i) {
-                w[i] = out.r(i, k);
+                w[i] = r_view(i, k);
             }
 
             // beta = 2 / (w^T w) using SIMD
@@ -142,13 +149,13 @@ namespace optinum::lina {
             const T beta = T{2} / wtw;
 
             // Apply to R and Q
-            qr_detail::apply_householder_left(out.r, w, beta, k);
-            qr_detail::apply_householder_right(out.q, w, beta, k);
+            qr_detail::apply_householder_left(r_view, w, beta, k);
+            qr_detail::apply_householder_right(q_view, w, beta, k);
 
             // Set R(k,k) = alpha and below diagonal to 0 for cleanliness
-            out.r(k, k) = alpha;
+            r_view(k, k) = alpha;
             for (std::size_t i = k + 1; i < M; ++i) {
-                out.r(i, k) = T{};
+                r_view(i, k) = T{};
             }
         }
 

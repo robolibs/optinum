@@ -8,14 +8,11 @@
 
 #include <cmath>
 
-using optinum::lina::hessian;
-using optinum::lina::hessian_error;
-using optinum::lina::hessian_vector_product;
-using optinum::lina::is_positive_definite;
-using optinum::lina::laplacian;
-using optinum::simd::Dynamic;
+namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 using optinum::simd::Vector;
+
+namespace dp = datapod;
 
 // =============================================================================
 // TEST SUITE: Hessian Computation
@@ -26,11 +23,11 @@ TEST_CASE("hessian - Quadratic function 2D") {
     // Hessian: [[2, 2], [2, 6]] (constant)
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] + 2.0 * x[0] * x[1] + 3.0 * x[1] * x[1]; };
 
-    Vector<double, 2> x;
+    dp::mat::vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    auto H = hessian(f, x);
+    auto H = lina::hessian(f, Vector<double, 2>(x));
 
     CHECK(H.rows() == 2);
     CHECK(H.cols() == 2);
@@ -47,12 +44,12 @@ TEST_CASE("hessian - Sphere function") {
     // Hessian: 2*I (identity scaled by 2)
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + x[1] * x[1] + x[2] * x[2]; };
 
-    Vector<double, 3> x;
+    dp::mat::vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
-    auto H = hessian(f, x);
+    auto H = lina::hessian(f, Vector<double, 3>(x));
 
     CHECK(H.rows() == 3);
     CHECK(H.cols() == 3);
@@ -83,11 +80,11 @@ TEST_CASE("hessian - Rosenbrock function") {
         return t1 * t1 + 100.0 * t2 * t2;
     };
 
-    Vector<double, 2> x;
+    dp::mat::vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 1.0;
 
-    auto H = hessian(f, x);
+    auto H = lina::hessian(f, Vector<double, 2>(x));
 
     // At (1, 1): y - x^2 = 0
     // H[0,0] = 2 - 0 + 1200 = 1202
@@ -105,12 +102,12 @@ TEST_CASE("hessian - Symmetry") {
         return x[0] * x[1] * x[2] + std::sin(x[0]) * std::cos(x[1]) + x[2] * x[2];
     };
 
-    Vector<double, 3> x;
+    dp::mat::vector<double, 3> x;
     x[0] = 0.5;
     x[1] = 1.0;
     x[2] = 1.5;
 
-    auto H = hessian(f, x);
+    auto H = lina::hessian(f, Vector<double, 3>(x));
 
     // Check symmetry
     CHECK(H(0, 1) == doctest::Approx(H(1, 0)).epsilon(1e-6));
@@ -118,34 +115,15 @@ TEST_CASE("hessian - Symmetry") {
     CHECK(H(1, 2) == doctest::Approx(H(2, 1)).epsilon(1e-6));
 }
 
-TEST_CASE("hessian - Dynamic-sized vectors") {
-    auto f = [](const Vector<double, Dynamic> &x) { return x[0] * x[0] + 2.0 * x[0] * x[1] + 3.0 * x[1] * x[1]; };
-
-    Vector<double, Dynamic> x;
-    x.resize(2);
-    x[0] = 1.0;
-    x[1] = 2.0;
-
-    auto H = hessian(f, x);
-
-    CHECK(H.rows() == 2);
-    CHECK(H.cols() == 2);
-
-    CHECK(H(0, 0) == doctest::Approx(2.0).epsilon(1e-4));
-    CHECK(H(0, 1) == doctest::Approx(2.0).epsilon(1e-4));
-    CHECK(H(1, 0) == doctest::Approx(2.0).epsilon(1e-4));
-    CHECK(H(1, 1) == doctest::Approx(6.0).epsilon(1e-4));
-}
-
 TEST_CASE("hessian - Float precision") {
     auto f = [](const Vector<float, 2> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-    Vector<float, 2> x;
+    dp::mat::vector<float, 2> x;
     x[0] = 1.0f;
     x[1] = 2.0f;
 
     // Use larger step size for float precision (second derivatives are sensitive)
-    auto H = hessian(f, x, 1e-2f);
+    auto H = lina::hessian(f, Vector<float, 2>(x), 1e-2f);
 
     // Float precision for second derivatives is limited
     CHECK(H(0, 0) == doctest::Approx(2.0f).epsilon(0.5f));
@@ -163,15 +141,15 @@ TEST_CASE("hessian_vector_product - Quadratic function") {
     // H*v = 2*v
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-    Vector<double, 2> x;
+    dp::mat::vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    Vector<double, 2> v;
+    dp::mat::vector<double, 2> v;
     v[0] = 1.0;
     v[1] = 0.0;
 
-    auto Hv = hessian_vector_product(f, x, v);
+    auto Hv = lina::hessian_vector_product(f, Vector<double, 2>(x), Vector<double, 2>(v));
 
     // H*v = [[2, 0], [0, 2]] * [1, 0] = [2, 0]
     CHECK(Hv[0] == doctest::Approx(2.0).epsilon(1e-3));
@@ -183,15 +161,15 @@ TEST_CASE("hessian_vector_product - Mixed quadratic") {
     // Hessian: [[2, 2], [2, 6]]
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] + 2.0 * x[0] * x[1] + 3.0 * x[1] * x[1]; };
 
-    Vector<double, 2> x;
+    dp::mat::vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    Vector<double, 2> v;
+    dp::mat::vector<double, 2> v;
     v[0] = 1.0;
     v[1] = 1.0;
 
-    auto Hv = hessian_vector_product(f, x, v);
+    auto Hv = lina::hessian_vector_product(f, Vector<double, 2>(x), Vector<double, 2>(v));
 
     // H*v = [[2, 2], [2, 6]] * [1, 1] = [4, 8]
     CHECK(Hv[0] == doctest::Approx(4.0).epsilon(1e-2));
@@ -201,19 +179,19 @@ TEST_CASE("hessian_vector_product - Mixed quadratic") {
 TEST_CASE("hessian_vector_product - Consistency with full Hessian") {
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + 2.0 * x[1] * x[1] + 3.0 * x[2] * x[2]; };
 
-    Vector<double, 3> x;
+    dp::mat::vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
-    Vector<double, 3> v;
+    dp::mat::vector<double, 3> v;
     v[0] = 0.5;
     v[1] = 1.0;
     v[2] = 1.5;
 
     // Compute using full Hessian
-    auto H = hessian(f, x);
-    Vector<double, 3> Hv_full;
+    auto H = lina::hessian(f, Vector<double, 3>(x));
+    dp::mat::vector<double, 3> Hv_full;
     for (std::size_t i = 0; i < 3; ++i) {
         Hv_full[i] = 0.0;
         for (std::size_t j = 0; j < 3; ++j) {
@@ -222,7 +200,7 @@ TEST_CASE("hessian_vector_product - Consistency with full Hessian") {
     }
 
     // Compute using Hessian-vector product
-    auto Hv_direct = hessian_vector_product(f, x, v);
+    auto Hv_direct = lina::hessian_vector_product(f, Vector<double, 3>(x), Vector<double, 3>(v));
 
     // Should match
     CHECK(Hv_direct[0] == doctest::Approx(Hv_full[0]).epsilon(1e-2));
@@ -235,66 +213,66 @@ TEST_CASE("hessian_vector_product - Consistency with full Hessian") {
 // =============================================================================
 
 TEST_CASE("is_positive_definite - Identity matrix") {
-    Matrix<double, 3, 3> I;
+    dp::mat::matrix<double, 3, 3> I;
     for (std::size_t i = 0; i < 3; ++i) {
         for (std::size_t j = 0; j < 3; ++j) {
             I(i, j) = (i == j) ? 1.0 : 0.0;
         }
     }
 
-    CHECK(is_positive_definite(I) == true);
+    CHECK(lina::is_positive_definite(Matrix<double, 3, 3>(I)) == true);
 }
 
 TEST_CASE("is_positive_definite - Scaled identity") {
-    Matrix<double, 2, 2> H;
+    dp::mat::matrix<double, 2, 2> H;
     H(0, 0) = 2.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
     H(1, 1) = 2.0;
 
-    CHECK(is_positive_definite(H) == true);
+    CHECK(lina::is_positive_definite(Matrix<double, 2, 2>(H)) == true);
 }
 
 TEST_CASE("is_positive_definite - Positive definite matrix") {
     // [[4, 2], [2, 3]] has eigenvalues 5 and 2 (both positive)
-    Matrix<double, 2, 2> H;
+    dp::mat::matrix<double, 2, 2> H;
     H(0, 0) = 4.0;
     H(0, 1) = 2.0;
     H(1, 0) = 2.0;
     H(1, 1) = 3.0;
 
-    CHECK(is_positive_definite(H) == true);
+    CHECK(lina::is_positive_definite(Matrix<double, 2, 2>(H)) == true);
 }
 
 TEST_CASE("is_positive_definite - Not positive definite (negative diagonal)") {
     // Matrix with negative diagonal element
-    Matrix<double, 2, 2> H;
+    dp::mat::matrix<double, 2, 2> H;
     H(0, 0) = -1.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
     H(1, 1) = 1.0;
 
-    CHECK(is_positive_definite(H) == false);
+    CHECK(lina::is_positive_definite(Matrix<double, 2, 2>(H)) == false);
 }
 
 TEST_CASE("is_positive_definite - Zero matrix") {
-    Matrix<double, 2, 2> H;
+    dp::mat::matrix<double, 2, 2> H;
     H(0, 0) = 0.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
     H(1, 1) = 0.0;
 
-    CHECK(is_positive_definite(H) == false);
+    CHECK(lina::is_positive_definite(Matrix<double, 2, 2>(H)) == false);
 }
 
 TEST_CASE("is_positive_definite - Negative definite") {
-    Matrix<double, 2, 2> H;
+    dp::mat::matrix<double, 2, 2> H;
     H(0, 0) = -2.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
     H(1, 1) = -3.0;
 
-    CHECK(is_positive_definite(H) == false);
+    CHECK(lina::is_positive_definite(Matrix<double, 2, 2>(H)) == false);
 }
 
 // =============================================================================
@@ -306,12 +284,12 @@ TEST_CASE("laplacian - Sphere function") {
     // Laplacian = 2 + 2 + 2 = 6
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + x[1] * x[1] + x[2] * x[2]; };
 
-    Vector<double, 3> x;
+    dp::mat::vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
-    double lap = laplacian(f, x);
+    double lap = lina::laplacian(f, Vector<double, 3>(x));
 
     CHECK(lap == doctest::Approx(6.0).epsilon(1e-4));
 }
@@ -321,12 +299,12 @@ TEST_CASE("laplacian - Weighted quadratic") {
     // Laplacian = 2 + 4 + 6 = 12
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + 2.0 * x[1] * x[1] + 3.0 * x[2] * x[2]; };
 
-    Vector<double, 3> x;
+    dp::mat::vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
-    double lap = laplacian(f, x);
+    double lap = lina::laplacian(f, Vector<double, 3>(x));
 
     CHECK(lap == doctest::Approx(12.0).epsilon(1e-4));
 }
@@ -336,16 +314,16 @@ TEST_CASE("laplacian - Consistency with Hessian trace") {
         return x[0] * x[0] + 2.0 * x[0] * x[1] + 3.0 * x[1] * x[1] + x[2] * x[2];
     };
 
-    Vector<double, 3> x;
+    dp::mat::vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
     // Compute Laplacian directly
-    double lap = laplacian(f, x);
+    double lap = lina::laplacian(f, Vector<double, 3>(x));
 
     // Compute trace of Hessian
-    auto H = hessian(f, x);
+    auto H = lina::hessian(f, Vector<double, 3>(x));
     double trace = H(0, 0) + H(1, 1) + H(2, 2);
 
     CHECK(lap == doctest::Approx(trace).epsilon(1e-3));
@@ -356,32 +334,32 @@ TEST_CASE("laplacian - Consistency with Hessian trace") {
 // =============================================================================
 
 TEST_CASE("hessian_error - Identical matrices") {
-    Matrix<double, 2, 2> H1;
+    dp::mat::matrix<double, 2, 2> H1;
     H1(0, 0) = 2.0;
     H1(0, 1) = 1.0;
     H1(1, 0) = 1.0;
     H1(1, 1) = 3.0;
 
-    Matrix<double, 2, 2> H2 = H1;
+    dp::mat::matrix<double, 2, 2> H2 = H1;
 
-    double error = hessian_error(H1, H2);
+    double error = lina::hessian_error(Matrix<double, 2, 2>(H1), Matrix<double, 2, 2>(H2));
     CHECK(error == doctest::Approx(0.0).epsilon(1e-12));
 }
 
 TEST_CASE("hessian_error - Small difference") {
-    Matrix<double, 2, 2> H1;
+    dp::mat::matrix<double, 2, 2> H1;
     H1(0, 0) = 2.0;
     H1(0, 1) = 1.0;
     H1(1, 0) = 1.0;
     H1(1, 1) = 3.0;
 
-    Matrix<double, 2, 2> H2;
+    dp::mat::matrix<double, 2, 2> H2;
     H2(0, 0) = 2.002;
     H2(0, 1) = 1.001;
     H2(1, 0) = 1.001;
     H2(1, 1) = 3.003;
 
-    double error = hessian_error(H1, H2);
+    double error = lina::hessian_error(Matrix<double, 2, 2>(H1), Matrix<double, 2, 2>(H2));
     CHECK(error == doctest::Approx(0.001).epsilon(1e-6));
 }
 
@@ -398,17 +376,17 @@ TEST_CASE("hessian - At minimum (positive definite)") {
         return dx * dx + dy * dy;
     };
 
-    Vector<double, 2> x;
+    dp::mat::vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    auto H = hessian(f, x);
+    auto H = lina::hessian(f, Vector<double, 2>(x));
 
     CHECK(H(0, 0) == doctest::Approx(2.0).epsilon(1e-4));
     CHECK(H(1, 1) == doctest::Approx(2.0).epsilon(1e-4));
     CHECK(H(0, 1) == doctest::Approx(0.0).epsilon(1e-4));
 
-    CHECK(is_positive_definite(H) == true);
+    CHECK(lina::is_positive_definite(H) == true);
 }
 
 TEST_CASE("hessian - At saddle point (indefinite)") {
@@ -416,15 +394,15 @@ TEST_CASE("hessian - At saddle point (indefinite)") {
     // Saddle at (0, 0), Hessian = [[2, 0], [0, -2]] (indefinite)
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] - x[1] * x[1]; };
 
-    Vector<double, 2> x;
+    dp::mat::vector<double, 2> x;
     x[0] = 0.0;
     x[1] = 0.0;
 
-    auto H = hessian(f, x);
+    auto H = lina::hessian(f, Vector<double, 2>(x));
 
     CHECK(H(0, 0) == doctest::Approx(2.0).epsilon(1e-4));
     CHECK(H(1, 1) == doctest::Approx(-2.0).epsilon(1e-4));
     CHECK(H(0, 1) == doctest::Approx(0.0).epsilon(1e-4));
 
-    CHECK(is_positive_definite(H) == false);
+    CHECK(lina::is_positive_definite(Matrix<double, 2, 2>(H)) == false);
 }

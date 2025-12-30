@@ -11,8 +11,8 @@ namespace optinum::simd {
 
     namespace dp = ::datapod;
 
-    // Tensor: N-dimensional fixed-size array (rank >= 3) with SIMD-accelerated operations
-    // Wraps datapod::mat::tensor<T, Dims...>
+    // Tensor: N-dimensional fixed-size non-owning view (rank >= 3) with SIMD-accelerated operations
+    // Non-owning view over datapod::mat::tensor<T, Dims...> or raw T* data
     template <typename T, std::size_t... Dims> class Tensor {
         static_assert(sizeof...(Dims) >= 3, "Tensor requires at least 3 dimensions (use Vector for 1D, Matrix for 2D)");
         static_assert(((Dims > 0) && ...), "All tensor dimensions must be > 0");
@@ -33,67 +33,73 @@ namespace optinum::simd {
         static constexpr std::array<size_type, rank> dims = {Dims...};
         static constexpr size_type total_size = (Dims * ...);
 
-        constexpr Tensor() noexcept = default;
+        // Default constructor (null view)
+        constexpr Tensor() noexcept : ptr_(nullptr) {}
 
-        // POD constructors (implicit to allow dp::mat::tensor -> simd::Tensor conversion)
-        constexpr Tensor(const pod_type &pod) noexcept : pod_(pod) {}
-        constexpr Tensor(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
+        // Constructor from raw pointer (non-owning view)
+        constexpr explicit Tensor(T *ptr) noexcept : ptr_(ptr) {}
 
-        constexpr pod_type &pod() noexcept { return pod_; }
-        constexpr const pod_type &pod() const noexcept { return pod_; }
+        // Constructor from pod_type reference (non-owning view)
+        constexpr Tensor(pod_type &pod) noexcept : ptr_(pod.data()) {}
+        constexpr Tensor(const pod_type &pod) noexcept : ptr_(const_cast<T *>(pod.data())) {}
 
-        // Implicit conversion to pod_type (allows simd::Tensor -> dp::mat::tensor)
-        constexpr operator pod_type &() noexcept { return pod_; }
-        constexpr operator const pod_type &() const noexcept { return pod_; }
+        // Access to underlying pointer
+        constexpr pointer data() noexcept { return ptr_; }
+        constexpr const_pointer data() const noexcept { return ptr_; }
 
-        constexpr pointer data() noexcept { return pod_.data(); }
-        constexpr const_pointer data() const noexcept { return pod_.data(); }
+        // Check if view is valid (non-null)
+        constexpr bool valid() const noexcept { return ptr_ != nullptr; }
+        constexpr explicit operator bool() const noexcept { return valid(); }
 
         // Multi-dimensional indexing
         template <typename... Indices, typename = std::enable_if_t<sizeof...(Indices) == rank &&
                                                                    (std::is_convertible_v<Indices, size_type> && ...)>>
         constexpr reference operator()(Indices... indices) noexcept {
-            return pod_(indices...);
+            return ptr_[linear_index(indices...)];
         }
 
         template <typename... Indices, typename = std::enable_if_t<sizeof...(Indices) == rank &&
                                                                    (std::is_convertible_v<Indices, size_type> && ...)>>
         constexpr const_reference operator()(Indices... indices) const noexcept {
-            return pod_(indices...);
+            return ptr_[linear_index(indices...)];
         }
 
         // Checked multi-dimensional access
         template <typename... Indices, typename = std::enable_if_t<sizeof...(Indices) == rank &&
                                                                    (std::is_convertible_v<Indices, size_type> && ...)>>
         constexpr reference at(Indices... indices) {
-            return pod_.at(indices...);
+            check_bounds(indices...);
+            return ptr_[linear_index(indices...)];
         }
 
         template <typename... Indices, typename = std::enable_if_t<sizeof...(Indices) == rank &&
                                                                    (std::is_convertible_v<Indices, size_type> && ...)>>
         constexpr const_reference at(Indices... indices) const {
-            return pod_.at(indices...);
+            check_bounds(indices...);
+            return ptr_[linear_index(indices...)];
         }
 
         // Linear indexing
-        constexpr reference operator[](size_type i) noexcept { return pod_[i]; }
-        constexpr const_reference operator[](size_type i) const noexcept { return pod_[i]; }
+        constexpr reference operator[](size_type i) noexcept { return ptr_[i]; }
+        constexpr const_reference operator[](size_type i) const noexcept { return ptr_[i]; }
 
         static constexpr size_type size() noexcept { return total_size; }
         static constexpr bool empty() noexcept { return false; }
         static constexpr std::array<size_type, rank> shape() noexcept { return dims; }
         static constexpr size_type dim(size_type i) noexcept { return dims[i]; }
 
-        constexpr iterator begin() noexcept { return pod_.begin(); }
-        constexpr const_iterator begin() const noexcept { return pod_.begin(); }
-        constexpr const_iterator cbegin() const noexcept { return pod_.cbegin(); }
+        constexpr iterator begin() noexcept { return ptr_; }
+        constexpr const_iterator begin() const noexcept { return ptr_; }
+        constexpr const_iterator cbegin() const noexcept { return ptr_; }
 
-        constexpr iterator end() noexcept { return pod_.end(); }
-        constexpr const_iterator end() const noexcept { return pod_.end(); }
-        constexpr const_iterator cend() const noexcept { return pod_.cend(); }
+        constexpr iterator end() noexcept { return ptr_ + total_size; }
+        constexpr const_iterator end() const noexcept { return ptr_ + total_size; }
+        constexpr const_iterator cend() const noexcept { return ptr_ + total_size; }
 
         constexpr Tensor &fill(const T &value) noexcept {
-            pod_.fill(value);
+            for (size_type i = 0; i < total_size; ++i) {
+                ptr_[i] = value;
+            }
             return *this;
         }
 
@@ -101,7 +107,7 @@ namespace optinum::simd {
         constexpr Tensor &operator+=(const Tensor &rhs) noexcept {
             if (std::is_constant_evaluated()) {
                 for (size_type i = 0; i < total_size; ++i)
-                    pod_[i] += rhs.pod_[i];
+                    ptr_[i] += rhs.ptr_[i];
             } else {
                 backend::add<T, total_size>(data(), data(), rhs.data());
             }
@@ -111,7 +117,7 @@ namespace optinum::simd {
         constexpr Tensor &operator-=(const Tensor &rhs) noexcept {
             if (std::is_constant_evaluated()) {
                 for (size_type i = 0; i < total_size; ++i)
-                    pod_[i] -= rhs.pod_[i];
+                    ptr_[i] -= rhs.ptr_[i];
             } else {
                 backend::sub<T, total_size>(data(), data(), rhs.data());
             }
@@ -121,7 +127,7 @@ namespace optinum::simd {
         constexpr Tensor &operator*=(const Tensor &rhs) noexcept {
             if (std::is_constant_evaluated()) {
                 for (size_type i = 0; i < total_size; ++i)
-                    pod_[i] *= rhs.pod_[i];
+                    ptr_[i] *= rhs.ptr_[i];
             } else {
                 backend::mul<T, total_size>(data(), data(), rhs.data());
             }
@@ -131,7 +137,7 @@ namespace optinum::simd {
         constexpr Tensor &operator/=(const Tensor &rhs) noexcept {
             if (std::is_constant_evaluated()) {
                 for (size_type i = 0; i < total_size; ++i)
-                    pod_[i] /= rhs.pod_[i];
+                    ptr_[i] /= rhs.ptr_[i];
             } else {
                 backend::div<T, total_size>(data(), data(), rhs.data());
             }
@@ -141,7 +147,7 @@ namespace optinum::simd {
         constexpr Tensor &operator*=(T scalar) noexcept {
             if (std::is_constant_evaluated()) {
                 for (size_type i = 0; i < total_size; ++i)
-                    pod_[i] *= scalar;
+                    ptr_[i] *= scalar;
             } else {
                 backend::mul_scalar<T, total_size>(data(), data(), scalar);
             }
@@ -151,129 +157,126 @@ namespace optinum::simd {
         constexpr Tensor &operator/=(T scalar) noexcept {
             if (std::is_constant_evaluated()) {
                 for (size_type i = 0; i < total_size; ++i)
-                    pod_[i] /= scalar;
+                    ptr_[i] /= scalar;
             } else {
                 backend::div_scalar<T, total_size>(data(), data(), scalar);
             }
             return *this;
         }
 
-        // Unary
-        constexpr Tensor operator-() const noexcept {
-            Tensor result;
+        // Unary negation - writes negated values to output pointer
+        constexpr void negate_to(T *out) const noexcept {
             for (size_type i = 0; i < total_size; ++i)
-                result.pod_[i] = -pod_[i];
-            return result;
+                out[i] = -ptr_[i];
         }
-
-        constexpr Tensor operator+() const noexcept { return *this; }
 
         // ==========================================================================
         // Shape Manipulation
         // ==========================================================================
 
         // Reshape to new dimensions (must have same total size)
+        // Returns a new view over the same data with different indexing
         // Example: Tensor<float, 2, 3, 4>.reshape<3, 8>() -> Tensor<float, 3, 8>
         template <std::size_t... NewDims> constexpr Tensor<T, NewDims...> reshape() const noexcept {
             static_assert((NewDims * ...) == total_size,
                           "reshape(): new dimensions must have same total size as original");
             static_assert(sizeof...(NewDims) >= 3, "reshape() for Tensor must result in rank >= 3");
 
-            Tensor<T, NewDims...> result;
-            // Copy data linearly (tensors are stored in row-major order)
-            for (size_type i = 0; i < total_size; ++i) {
-                result[i] = pod_[i];
-            }
-            return result;
+            return Tensor<T, NewDims...>(ptr_);
         }
 
       private:
-        pod_type pod_{};
+        T *ptr_;
+
+        // Helper to compute linear index from multi-dimensional indices (row-major order)
+        template <typename... Indices> static constexpr size_type linear_index(Indices... indices) noexcept {
+            std::array<size_type, rank> idx = {static_cast<size_type>(indices)...};
+            size_type linear = 0;
+            size_type stride = 1;
+            for (size_type i = rank; i > 0; --i) {
+                linear += idx[i - 1] * stride;
+                stride *= dims[i - 1];
+            }
+            return linear;
+        }
+
+        // Bounds checking helper
+        template <typename... Indices> static constexpr void check_bounds(Indices... indices) {
+            std::array<size_type, rank> idx = {static_cast<size_type>(indices)...};
+            for (size_type i = 0; i < rank; ++i) {
+                if (idx[i] >= dims[i]) {
+                    throw std::out_of_range("Tensor index out of bounds");
+                }
+            }
+        }
     };
 
-    // Binary ops (element-wise)
+    // Binary ops (element-wise) - write results to output pointer
     template <typename T, std::size_t... Dims>
-    constexpr Tensor<T, Dims...> operator+(const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
-        Tensor<T, Dims...> result;
+    constexpr void add(T *out, const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < N; ++i)
-                result[i] = lhs[i] + rhs[i];
+                out[i] = lhs[i] + rhs[i];
         } else {
-            backend::add<T, N>(result.data(), lhs.data(), rhs.data());
+            backend::add<T, N>(out, lhs.data(), rhs.data());
         }
-        return result;
     }
 
     template <typename T, std::size_t... Dims>
-    constexpr Tensor<T, Dims...> operator-(const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
-        Tensor<T, Dims...> result;
+    constexpr void sub(T *out, const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < N; ++i)
-                result[i] = lhs[i] - rhs[i];
+                out[i] = lhs[i] - rhs[i];
         } else {
-            backend::sub<T, N>(result.data(), lhs.data(), rhs.data());
+            backend::sub<T, N>(out, lhs.data(), rhs.data());
         }
-        return result;
     }
 
     template <typename T, std::size_t... Dims>
-    constexpr Tensor<T, Dims...> operator*(const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
-        Tensor<T, Dims...> result;
+    constexpr void mul(T *out, const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < N; ++i)
-                result[i] = lhs[i] * rhs[i];
+                out[i] = lhs[i] * rhs[i];
         } else {
-            backend::mul<T, N>(result.data(), lhs.data(), rhs.data());
+            backend::mul<T, N>(out, lhs.data(), rhs.data());
         }
-        return result;
     }
 
     template <typename T, std::size_t... Dims>
-    constexpr Tensor<T, Dims...> operator/(const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
-        Tensor<T, Dims...> result;
+    constexpr void div(T *out, const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < N; ++i)
-                result[i] = lhs[i] / rhs[i];
+                out[i] = lhs[i] / rhs[i];
         } else {
-            backend::div<T, N>(result.data(), lhs.data(), rhs.data());
+            backend::div<T, N>(out, lhs.data(), rhs.data());
         }
-        return result;
     }
 
-    // Scalar ops
+    // Scalar ops - write results to output pointer
     template <typename T, std::size_t... Dims>
-    constexpr Tensor<T, Dims...> operator*(const Tensor<T, Dims...> &lhs, T scalar) noexcept {
-        Tensor<T, Dims...> result;
+    constexpr void mul_scalar(T *out, const Tensor<T, Dims...> &lhs, T scalar) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < N; ++i)
-                result[i] = lhs[i] * scalar;
+                out[i] = lhs[i] * scalar;
         } else {
-            backend::mul_scalar<T, N>(result.data(), lhs.data(), scalar);
+            backend::mul_scalar<T, N>(out, lhs.data(), scalar);
         }
-        return result;
     }
 
     template <typename T, std::size_t... Dims>
-    constexpr Tensor<T, Dims...> operator*(T scalar, const Tensor<T, Dims...> &rhs) noexcept {
-        return rhs * scalar;
-    }
-
-    template <typename T, std::size_t... Dims>
-    constexpr Tensor<T, Dims...> operator/(const Tensor<T, Dims...> &lhs, T scalar) noexcept {
-        Tensor<T, Dims...> result;
+    constexpr void div_scalar(T *out, const Tensor<T, Dims...> &lhs, T scalar) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < N; ++i)
-                result[i] = lhs[i] / scalar;
+                out[i] = lhs[i] / scalar;
         } else {
-            backend::div_scalar<T, N>(result.data(), lhs.data(), scalar);
+            backend::div_scalar<T, N>(out, lhs.data(), scalar);
         }
-        return result;
     }
 
     // Comparisons
@@ -310,13 +313,13 @@ namespace optinum::simd {
 
     template <typename T, std::size_t... Dims> std::ostream &operator<<(std::ostream &os, const Tensor<T, Dims...> &t) {
         constexpr auto N = Tensor<T, Dims...>::total_size;
-        constexpr auto rank = Tensor<T, Dims...>::rank;
+        constexpr auto r = Tensor<T, Dims...>::rank;
         auto shape = Tensor<T, Dims...>::shape();
 
         os << "Tensor<";
-        for (std::size_t i = 0; i < rank; ++i) {
+        for (std::size_t i = 0; i < r; ++i) {
             os << shape[i];
-            if (i < rank - 1)
+            if (i < r - 1)
                 os << "x";
         }
         os << ">[";
@@ -331,17 +334,14 @@ namespace optinum::simd {
     }
 
     // =============================================================================
-    // Type conversion - cast<U>()
+    // Type conversion - cast_to() - writes to output pointer
     // =============================================================================
 
-    template <typename U, typename T, std::size_t... Dims>
-    Tensor<U, Dims...> cast(const Tensor<T, Dims...> &t) noexcept {
-        Tensor<U, Dims...> result;
+    template <typename U, typename T, std::size_t... Dims> void cast_to(U *out, const Tensor<T, Dims...> &t) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         for (std::size_t i = 0; i < N; ++i) {
-            result[i] = static_cast<U>(t[i]);
+            out[i] = static_cast<U>(t[i]);
         }
-        return result;
     }
 
     // =============================================================================

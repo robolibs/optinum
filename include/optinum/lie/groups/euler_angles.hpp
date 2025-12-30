@@ -2,13 +2,16 @@
 
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/so3.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
 
 #include <cmath>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== EULER ANGLE CONVENTIONS =====
     //
@@ -42,8 +45,8 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = simd::Vector<T, 3>;
-        using Matrix3 = simd::Matrix<T, 3, 3>;
+        using Vector3 = dp::mat::vector<T, 3>;    // Owning storage type
+        using Matrix3 = dp::mat::matrix<T, 3, 3>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
@@ -88,7 +91,7 @@ namespace optinum::lie {
         [[nodiscard]] constexpr T x() const noexcept { return roll_; }
 
         /// Get as vector [yaw, pitch, roll]
-        [[nodiscard]] Vector3 vector() const noexcept { return Vector3{yaw_, pitch_, roll_}; }
+        [[nodiscard]] Vector3 vector() const noexcept { return Vector3{{yaw_, pitch_, roll_}}; }
 
         // ===== MUTATORS =====
 
@@ -326,8 +329,8 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = simd::Vector<T, 3>;
-        using Matrix3 = simd::Matrix<T, 3, 3>;
+        using Vector3 = dp::mat::vector<T, 3>;    // Owning storage type
+        using Matrix3 = dp::mat::matrix<T, 3, 3>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
@@ -372,7 +375,7 @@ namespace optinum::lie {
         [[nodiscard]] constexpr T z() const noexcept { return yaw_; }
 
         /// Get as vector [roll, pitch, yaw]
-        [[nodiscard]] Vector3 vector() const noexcept { return Vector3{roll_, pitch_, yaw_}; }
+        [[nodiscard]] Vector3 vector() const noexcept { return Vector3{{roll_, pitch_, yaw_}}; }
 
         // ===== MUTATORS =====
 

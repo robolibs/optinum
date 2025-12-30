@@ -1,22 +1,23 @@
 #include <doctest/doctest.h>
 #include <optinum/lina/lina.hpp>
 
-using namespace optinum;
-using namespace optinum::lina;
-using namespace optinum::simd;
+namespace lina = optinum::lina;
+using optinum::simd::Matrix;
+
+namespace dp = datapod;
 
 // =============================================================================
 // Cofactor Matrix Tests
 // =============================================================================
 
 TEST_CASE("Cofactor 2x2") {
-    Matrix<double, 2, 2> a;
+    dp::mat::matrix<double, 2, 2> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(1, 0) = 3.0;
     a(1, 1) = 4.0;
 
-    auto cof = cofactor(a);
+    auto cof = lina::cofactor(Matrix<double, 2, 2>(a));
 
     // For 2x2: cofactor is [[a11, -a10], [-a01, a00]]
     CHECK(cof(0, 0) == doctest::Approx(4.0));  // a11
@@ -26,7 +27,7 @@ TEST_CASE("Cofactor 2x2") {
 }
 
 TEST_CASE("Cofactor 3x3") {
-    Matrix<double, 3, 3> a;
+    dp::mat::matrix<double, 3, 3> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(0, 2) = 3.0;
@@ -37,7 +38,7 @@ TEST_CASE("Cofactor 3x3") {
     a(2, 1) = 0.0;
     a(2, 2) = 6.0;
 
-    auto cof = cofactor(a);
+    auto cof = lina::cofactor(Matrix<double, 3, 3>(a));
 
     // Verify a few cofactor elements manually
     // C_00 = det([[4,5],[0,6]]) = 4*6 - 5*0 = 24
@@ -51,13 +52,15 @@ TEST_CASE("Cofactor 3x3") {
 }
 
 TEST_CASE("Cofactor 4x4") {
-    Matrix<double, 4, 4> a = Matrix<double, 4, 4>::zeros();
+    dp::mat::matrix<double, 4, 4> a;
+    for (std::size_t i = 0; i < 16; ++i)
+        a[i] = 0.0;
     a(0, 0) = 1.0;
     a(1, 1) = 2.0;
     a(2, 2) = 3.0;
     a(3, 3) = 4.0;
 
-    auto cof = cofactor(a);
+    auto cof = lina::cofactor(Matrix<double, 4, 4>(a));
 
     // For diagonal matrix, cofactor diagonal elements are products of other diagonals
     // C_00 = det of 3x3 diagonal [2,3,4] = 2*3*4 = 24
@@ -74,7 +77,7 @@ TEST_CASE("Cofactor 4x4") {
 }
 
 TEST_CASE("Cofactor property - det(A) from cofactor expansion") {
-    Matrix<double, 3, 3> a;
+    dp::mat::matrix<double, 3, 3> a;
     a(0, 0) = 6.0;
     a(0, 1) = 1.0;
     a(0, 2) = 1.0;
@@ -85,8 +88,8 @@ TEST_CASE("Cofactor property - det(A) from cofactor expansion") {
     a(2, 1) = 8.0;
     a(2, 2) = 7.0;
 
-    auto cof = cofactor(a);
-    auto det_a = determinant(a);
+    auto cof = lina::cofactor(Matrix<double, 3, 3>(a));
+    auto det_a = lina::determinant(Matrix<double, 3, 3>(a));
 
     // Determinant via cofactor expansion along first row: det(A) = sum(a_0j * C_0j)
     double det_via_cofactor = a(0, 0) * cof(0, 0) + a(0, 1) * cof(0, 1) + a(0, 2) * cof(0, 2);
@@ -99,13 +102,13 @@ TEST_CASE("Cofactor property - det(A) from cofactor expansion") {
 // =============================================================================
 
 TEST_CASE("Adjoint 2x2") {
-    Matrix<double, 2, 2> a;
+    dp::mat::matrix<double, 2, 2> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(1, 0) = 3.0;
     a(1, 1) = 4.0;
 
-    auto adj = adjoint(a);
+    auto adj = lina::adjoint(Matrix<double, 2, 2>(a));
 
     // For 2x2: adj(A) = [[a11, -a01], [-a10, a00]]
     CHECK(adj(0, 0) == doctest::Approx(4.0));  // a11
@@ -115,7 +118,7 @@ TEST_CASE("Adjoint 2x2") {
 }
 
 TEST_CASE("Adjoint 3x3") {
-    Matrix<double, 3, 3> a;
+    dp::mat::matrix<double, 3, 3> a;
     a(0, 0) = 3.0;
     a(0, 1) = 0.0;
     a(0, 2) = 2.0;
@@ -126,8 +129,8 @@ TEST_CASE("Adjoint 3x3") {
     a(2, 1) = 1.0;
     a(2, 2) = 1.0;
 
-    auto adj = adjoint(a);
-    auto cof = cofactor(a);
+    auto adj = lina::adjoint(Matrix<double, 3, 3>(a));
+    auto cof = lina::cofactor(Matrix<double, 3, 3>(a));
     auto cof_t = lina::transpose(cof);
 
     // Verify adjoint is transpose of cofactor
@@ -139,7 +142,7 @@ TEST_CASE("Adjoint 3x3") {
 }
 
 TEST_CASE("Adjoint property - A * adj(A) = det(A) * I") {
-    Matrix<double, 3, 3> a;
+    dp::mat::matrix<double, 3, 3> a;
     a(0, 0) = 2.0;
     a(0, 1) = -1.0;
     a(0, 2) = 0.0;
@@ -150,12 +153,12 @@ TEST_CASE("Adjoint property - A * adj(A) = det(A) * I") {
     a(2, 1) = -1.0;
     a(2, 2) = 2.0;
 
-    auto adj = adjoint(a);
-    auto det_a = determinant(a);
-    auto product = a * adj;
+    auto adj = lina::adjoint(Matrix<double, 3, 3>(a));
+    auto det_a = lina::determinant(Matrix<double, 3, 3>(a));
+    auto product = lina::matmul(a, adj);
 
     // A * adj(A) should equal det(A) * I
-    auto expected = identity<double, 3>() * det_a;
+    auto expected = lina::scale(det_a, lina::identity<double, 3>());
 
     for (size_t i = 0; i < 3; ++i) {
         for (size_t j = 0; j < 3; ++j) {
@@ -165,7 +168,7 @@ TEST_CASE("Adjoint property - A * adj(A) = det(A) * I") {
 }
 
 TEST_CASE("Adjoint property - Inverse via adjoint") {
-    Matrix<double, 3, 3> a;
+    dp::mat::matrix<double, 3, 3> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(0, 2) = 3.0;
@@ -176,16 +179,16 @@ TEST_CASE("Adjoint property - Inverse via adjoint") {
     a(2, 1) = 6.0;
     a(2, 2) = 0.0;
 
-    auto det_a = determinant(a);
+    auto det_a = lina::determinant(Matrix<double, 3, 3>(a));
 
     // Skip if singular
     if (std::abs(det_a) < 1e-10) {
         return;
     }
 
-    auto adj = adjoint(a);
-    auto inv_via_adjoint = adj * (1.0 / det_a);
-    auto inv_direct = inverse(a);
+    auto adj = lina::adjoint(Matrix<double, 3, 3>(a));
+    auto inv_via_adjoint = lina::scale(1.0 / det_a, adj);
+    auto inv_direct = lina::inverse(Matrix<double, 3, 3>(a));
 
     // Both methods should produce the same inverse
     for (size_t i = 0; i < 3; ++i) {
@@ -196,7 +199,7 @@ TEST_CASE("Adjoint property - Inverse via adjoint") {
 }
 
 TEST_CASE("Adjoint 4x4") {
-    Matrix<double, 4, 4> a;
+    dp::mat::matrix<double, 4, 4> a;
     // Create a simple symmetric positive definite matrix
     a(0, 0) = 4.0;
     a(0, 1) = 1.0;
@@ -215,12 +218,12 @@ TEST_CASE("Adjoint 4x4") {
     a(3, 2) = 1.0;
     a(3, 3) = 1.0;
 
-    auto adj = adjoint(a);
-    auto det_a = determinant(a);
-    auto product = a * adj;
+    auto adj = lina::adjoint(Matrix<double, 4, 4>(a));
+    auto det_a = lina::determinant(Matrix<double, 4, 4>(a));
+    auto product = lina::matmul(a, adj);
 
     // Verify A * adj(A) = det(A) * I
-    auto expected = identity<double, 4>() * det_a;
+    auto expected = lina::scale(det_a, lina::identity<double, 4>());
 
     for (size_t i = 0; i < 4; ++i) {
         for (size_t j = 0; j < 4; ++j) {
@@ -230,14 +233,14 @@ TEST_CASE("Adjoint 4x4") {
 }
 
 TEST_CASE("Adjugate alias") {
-    Matrix<double, 2, 2> a;
+    dp::mat::matrix<double, 2, 2> a;
     a(0, 0) = 5.0;
     a(0, 1) = 7.0;
     a(1, 0) = 2.0;
     a(1, 1) = 3.0;
 
-    auto adj1 = adjoint(a);
-    auto adj2 = adjugate(a); // Alias
+    auto adj1 = lina::adjoint(Matrix<double, 2, 2>(a));
+    auto adj2 = lina::adjugate(Matrix<double, 2, 2>(a)); // Alias
 
     // Both should be identical
     CHECK(adj1(0, 0) == adj2(0, 0));
@@ -251,7 +254,7 @@ TEST_CASE("Adjugate alias") {
 // =============================================================================
 
 TEST_CASE("Cofactor and adjoint consistency") {
-    Matrix<double, 3, 3> a;
+    dp::mat::matrix<double, 3, 3> a;
     a(0, 0) = 1.0;
     a(0, 1) = 0.0;
     a(0, 2) = 2.0;
@@ -262,8 +265,8 @@ TEST_CASE("Cofactor and adjoint consistency") {
     a(2, 1) = 1.0;
     a(2, 2) = 0.0;
 
-    auto cof = cofactor(a);
-    auto adj = adjoint(a);
+    auto cof = lina::cofactor(Matrix<double, 3, 3>(a));
+    auto adj = lina::adjoint(Matrix<double, 3, 3>(a));
     auto cof_transposed = lina::transpose(cof);
 
     // Adjoint should be transpose of cofactor
@@ -276,7 +279,7 @@ TEST_CASE("Cofactor and adjoint consistency") {
 
 TEST_CASE("Cofactor matrix symmetry for symmetric matrix") {
     // For a symmetric matrix, cofactor matrix should also be symmetric
-    Matrix<double, 3, 3> a;
+    dp::mat::matrix<double, 3, 3> a;
     a(0, 0) = 2.0;
     a(0, 1) = 1.0;
     a(0, 2) = 0.0;
@@ -287,7 +290,7 @@ TEST_CASE("Cofactor matrix symmetry for symmetric matrix") {
     a(2, 1) = 1.0;
     a(2, 2) = 2.0;
 
-    auto cof = cofactor(a);
+    auto cof = lina::cofactor(Matrix<double, 3, 3>(a));
     auto cof_t = lina::transpose(cof);
 
     // Check symmetry - cofactor should equal its transpose for symmetric matrix

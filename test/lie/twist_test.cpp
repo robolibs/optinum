@@ -8,12 +8,14 @@
 using namespace optinum::lie;
 using namespace optinum;
 
+namespace dp = ::datapod;
+
 // ===== HELPER FUNCTIONS =====
 
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
 
 template <typename T, std::size_t N>
-bool vec_approx_equal(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b, T tol = T(1e-10)) {
+bool vec_approx_equal(const dp::mat::vector<T, N> &a, const dp::mat::vector<T, N> &b, T tol = T(1e-10)) {
     for (std::size_t i = 0; i < N; ++i) {
         if (std::abs(a[i] - b[i]) >= tol)
             return false;
@@ -36,8 +38,8 @@ TEST_CASE("LocalTwist default construction is zero") {
 }
 
 TEST_CASE("LocalTwist construction from vectors") {
-    simd::Vector<double, 3> linear{1.0, 2.0, 3.0};
-    simd::Vector<double, 3> angular{0.1, 0.2, 0.3};
+    dp::mat::vector<double, 3> linear{{1.0, 2.0, 3.0}};
+    dp::mat::vector<double, 3> angular{{0.1, 0.2, 0.3}};
     LocalTwistd twist(linear, angular);
 
     CHECK(vec_approx_equal(twist.linear(), linear));
@@ -56,7 +58,7 @@ TEST_CASE("LocalTwist construction from components") {
 }
 
 TEST_CASE("LocalTwist construction from Vector6") {
-    simd::Vector<double, 6> vec{1.0, 2.0, 3.0, 0.1, 0.2, 0.3};
+    dp::mat::vector<double, 6> vec{{1.0, 2.0, 3.0, 0.1, 0.2, 0.3}};
     LocalTwistd twist(vec);
 
     CHECK(vec_approx_equal(twist.vector(), vec));
@@ -83,8 +85,8 @@ TEST_CASE("GlobalTwist default construction is zero") {
 }
 
 TEST_CASE("GlobalTwist construction from vectors") {
-    simd::Vector<double, 3> linear{1.0, 2.0, 3.0};
-    simd::Vector<double, 3> angular{0.1, 0.2, 0.3};
+    dp::mat::vector<double, 3> linear{{1.0, 2.0, 3.0}};
+    dp::mat::vector<double, 3> angular{{0.1, 0.2, 0.3}};
     GlobalTwistd twist(linear, angular);
 
     CHECK(vec_approx_equal(twist.linear(), linear));
@@ -106,7 +108,7 @@ TEST_CASE("Frame conversion: local to global and back") {
 
     SUBCASE("pure rotation") {
         LocalTwistd twist_local(1.0, 0.0, 0.0, 0.0, 0.0, 0.0); // linear velocity along body x
-        SE3d T(SO3d::rot_z(std::numbers::pi / 2), simd::Vector<double, 3>{0.0, 0.0, 0.0});
+        SE3d T(SO3d::rot_z(std::numbers::pi / 2), dp::mat::vector<double, 3>{{0.0, 0.0, 0.0}});
 
         auto twist_global = twist_local.to_global(T);
 
@@ -221,7 +223,7 @@ TEST_CASE("GlobalTwist integration") {
 
 TEST_CASE("Local vs Global integration difference") {
     // When body is rotated, local and global twists produce different results
-    SE3d T = SE3d(SO3d::rot_z(std::numbers::pi / 2), simd::Vector<double, 3>{1.0, 0.0, 0.0});
+    SE3d T = SE3d(SO3d::rot_z(std::numbers::pi / 2), dp::mat::vector<double, 3>{{1.0, 0.0, 0.0}});
 
     // Same numerical values, but different frames
     LocalTwistd twist_local(1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -378,7 +380,7 @@ TEST_CASE("Static factory methods") {
     }
 
     SUBCASE("LocalTwist::from_vector") {
-        simd::Vector<double, 6> vec{1.0, 2.0, 3.0, 0.1, 0.2, 0.3};
+        dp::mat::vector<double, 6> vec{{1.0, 2.0, 3.0, 0.1, 0.2, 0.3}};
         auto twist = LocalTwistd::from_vector(vec);
         CHECK(vec_approx_equal(twist.vector(), vec));
     }
@@ -415,11 +417,11 @@ TEST_CASE("LocalTwist mutators") {
     CHECK(approx_equal(twist.vx(), 1.0));
     CHECK(approx_equal(twist.wx(), 0.1));
 
-    simd::Vector<double, 3> v{4.0, 5.0, 6.0};
+    dp::mat::vector<double, 3> v{{4.0, 5.0, 6.0}};
     twist.set_linear(v);
     CHECK(approx_equal(twist.vx(), 4.0));
 
-    simd::Vector<double, 6> vec{7.0, 8.0, 9.0, 0.7, 0.8, 0.9};
+    dp::mat::vector<double, 6> vec{{7.0, 8.0, 9.0, 0.7, 0.8, 0.9}};
     twist.set_vector(vec);
     CHECK(approx_equal(twist.vx(), 7.0));
     CHECK(approx_equal(twist.wx(), 0.7));

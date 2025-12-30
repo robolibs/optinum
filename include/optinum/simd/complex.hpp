@@ -2,22 +2,22 @@
 
 // =============================================================================
 // optinum/simd/complex.hpp
-// High-level complex array container with transparent SIMD
+// Non-owning view over complex number arrays with transparent SIMD operations
 // =============================================================================
 //
-// This file provides a simple owning container for complex number arrays.
-// For non-owning views with SIMD operations, use view/complex_view.hpp
+// This file provides a non-owning view over complex number arrays.
 // For low-level SIMD pack operations, use pack/complex.hpp
+// For the underlying complex_view with SIMD width, use view/complex_view.hpp
 //
 // Usage:
-//   Complex<double, 8> nums;
-//   nums[0] = dp::mat::complex<double>{3.0, 4.0};
-//   nums.conjugate_inplace();  // SIMD under the hood
+//   dp::mat::vector<dp::mat::complex<double>, 8> data;
+//   Complex<double, 8> view(data);  // Non-owning view
+//   view.conjugate_inplace();       // SIMD under the hood
 //
-// Or use the view() bridge for existing arrays:
+// Or from raw pointer:
 //   dp::mat::complex<double> nums[8];
-//   auto cv = view(nums);  // auto-detect SIMD width
-//   cv.conjugate_inplace();
+//   Complex<double, 8> view(nums);
+//   view.conjugate_inplace();
 // =============================================================================
 
 #include <datapod/matrix/math/complex.hpp>
@@ -33,9 +33,9 @@ namespace optinum::simd {
     namespace dp = ::datapod;
 
     /**
-     * @brief Complex array container with transparent SIMD operations
+     * @brief Non-owning view over complex number arrays with transparent SIMD operations
      *
-     * High-level container for N complex numbers. Operations use SIMD internally
+     * Non-owning view for N complex numbers. Operations use SIMD internally
      * via complex_view. User works with dp::mat::complex<T> directly.
      *
      * Use cases:
@@ -53,47 +53,58 @@ namespace optinum::simd {
         using pod_type = dp::mat::vector<value_type, N>;
         using real_type = T;
         using view_type = complex_view<T, detail::default_width<T>()>;
+        using size_type = std::size_t;
+        using reference = value_type &;
+        using const_reference = const value_type &;
+        using pointer = value_type *;
+        using const_pointer = const value_type *;
+        using iterator = value_type *;
+        using const_iterator = const value_type *;
 
         static constexpr std::size_t extent = N;
         static constexpr std::size_t rank = 1;
 
       private:
-        pod_type pod_;
+        value_type *ptr_;
 
       public:
         // ===== CONSTRUCTORS =====
 
-        constexpr Complex() noexcept : pod_() {}
+        // Default constructor (null view)
+        constexpr Complex() noexcept : ptr_(nullptr) {}
+
+        // Constructor from raw pointer (non-owning view)
+        constexpr explicit Complex(value_type *ptr) noexcept : ptr_(ptr) {}
+
+        // Constructor from pod_type reference (non-owning view)
+        constexpr Complex(pod_type &pod) noexcept : ptr_(pod.data()) {}
+        constexpr Complex(const pod_type &pod) noexcept : ptr_(const_cast<value_type *>(pod.data())) {}
+
+        // Copy/move (shallow - just copies pointer)
         constexpr Complex(const Complex &) = default;
         constexpr Complex(Complex &&) noexcept = default;
         constexpr Complex &operator=(const Complex &) = default;
         constexpr Complex &operator=(Complex &&) noexcept = default;
 
-        // POD constructors (implicit to allow dp::mat::vector<complex> -> simd::Complex conversion)
-        constexpr Complex(const pod_type &p) noexcept : pod_(p) {}
-        constexpr Complex(pod_type &&p) noexcept : pod_(static_cast<pod_type &&>(p)) {}
+        // ===== VALIDITY CHECK =====
+
+        /// Check if view is valid (non-null)
+        [[nodiscard]] constexpr bool valid() const noexcept { return ptr_ != nullptr; }
+        constexpr explicit operator bool() const noexcept { return valid(); }
 
         // ===== ELEMENT ACCESS =====
 
-        [[nodiscard]] constexpr value_type &operator[](std::size_t i) noexcept { return pod_[i]; }
-        [[nodiscard]] constexpr const value_type &operator[](std::size_t i) const noexcept { return pod_[i]; }
+        [[nodiscard]] constexpr reference operator[](std::size_t i) noexcept { return ptr_[i]; }
+        [[nodiscard]] constexpr const_reference operator[](std::size_t i) const noexcept { return ptr_[i]; }
 
         // ===== RAW DATA ACCESS =====
 
-        [[nodiscard]] constexpr value_type *data() noexcept { return pod_.data(); }
-        [[nodiscard]] constexpr const value_type *data() const noexcept { return pod_.data(); }
-
-        // Get underlying pod
-        [[nodiscard]] constexpr pod_type &pod() noexcept { return pod_; }
-        [[nodiscard]] constexpr const pod_type &pod() const noexcept { return pod_; }
-
-        // Implicit conversion to pod_type (allows simd::Complex -> dp::mat::vector<complex>)
-        constexpr operator pod_type &() noexcept { return pod_; }
-        constexpr operator const pod_type &() const noexcept { return pod_; }
+        [[nodiscard]] constexpr pointer data() noexcept { return ptr_; }
+        [[nodiscard]] constexpr const_pointer data() const noexcept { return ptr_; }
 
         // Get SIMD view (for advanced operations)
-        [[nodiscard]] view_type as_view() noexcept { return view(pod_); }
-        [[nodiscard]] view_type as_view() const noexcept { return view(pod_); }
+        [[nodiscard]] view_type as_view() noexcept { return view_type(ptr_, N); }
+        [[nodiscard]] view_type as_view() const noexcept { return view_type(const_cast<value_type *>(ptr_), N); }
 
         // ===== SIZE =====
 
@@ -101,96 +112,65 @@ namespace optinum::simd {
 
         // ===== FILL OPERATIONS =====
 
-        constexpr void fill(const value_type &val) noexcept {
+        constexpr Complex &fill(const value_type &val) noexcept {
             for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] = val;
+                ptr_[i] = val;
             }
+            return *this;
         }
 
-        constexpr void fill_real(T real_val) noexcept {
+        constexpr Complex &fill_real(T real_val) noexcept {
             for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] = value_type{real_val, T{}};
+                ptr_[i] = value_type{real_val, T{}};
             }
-        }
-
-        // ===== FACTORY FUNCTIONS =====
-
-        [[nodiscard]] static constexpr Complex zeros() noexcept {
-            Complex c;
-            c.fill(value_type{T{}, T{}});
-            return c;
-        }
-
-        [[nodiscard]] static constexpr Complex ones() noexcept {
-            Complex c;
-            c.fill(value_type{T{1}, T{}});
-            return c;
-        }
-
-        [[nodiscard]] static constexpr Complex unit_imaginary() noexcept {
-            Complex c;
-            c.fill(value_type{T{}, T{1}});
-            return c;
+            return *this;
         }
 
         // ===== IN-PLACE OPERATIONS (SIMD accelerated) =====
 
-        void conjugate_inplace() noexcept { as_view().conjugate_inplace(); }
-
-        void normalize_inplace() noexcept { as_view().normalize_inplace(); }
-
-        void negate_inplace() noexcept { as_view().negate_inplace(); }
-
-        void scale_inplace(T scalar) noexcept { as_view().scale_inplace(scalar); }
-
-        // ===== OPERATIONS RETURNING NEW ARRAY =====
-
-        [[nodiscard]] Complex conjugate() const noexcept {
-            Complex result;
-            (void)as_view().conjugate_to(result.data());
-            return result;
+        Complex &conjugate_inplace() noexcept {
+            as_view().conjugate_inplace();
+            return *this;
         }
 
-        [[nodiscard]] Complex normalized() const noexcept {
-            Complex result;
-            (void)as_view().normalized_to(result.data());
-            return result;
+        Complex &normalize_inplace() noexcept {
+            as_view().normalize_inplace();
+            return *this;
         }
 
-        // ===== BINARY OPERATIONS =====
-
-        [[nodiscard]] Complex operator+(const Complex &other) const noexcept {
-            Complex result;
-            (void)as_view().add_to(other.as_view(), result.data());
-            return result;
+        Complex &negate_inplace() noexcept {
+            as_view().negate_inplace();
+            return *this;
         }
 
-        [[nodiscard]] Complex operator-(const Complex &other) const noexcept {
-            Complex result;
-            (void)as_view().subtract_to(other.as_view(), result.data());
-            return result;
+        Complex &scale_inplace(T scalar) noexcept {
+            as_view().scale_inplace(scalar);
+            return *this;
         }
 
-        [[nodiscard]] Complex operator*(const Complex &other) const noexcept {
-            Complex result;
-            (void)as_view().multiply_to(other.as_view(), result.data());
-            return result;
+        // ===== OPERATIONS WRITING TO OUTPUT =====
+
+        void conjugate_to(value_type *out) const noexcept { (void)as_view().conjugate_to(out); }
+
+        void normalized_to(value_type *out) const noexcept { (void)as_view().normalized_to(out); }
+
+        // ===== BINARY OPERATIONS (writing to output) =====
+
+        void add_to(const Complex &other, value_type *out) const noexcept {
+            (void)as_view().add_to(other.as_view(), out);
         }
 
-        [[nodiscard]] Complex operator/(const Complex &other) const noexcept {
-            Complex result;
-            (void)as_view().divide_to(other.as_view(), result.data());
-            return result;
+        void subtract_to(const Complex &other, value_type *out) const noexcept {
+            (void)as_view().subtract_to(other.as_view(), out);
         }
 
-        // Scalar multiplication
-        [[nodiscard]] Complex operator*(T scalar) const noexcept {
-            Complex result = *this;
-            result.scale_inplace(scalar);
-            return result;
+        void multiply_to(const Complex &other, value_type *out) const noexcept {
+            (void)as_view().multiply_to(other.as_view(), out);
         }
 
-        [[nodiscard]] friend Complex operator*(T scalar, const Complex &c) noexcept { return c * scalar; }
+        void divide_to(const Complex &other, value_type *out) const noexcept {
+            (void)as_view().divide_to(other.as_view(), out);
+        }
 
         // ===== COMPOUND ASSIGNMENT =====
 
@@ -221,13 +201,13 @@ namespace optinum::simd {
 
         // ===== REDUCTION OPERATIONS =====
 
-        void magnitudes(T *out) const noexcept { as_view().magnitudes_to(out); }
+        void magnitudes_to(T *out) const noexcept { as_view().magnitudes_to(out); }
 
-        void phases(T *out) const noexcept { as_view().phases_to(out); }
+        void phases_to(T *out) const noexcept { as_view().phases_to(out); }
 
-        void real_parts(T *out) const noexcept { as_view().real_parts_to(out); }
+        void real_parts_to(T *out) const noexcept { as_view().real_parts_to(out); }
 
-        void imag_parts(T *out) const noexcept { as_view().imag_parts_to(out); }
+        void imag_parts_to(T *out) const noexcept { as_view().imag_parts_to(out); }
 
         [[nodiscard]] value_type sum() const noexcept { return as_view().sum(); }
 
@@ -237,10 +217,14 @@ namespace optinum::simd {
 
         friend std::ostream &operator<<(std::ostream &os, const Complex &c) {
             os << "[";
-            for (std::size_t i = 0; i < N; ++i) {
-                os << "(" << c[i].real << "+" << c[i].imag << "i)";
-                if (i + 1 < N)
-                    os << ", ";
+            if (c.valid()) {
+                for (std::size_t i = 0; i < N; ++i) {
+                    os << "(" << c[i].real << "+" << c[i].imag << "i)";
+                    if (i + 1 < N)
+                        os << ", ";
+                }
+            } else {
+                os << "null";
             }
             os << "]";
             return os;
@@ -248,10 +232,12 @@ namespace optinum::simd {
 
         // ===== ITERATORS =====
 
-        value_type *begin() noexcept { return pod_.data(); }
-        value_type *end() noexcept { return pod_.data() + N; }
-        const value_type *begin() const noexcept { return pod_.data(); }
-        const value_type *end() const noexcept { return pod_.data() + N; }
+        iterator begin() noexcept { return ptr_; }
+        iterator end() noexcept { return ptr_ + N; }
+        const_iterator begin() const noexcept { return ptr_; }
+        const_iterator end() const noexcept { return ptr_ + N; }
+        const_iterator cbegin() const noexcept { return ptr_; }
+        const_iterator cend() const noexcept { return ptr_ + N; }
     };
 
     // ===== TYPE ALIASES =====

@@ -13,10 +13,10 @@
 namespace optinum::lina {
 
     /**
-     * Compute Kronecker product A ⊗ B
+     * Compute Kronecker product A x B
      *
      * For A (m x n) and B (p x q), the result is (mp x nq) where:
-     *   (A ⊗ B)[i*p + k, j*q + l] = A[i,j] * B[k,l]
+     *   (A x B)[i*p + k, j*q + l] = A[i,j] * B[k,l]
      *
      * Each element of A multiplies the entire matrix B.
      *
@@ -28,12 +28,14 @@ namespace optinum::lina {
      * @return Kronecker product (MP x NQ)
      */
     template <typename T, std::size_t M, std::size_t N, std::size_t P, std::size_t Q>
-    [[nodiscard]] simd::Matrix<T, M * P, N * Q> kron(const simd::Matrix<T, M, N> &a,
-                                                     const simd::Matrix<T, P, Q> &b) noexcept {
-        simd::Matrix<T, M * P, N * Q> result{};
+    [[nodiscard]] datapod::mat::matrix<T, M * P, N * Q> kron(const simd::Matrix<T, M, N> &a,
+                                                             const simd::Matrix<T, P, Q> &b) noexcept {
+        datapod::mat::matrix<T, M * P, N * Q> result;
+        result.fill(T{});
 
         // Temporary buffer for scaled B (a_ij * B)
-        simd::Matrix<T, P, Q> scaled_b{};
+        datapod::mat::matrix<T, P, Q> scaled_b_pod;
+        simd::Matrix<T, P, Q> scaled_b(scaled_b_pod);
 
         // For each element of A
         for (std::size_t i = 0; i < M; ++i) {

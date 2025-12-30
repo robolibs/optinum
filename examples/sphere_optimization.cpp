@@ -2,19 +2,18 @@
 #include <optinum/opti/problem/sphere.hpp>
 #include <optinum/optinum.hpp>
 
+namespace dp = datapod;
+
 int main() {
     // Sphere function: f(x) = sum(x_i^2)
     // Global minimum at origin: f(0,0,0) = 0
     optinum::opti::Sphere<double, 3> sphere;
 
-    // Starting point
-    optinum::Vector<double, 3> x;
-    x[0] = 5.0;
-    x[1] = -3.0;
-    x[2] = 7.0;
+    // Starting point - use dp::mat::vector for owning storage
+    dp::mat::vector<double, 3> x{{5.0, -3.0, 7.0}};
 
     // Gradient storage
-    optinum::Vector<double, 3> g;
+    dp::mat::vector<double, 3> g;
 
     // Simple gradient descent
     double lr = 0.1; // learning rate

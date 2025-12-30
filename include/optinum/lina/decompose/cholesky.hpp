@@ -5,6 +5,7 @@
 // Cholesky factorization for symmetric positive definite matrices
 // =============================================================================
 
+#include <datapod/matrix/matrix.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 
@@ -14,8 +15,10 @@
 
 namespace optinum::lina {
 
+    namespace dp = ::datapod;
+
     template <typename T, std::size_t N> struct Cholesky {
-        simd::Matrix<T, N, N> l{};
+        dp::mat::matrix<T, N, N> l{}; // Owning storage for L
         bool success = true;
     };
 
@@ -24,7 +27,10 @@ namespace optinum::lina {
         static_assert(std::is_floating_point_v<T>, "cholesky() currently requires floating-point T");
 
         Cholesky<T, N> out;
-        out.l.fill(T{});
+        // Initialize L to zero
+        for (std::size_t i = 0; i < N * N; ++i) {
+            out.l.data()[i] = T{};
+        }
 
         for (std::size_t i = 0; i < N; ++i) {
             for (std::size_t j = 0; j <= i; ++j) {
@@ -79,6 +85,13 @@ namespace optinum::lina {
         }
 
         return out;
+    }
+
+    // Overload for dp::mat::matrix input
+    template <typename T, std::size_t N>
+    [[nodiscard]] Cholesky<T, N> cholesky(const dp::mat::matrix<T, N, N> &a) noexcept {
+        simd::Matrix<T, N, N> view(const_cast<dp::mat::matrix<T, N, N> &>(a));
+        return cholesky(view);
     }
 
 } // namespace optinum::lina

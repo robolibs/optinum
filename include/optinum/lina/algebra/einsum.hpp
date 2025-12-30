@@ -48,7 +48,7 @@ namespace optinum::lina {
 
         if constexpr (einsum_detail::is_matrix_v<A>) {
             if constexpr (s == "ij->ji") {
-                return simd::transpose(a);
+                return transpose(a);
             } else if constexpr (s == "ij->ij") {
                 return a;
             } else {

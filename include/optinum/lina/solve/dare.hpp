@@ -86,85 +86,33 @@ namespace optinum::lina {
      * ```
      */
     template <typename T, std::size_t N, std::size_t M>
-    inline simd::Matrix<T, N, N> dare(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B,
-                                      const simd::Matrix<T, N, N> &Q, const simd::Matrix<T, M, M> &R,
-                                      std::size_t max_iterations = 150, T tolerance = T(1e-6)) {
-
-        // Get runtime sizes for Dynamic matrices
-        const std::size_t n = A.rows();
-        const std::size_t m = B.cols();
+    inline datapod::mat::matrix<T, N, N> dare(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B,
+                                              const simd::Matrix<T, N, N> &Q, const simd::Matrix<T, M, M> &R,
+                                              std::size_t max_iterations = 150, T tolerance = T(1e-6)) {
+        static_assert(N != simd::Dynamic && M != simd::Dynamic, "dare() currently requires fixed-size matrices");
 
         // Validate dimensions
-        if constexpr (N != simd::Dynamic) {
-            static_assert(N > 0, "State dimension N must be > 0");
-        }
-        if constexpr (M != simd::Dynamic) {
-            static_assert(M > 0, "Control dimension M must be > 0");
-        }
-
-        // Runtime dimension checks
-        if (A.cols() != n) {
-            throw std::invalid_argument("dare: A must be square");
-        }
-        if (B.rows() != n) {
-            throw std::invalid_argument("dare: B must have same number of rows as A");
-        }
-        if (Q.rows() != n || Q.cols() != n) {
-            throw std::invalid_argument("dare: Q must have same dimensions as A");
-        }
-        if (R.rows() != m || R.cols() != m) {
-            throw std::invalid_argument("dare: R must be square with size matching B columns");
-        }
+        static_assert(N > 0, "State dimension N must be > 0");
+        static_assert(M > 0, "Control dimension M must be > 0");
 
         // Initialize P with Q (standard initial guess)
-        simd::Matrix<T, N, N> P = Q;
-        simd::Matrix<T, N, N> P_next;
-        if constexpr (N == simd::Dynamic) {
-            P_next = simd::Matrix<T, N, N>(n, n);
-        }
-
-        // Preallocate intermediate matrices to avoid repeated allocations
-        simd::Matrix<T, N, N> AT;
-        simd::Matrix<T, N, N> AT_P;
-        simd::Matrix<T, N, N> AT_P_A;
-        simd::Matrix<T, N, N> P_A;
-        simd::Matrix<T, N, M> P_B;
-        simd::Matrix<T, M, N> BT_P;
-        simd::Matrix<T, M, M> BT_P_B;
-        simd::Matrix<T, M, M> R_plus_BT_P_B;
-        simd::Matrix<T, M, N> BT_P_A;
-        simd::Matrix<T, N, M> AT_P_B;
-        simd::Matrix<T, N, N> correction;
-
-        if constexpr (N == simd::Dynamic || M == simd::Dynamic) {
-            AT = simd::Matrix<T, N, N>(n, n);
-            AT_P = simd::Matrix<T, N, N>(n, n);
-            AT_P_A = simd::Matrix<T, N, N>(n, n);
-            P_A = simd::Matrix<T, N, N>(n, n);
-            P_B = simd::Matrix<T, N, M>(n, m);
-            BT_P = simd::Matrix<T, M, N>(m, n);
-            BT_P_A = simd::Matrix<T, M, N>(m, n);
-            AT_P_B = simd::Matrix<T, N, M>(n, m);
-            BT_P_B = simd::Matrix<T, M, M>(m, m);
-            R_plus_BT_P_B = simd::Matrix<T, M, M>(m, m);
-            correction = simd::Matrix<T, N, N>(n, n);
-        }
+        datapod::mat::matrix<T, N, N> P;
+        for (std::size_t i = 0; i < N * N; ++i)
+            P[i] = Q[i];
 
         // Fixed-point iteration
         for (std::size_t it = 0; it < max_iterations; ++it) {
             // Step 1: Compute A^T * P * A
-            AT = lina::transpose(A);
-            AT_P = lina::matmul(AT, P);
-            AT_P_A = lina::matmul(AT_P, A);
+            auto AT = lina::transpose(A);
+            auto AT_P = lina::matmul(AT, P);
+            auto AT_P_A = lina::matmul(AT_P, A);
 
             // Step 2: Compute B^T * P * B
-            P_B = lina::matmul(P, B);
-            BT_P = lina::matmul(lina::transpose(B), P);
-            BT_P_B = lina::matmul(BT_P, B);
+            auto BT_P = lina::matmul(lina::transpose(B), P);
+            auto BT_P_B = lina::matmul(BT_P, B);
 
             // Step 3: Compute (R + B^T * P * B)^{-1}
-            // Add R to B^T * P * B (SIMD accelerated)
-            R_plus_BT_P_B = R + BT_P_B;
+            auto R_plus_BT_P_B = lina::add(BT_P_B, R);
 
             // For scalar case (M=1), direct inversion
             if constexpr (M == 1) {
@@ -180,18 +128,18 @@ namespace optinum::lina {
             }
 
             // Step 4: Compute B^T * P * A
-            BT_P_A = lina::matmul(BT_P, A);
+            auto BT_P_A = lina::matmul(BT_P, A);
 
             // Step 5: Compute A^T * P * B * (R + B^T * P * B)^{-1} * B^T * P * A
-            AT_P_B = lina::matmul(AT_P, B);
+            auto AT_P_B = lina::matmul(AT_P, B);
             auto temp1 = lina::matmul(AT_P_B, R_plus_BT_P_B);
-            correction = lina::matmul(temp1, BT_P_A);
+            auto correction = lina::matmul(temp1, BT_P_A);
 
             // Step 6: Update P = A^T * P * A - correction + Q (SIMD accelerated)
-            P_next = AT_P_A - correction + Q;
+            auto P_next = lina::add(lina::sub(AT_P_A, correction), Q);
 
             // Step 7: Check convergence (Frobenius norm of difference - SIMD accelerated)
-            auto diff = P_next - P;
+            auto diff = lina::sub(P_next, P);
             T diff_norm = lina::norm_fro(diff);
 
             // Update P
@@ -226,9 +174,10 @@ namespace optinum::lina {
      *
      * @return K LQR gain matrix (M x N)
      */
-    template <typename T, std::size_t N, std::size_t M>
-    inline simd::Matrix<T, M, N> lqr_gain(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B,
-                                          const simd::Matrix<T, M, M> &R, const simd::Matrix<T, N, N> &P) {
+    template <typename T, std::size_t N, std::size_t M, typename PMatrix>
+    inline datapod::mat::matrix<T, M, N> lqr_gain(const simd::Matrix<T, N, N> &A, const simd::Matrix<T, N, M> &B,
+                                                  const simd::Matrix<T, M, M> &R, const PMatrix &P) {
+        static_assert(N != simd::Dynamic && M != simd::Dynamic, "lqr_gain() currently requires fixed-size matrices");
 
         // Compute B^T * P
         auto BT_P = lina::matmul(lina::transpose(B), P);
@@ -237,8 +186,7 @@ namespace optinum::lina {
         auto BT_P_B = lina::matmul(BT_P, B);
 
         // Compute R + B^T * P * B (SIMD accelerated)
-        auto R_plus_BT_P_B = R + BT_P_B;
-        const std::size_t m = R.rows();
+        auto R_plus_BT_P_B = lina::add(BT_P_B, R);
 
         // Compute (R + B^T * P * B)^{-1}
         // For scalar case (M=1), use direct division to avoid inverse() on Dynamic matrices
@@ -253,7 +201,7 @@ namespace optinum::lina {
             auto BT_P_A = lina::matmul(BT_P, A);
 
             // K = (1/denom) * B^T * P * A (SIMD accelerated scalar multiplication)
-            return inv_scalar * BT_P_A;
+            return lina::scale(inv_scalar, BT_P_A);
         } else {
             auto inv_term = lina::inverse(R_plus_BT_P_B);
 
@@ -261,9 +209,7 @@ namespace optinum::lina {
             auto BT_P_A = lina::matmul(BT_P, A);
 
             // Compute K = (R + B^T * P * B)^{-1} * B^T * P * A
-            auto K = lina::matmul(inv_term, BT_P_A);
-
-            return K;
+            return lina::matmul(inv_term, BT_P_A);
         }
     }
 

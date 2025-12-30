@@ -24,6 +24,7 @@
 #include <optinum/lie/core/concepts.hpp>
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/so3.hpp>
+#include <optinum/simd/datapods.hpp>
 #include <optinum/simd/pack/pack.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -34,6 +35,12 @@
 #include <vector>
 
 namespace optinum::lie {
+
+    // Bring in operators for dp::mat::vector from simd namespace
+    using optinum::simd::operator+=;
+    using optinum::simd::operator-=;
+    using optinum::simd::operator*=;
+    using optinum::simd::operator/=;
 
     // ===== ITERATIVE BIINVARIANT MEAN =====
     //
@@ -83,12 +90,12 @@ namespace optinum::lie {
             Tangent v_sum = (mean_inv * G(*it)).log();
             ++it;
 
-            // Add remaining logs - use SIMD operators
+            // Add remaining logs
             for (; it != std::end(elements); ++it) {
                 v_sum += (mean_inv * G(*it)).log();
             }
 
-            // Scale by 1/n - use SIMD operator
+            // Scale by 1/n
             v_sum *= inv_n;
 
             // Check convergence: ||v||^2 < tolerance^2

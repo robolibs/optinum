@@ -5,6 +5,7 @@
 // Minimal expression templates for rank-1/2 elementwise + scalar ops
 // =============================================================================
 
+#include <datapod/matrix.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -13,6 +14,8 @@
 #include <type_traits>
 
 namespace optinum::lina::expr {
+
+    namespace dp = ::datapod;
 
     // -------------------------------------------------------------------------
     // Vector expressions
@@ -69,12 +72,12 @@ namespace optinum::lina::expr {
         return VecScale<E>(e, s);
     }
 
-    // Specialized eval() for VecAdd - use SIMD backend
+    // Specialized eval() for VecAdd - use SIMD backend (returns owning type)
     template <typename L, typename R>
-    [[nodiscard]] constexpr simd::Vector<typename L::value_type, L::size> eval(const VecAdd<L, R> &e) noexcept {
+    [[nodiscard]] constexpr dp::mat::vector<typename L::value_type, L::size> eval(const VecAdd<L, R> &e) noexcept {
         auto lhs = eval(e.l);
         auto rhs = eval(e.r);
-        simd::Vector<typename L::value_type, L::size> out;
+        dp::mat::vector<typename L::value_type, L::size> out;
 
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < L::size; ++i) {
@@ -87,11 +90,11 @@ namespace optinum::lina::expr {
         return out;
     }
 
-    // Specialized eval() for VecScale - use SIMD backend
+    // Specialized eval() for VecScale - use SIMD backend (returns owning type)
     template <typename E>
-    [[nodiscard]] constexpr simd::Vector<typename E::value_type, E::size> eval(const VecScale<E> &e) noexcept {
+    [[nodiscard]] constexpr dp::mat::vector<typename E::value_type, E::size> eval(const VecScale<E> &e) noexcept {
         auto src = eval(e.e);
-        simd::Vector<typename E::value_type, E::size> out;
+        dp::mat::vector<typename E::value_type, E::size> out;
 
         if (std::is_constant_evaluated()) {
             for (std::size_t i = 0; i < E::size; ++i) {
@@ -104,17 +107,21 @@ namespace optinum::lina::expr {
         return out;
     }
 
-    // Specialized eval() for VecRef - just return the vector
+    // Specialized eval() for VecRef - copy to owning type
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr const simd::Vector<T, N> &eval(const VecRef<T, N> &e) noexcept {
-        return *e.ptr;
+    [[nodiscard]] constexpr dp::mat::vector<T, N> eval(const VecRef<T, N> &e) noexcept {
+        dp::mat::vector<T, N> out;
+        for (std::size_t i = 0; i < N; ++i) {
+            out[i] = (*e.ptr)[i];
+        }
+        return out;
     }
 
-    // Generic fallback for other expression types - scalar loop
+    // Generic fallback for other expression types - scalar loop (returns owning type)
     template <typename E>
     requires requires { E::size; }
-    [[nodiscard]] constexpr simd::Vector<typename E::value_type, E::size> eval(const E &e) noexcept {
-        simd::Vector<typename E::value_type, E::size> out;
+    [[nodiscard]] constexpr dp::mat::vector<typename E::value_type, E::size> eval(const E &e) noexcept {
+        dp::mat::vector<typename E::value_type, E::size> out;
         for (std::size_t i = 0; i < E::size; ++i) {
             out[i] = e.eval(i);
         }
@@ -184,13 +191,13 @@ namespace optinum::lina::expr {
         return MatScale<E>(e, s);
     }
 
-    // Specialized eval() for MatAdd - use SIMD backend
+    // Specialized eval() for MatAdd - use SIMD backend (returns owning type)
     template <typename L, typename R>
-    [[nodiscard]] constexpr simd::Matrix<typename L::value_type, L::rows, L::cols>
+    [[nodiscard]] constexpr dp::mat::matrix<typename L::value_type, L::rows, L::cols>
     eval(const MatAdd<L, R> &e) noexcept {
         auto lhs = eval(e.l);
         auto rhs = eval(e.r);
-        simd::Matrix<typename L::value_type, L::rows, L::cols> out;
+        dp::mat::matrix<typename L::value_type, L::rows, L::cols> out;
 
         constexpr std::size_t N = L::rows * L::cols;
         if (std::is_constant_evaluated()) {
@@ -204,11 +211,12 @@ namespace optinum::lina::expr {
         return out;
     }
 
-    // Specialized eval() for MatScale - use SIMD backend
+    // Specialized eval() for MatScale - use SIMD backend (returns owning type)
     template <typename E>
-    [[nodiscard]] constexpr simd::Matrix<typename E::value_type, E::rows, E::cols> eval(const MatScale<E> &e) noexcept {
+    [[nodiscard]] constexpr dp::mat::matrix<typename E::value_type, E::rows, E::cols>
+    eval(const MatScale<E> &e) noexcept {
         auto src = eval(e.e);
-        simd::Matrix<typename E::value_type, E::rows, E::cols> out;
+        dp::mat::matrix<typename E::value_type, E::rows, E::cols> out;
 
         constexpr std::size_t N = E::rows * E::cols;
         if (std::is_constant_evaluated()) {
@@ -222,20 +230,24 @@ namespace optinum::lina::expr {
         return out;
     }
 
-    // Specialized eval() for MatRef - just return the matrix
+    // Specialized eval() for MatRef - copy to owning type
     template <typename T, std::size_t R, std::size_t C>
-    [[nodiscard]] constexpr const simd::Matrix<T, R, C> &eval(const MatRef<T, R, C> &e) noexcept {
-        return *e.ptr;
+    [[nodiscard]] constexpr dp::mat::matrix<T, R, C> eval(const MatRef<T, R, C> &e) noexcept {
+        dp::mat::matrix<T, R, C> out;
+        for (std::size_t i = 0; i < R * C; ++i) {
+            out[i] = e.ptr->data()[i];
+        }
+        return out;
     }
 
-    // Generic fallback for other expression types - scalar loop
+    // Generic fallback for other expression types - scalar loop (returns owning type)
     template <typename E>
     requires requires {
         E::rows;
         E::cols;
     }
-    [[nodiscard]] constexpr simd::Matrix<typename E::value_type, E::rows, E::cols> eval(const E &e) noexcept {
-        simd::Matrix<typename E::value_type, E::rows, E::cols> out;
+    [[nodiscard]] constexpr dp::mat::matrix<typename E::value_type, E::rows, E::cols> eval(const E &e) noexcept {
+        dp::mat::matrix<typename E::value_type, E::rows, E::cols> out;
         for (std::size_t j = 0; j < E::cols; ++j) {
             for (std::size_t i = 0; i < E::rows; ++i) {
                 out(i, j) = e.eval(i, j);

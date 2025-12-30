@@ -3,6 +3,7 @@
 // Tests for filter_view - non-owning view over masked/filtered elements
 // =============================================================================
 
+#include <datapod/matrix.hpp>
 #include <doctest/doctest.h>
 #include <optinum/simd/pack/sse.hpp>
 #include <optinum/simd/vector.hpp>
@@ -262,7 +263,9 @@ TEST_CASE("filter_view - Multiple packs") {
 TEST_CASE("filter_view - Integration with Vector") {
     using namespace on::simd;
 
-    on::simd::Vector<float, 8> v;
+    // Create backing storage and view
+    datapod::mat::vector<float, 8> v_storage;
+    on::simd::Vector<float, 8> v(v_storage);
     for (std::size_t i = 0; i < 8; ++i) {
         v[i] = static_cast<float>(i + 1);
     }

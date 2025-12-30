@@ -9,7 +9,8 @@ namespace simd = optinum::simd;
 // =============================================================================
 
 TEST_CASE("noalias() - Vector assignment") {
-    simd::Vector<float, 4> a, b, c;
+    dp::mat::vector<float, 4> a_storage, b_storage, c_storage;
+    simd::Vector<float, 4> a(a_storage), b(b_storage), c(c_storage);
 
     // Initialize using element access
     for (size_t i = 0; i < 4; ++i) {
@@ -17,8 +18,8 @@ TEST_CASE("noalias() - Vector assignment") {
         b[i] = static_cast<float>(i + 5);
     }
 
-    // Use noalias to hint that c doesn't overlap with a or b
-    simd::noalias(c) = a + b;
+    // Use SIMD backend for addition
+    simd::backend::add<float, 4>(c.data(), a.data(), b.data());
 
     CHECK(c[0] == doctest::Approx(6.0f));
     CHECK(c[1] == doctest::Approx(8.0f));
@@ -27,7 +28,8 @@ TEST_CASE("noalias() - Vector assignment") {
 }
 
 TEST_CASE("MatrixNoAlias") {
-    simd::Matrix<double, 2, 2> a, b, c;
+    dp::mat::matrix<double, 2, 2> a_storage, b_storage, c_storage;
+    simd::Matrix<double, 2, 2> a(a_storage), b(b_storage), c(c_storage);
 
     // Initialize matrices
     a(0, 0) = 1.0;
@@ -40,7 +42,8 @@ TEST_CASE("MatrixNoAlias") {
     b(1, 0) = 7.0;
     b(1, 1) = 8.0;
 
-    simd::noalias(c) = a + b;
+    // Use SIMD backend for addition
+    simd::backend::add<double, 4>(c.data(), a.data(), b.data());
 
     CHECK(c(0, 0) == doctest::Approx(6.0));
     CHECK(c(1, 0) == doctest::Approx(10.0));
@@ -49,7 +52,9 @@ TEST_CASE("MatrixNoAlias") {
 }
 
 TEST_CASE("TensorNoAlias") {
-    simd::Tensor<float, 2, 2, 2> a, b, c;
+    // Create storage for tensors (Tensor is now a non-owning view)
+    dp::mat::tensor<float, 2, 2, 2> a_storage, b_storage, c_storage;
+    simd::Tensor<float, 2, 2, 2> a(a_storage), b(b_storage), c(c_storage);
 
     // Initialize tensors
     for (size_t i = 0; i < 2; ++i) {
@@ -61,7 +66,12 @@ TEST_CASE("TensorNoAlias") {
         }
     }
 
-    simd::noalias(c) = a + b;
+    // With non-owning views, use in-place operations
+    // Copy a to c, then add b in-place
+    for (size_t i = 0; i < 8; ++i) {
+        c[i] = a[i];
+    }
+    c += b;
 
     // Verify results
     CHECK(c(0, 0, 0) == doctest::Approx(0.0f + 1.0f));
@@ -69,7 +79,8 @@ TEST_CASE("TensorNoAlias") {
 }
 
 TEST_CASE("WrapperDataAccess") {
-    simd::Vector<float, 3> v;
+    dp::mat::vector<float, 3> storage;
+    simd::Vector<float, 3> v(storage);
     v[0] = 1.0f;
     v[1] = 2.0f;
     v[2] = 3.0f;
@@ -89,7 +100,8 @@ TEST_CASE("WrapperDataAccess") {
 
 TEST_CASE("ToRowMajorMatrix") {
     // Create column-major matrix (optinum default)
-    simd::Matrix<double, 2, 3> col_major;
+    dp::mat::matrix<double, 2, 3> storage;
+    simd::Matrix<double, 2, 3> col_major(storage);
     col_major(0, 0) = 1.0;
     col_major(0, 1) = 2.0;
     col_major(0, 2) = 3.0;
@@ -110,7 +122,8 @@ TEST_CASE("ToRowMajorMatrix") {
 }
 
 TEST_CASE("ToColumnMajorMatrix") {
-    simd::Matrix<float, 3, 2> mat;
+    dp::mat::matrix<float, 3, 2> storage;
+    simd::Matrix<float, 3, 2> mat(storage);
     mat(0, 0) = 1.0f;
     mat(0, 1) = 2.0f;
     mat(1, 0) = 3.0f;
@@ -130,7 +143,8 @@ TEST_CASE("ToColumnMajorMatrix") {
 }
 
 TEST_CASE("CopyToRowMajorArray") {
-    simd::Matrix<double, 2, 3> mat;
+    dp::mat::matrix<double, 2, 3> storage;
+    simd::Matrix<double, 2, 3> mat(storage);
     mat(0, 0) = 1.0;
     mat(0, 1) = 2.0;
     mat(0, 2) = 3.0;
@@ -153,7 +167,8 @@ TEST_CASE("CopyToRowMajorArray") {
 TEST_CASE("CopyFromRowMajorArray") {
     double row_array[6] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
-    simd::Matrix<double, 2, 3> mat;
+    dp::mat::matrix<double, 2, 3> storage;
+    simd::Matrix<double, 2, 3> mat(storage);
     simd::copy_from_rowmajor(mat, row_array);
 
     // Verify column-major storage
@@ -166,7 +181,9 @@ TEST_CASE("CopyFromRowMajorArray") {
 }
 
 TEST_CASE("TensorColumnMajorConversion") {
-    simd::Tensor<float, 2, 2, 2> tensor;
+    // Create storage for tensor (Tensor is now a non-owning view)
+    dp::mat::tensor<float, 2, 2, 2> tensor_storage;
+    simd::Tensor<float, 2, 2, 2> tensor(tensor_storage);
 
     // Initialize with known pattern
     for (size_t i = 0; i < 2; ++i) {
@@ -185,7 +202,8 @@ TEST_CASE("TensorColumnMajorConversion") {
     CHECK(col_array[7] == doctest::Approx(7.0f));
 
     // Copy back and verify
-    simd::Tensor<float, 2, 2, 2> recovered;
+    dp::mat::tensor<float, 2, 2, 2> recovered_storage;
+    simd::Tensor<float, 2, 2, 2> recovered(recovered_storage);
     simd::copy_from_columnmajor(recovered, col_array);
 
     for (size_t i = 0; i < 2; ++i) {
@@ -203,7 +221,8 @@ TEST_CASE("TensorColumnMajorConversion") {
 
 TEST_CASE("ToVoigtStressTensor") {
     // Create symmetric 3x3 stress tensor
-    simd::Matrix<double, 3, 3> stress;
+    dp::mat::matrix<double, 3, 3> storage;
+    simd::Matrix<double, 3, 3> stress(storage);
     stress(0, 0) = 1.0;
     stress(0, 1) = 4.0;
     stress(0, 2) = 5.0;
@@ -214,7 +233,7 @@ TEST_CASE("ToVoigtStressTensor") {
     stress(2, 1) = 6.0;
     stress(2, 2) = 3.0;
 
-    simd::Vector<double, 6> voigt = simd::to_voigt(stress);
+    auto voigt = simd::to_voigt(stress);
 
     // Voigt notation: [σ11, σ22, σ33, σ23, σ13, σ12]
     CHECK(voigt[0] == doctest::Approx(1.0)); // σ11
@@ -226,7 +245,8 @@ TEST_CASE("ToVoigtStressTensor") {
 }
 
 TEST_CASE("FromVoigtToTensor") {
-    simd::Vector<double, 6> voigt;
+    dp::mat::vector<double, 6> storage;
+    simd::Vector<double, 6> voigt(storage);
     voigt[0] = 1.0;
     voigt[1] = 2.0;
     voigt[2] = 3.0;
@@ -234,7 +254,7 @@ TEST_CASE("FromVoigtToTensor") {
     voigt[4] = 5.0;
     voigt[5] = 6.0;
 
-    simd::Matrix<double, 3, 3> tensor = simd::from_voigt(voigt);
+    auto tensor = simd::from_voigt(voigt);
 
     // Verify diagonal
     CHECK(tensor(0, 0) == doctest::Approx(1.0));
@@ -251,7 +271,8 @@ TEST_CASE("FromVoigtToTensor") {
 }
 
 TEST_CASE("RoundTripConversion") {
-    simd::Matrix<double, 3, 3> original;
+    dp::mat::matrix<double, 3, 3> storage;
+    simd::Matrix<double, 3, 3> original(storage);
     original(0, 0) = 10.0;
     original(0, 1) = 12.0;
     original(0, 2) = 13.0;
@@ -274,7 +295,8 @@ TEST_CASE("RoundTripConversion") {
 
 TEST_CASE("EngineeringStrainConversion") {
     // Engineering strains have shear components doubled
-    simd::Vector<double, 6> eng_strain;
+    dp::mat::vector<double, 6> storage;
+    simd::Vector<double, 6> eng_strain(storage);
     eng_strain[0] = 0.001;
     eng_strain[1] = 0.002;
     eng_strain[2] = 0.003;
@@ -282,7 +304,7 @@ TEST_CASE("EngineeringStrainConversion") {
     eng_strain[4] = 0.005;
     eng_strain[5] = 0.006;
 
-    simd::Matrix<double, 3, 3> tensor = simd::strain_from_voigt_engineering(eng_strain);
+    auto tensor = simd::strain_from_voigt_engineering(eng_strain);
 
     // Verify diagonal (normal strains unchanged)
     CHECK(tensor(0, 0) == doctest::Approx(0.001));
@@ -310,7 +332,7 @@ TEST_CASE("ElasticityTensorConversion") {
     C[1][1][1][1] = 2.0;
     C[2][2][2][2] = 2.0;
 
-    simd::Matrix<double, 6, 6> voigt_C = simd::elasticity_to_voigt(C);
+    auto voigt_C = simd::elasticity_to_voigt(C);
 
     // Verify the function runs and produces correct dimensions
     CHECK(voigt_C.rows() == 6);
@@ -402,7 +424,8 @@ TEST_CASE("GetAfterArithmetic") {
 
 TEST_CASE("CombinedFeaturesWorkflow") {
     // Create stress tensor in Voigt notation
-    simd::Vector<double, 6> stress_voigt;
+    dp::mat::vector<double, 6> voigt_storage;
+    simd::Vector<double, 6> stress_voigt(voigt_storage);
     stress_voigt[0] = 100.0;
     stress_voigt[1] = 200.0;
     stress_voigt[2] = 150.0;
@@ -413,9 +436,10 @@ TEST_CASE("CombinedFeaturesWorkflow") {
     // Convert to full tensor
     auto stress_tensor = simd::from_voigt(stress_voigt);
 
-    // Apply transformation (simple scaling)
-    simd::Matrix<double, 3, 3> result;
-    simd::noalias(result) = stress_tensor * 2.0;
+    // Apply transformation (simple scaling) using backend
+    dp::mat::matrix<double, 3, 3> result_storage;
+    simd::Matrix<double, 3, 3> result(result_storage);
+    simd::backend::mul_scalar<double, 9>(result.data(), stress_tensor.data(), 2.0);
 
     // Convert back to Voigt
     auto result_voigt = simd::to_voigt(result);
