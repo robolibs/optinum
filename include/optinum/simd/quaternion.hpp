@@ -198,6 +198,8 @@ namespace optinum::simd {
         pointer end() noexcept { return ptr_ + size_; }
         const_pointer begin() const noexcept { return ptr_; }
         const_pointer end() const noexcept { return ptr_ + size_; }
+        const_pointer cbegin() const noexcept { return ptr_; }
+        const_pointer cend() const noexcept { return ptr_ + size_; }
     };
 
     // ===== TYPE ALIASES =====

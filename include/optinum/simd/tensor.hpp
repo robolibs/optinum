@@ -2,7 +2,9 @@
 
 #include <datapod/matrix/tensor.hpp>
 #include <iostream>
+#include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/backend/norm.hpp>
 #include <optinum/simd/backend/reduce.hpp>
 
 #include <type_traits>
@@ -344,7 +346,7 @@ namespace optinum::simd {
     }
 
     // Common operations
-    template <typename T, std::size_t... Dims> constexpr T sum(const Tensor<T, Dims...> &t) noexcept {
+    template <typename T, std::size_t... Dims> [[nodiscard]] constexpr T sum(const Tensor<T, Dims...> &t) noexcept {
         constexpr auto N = Tensor<T, Dims...>::total_size;
         if (std::is_constant_evaluated()) {
             T result{};
@@ -353,6 +355,27 @@ namespace optinum::simd {
             return result;
         }
         return backend::reduce_sum<T, N>(t.data());
+    }
+
+    template <typename T, std::size_t... Dims>
+    [[nodiscard]] constexpr T dot(const Tensor<T, Dims...> &lhs, const Tensor<T, Dims...> &rhs) noexcept {
+        constexpr auto N = Tensor<T, Dims...>::total_size;
+        if (std::is_constant_evaluated()) {
+            T result{};
+            for (std::size_t i = 0; i < N; ++i)
+                result += lhs[i] * rhs[i];
+            return result;
+        }
+        return backend::dot<T, N>(lhs.data(), rhs.data());
+    }
+
+    template <typename T, std::size_t... Dims> [[nodiscard]] T norm(const Tensor<T, Dims...> &t) noexcept {
+        constexpr auto N = Tensor<T, Dims...>::total_size;
+        return backend::norm_l2<T, N>(t.data());
+    }
+
+    template <typename T, std::size_t... Dims> [[nodiscard]] T norm_squared(const Tensor<T, Dims...> &t) noexcept {
+        return dot(t, t);
     }
 
     // =============================================================================

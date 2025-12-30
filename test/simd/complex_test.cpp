@@ -108,3 +108,27 @@ TEST_CASE("Complex real/imag extraction") {
     CHECK(imags[1] == doctest::Approx(4.0));
     CHECK(imags[2] == doctest::Approx(6.0));
 }
+
+TEST_CASE("Complex scalar multiplication and division") {
+    dp::mat::vector<dp::mat::complex<double>, 2> data;
+    data[0] = dp::mat::complex<double>{2.0, 4.0};
+    data[1] = dp::mat::complex<double>{6.0, 8.0};
+
+    simd::Complex<double, 2> c(data);
+
+    SUBCASE("operator*=(T scalar)") {
+        c *= 2.0;
+        CHECK(c[0].real == doctest::Approx(4.0));
+        CHECK(c[0].imag == doctest::Approx(8.0));
+        CHECK(c[1].real == doctest::Approx(12.0));
+        CHECK(c[1].imag == doctest::Approx(16.0));
+    }
+
+    SUBCASE("operator/=(T scalar)") {
+        c /= 2.0;
+        CHECK(c[0].real == doctest::Approx(1.0));
+        CHECK(c[0].imag == doctest::Approx(2.0));
+        CHECK(c[1].real == doctest::Approx(3.0));
+        CHECK(c[1].imag == doctest::Approx(4.0));
+    }
+}

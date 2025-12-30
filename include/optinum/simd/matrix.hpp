@@ -524,7 +524,7 @@ namespace optinum::simd {
     // =============================================================================
 
     // Trace (square matrices only)
-    template <typename T, std::size_t N> constexpr T trace(const Matrix<T, N, N> &mat) noexcept {
+    template <typename T, std::size_t N> [[nodiscard]] constexpr T trace(const Matrix<T, N, N> &mat) noexcept {
         static_assert(N != Dynamic, "trace() requires fixed-size matrix");
         if (std::is_constant_evaluated()) {
             T r{};
@@ -547,9 +547,26 @@ namespace optinum::simd {
     }
 
     // Frobenius norm
-    template <typename T, std::size_t R, std::size_t C> T frobenius_norm(const Matrix<T, R, C> &mat) noexcept {
+    template <typename T, std::size_t R, std::size_t C>
+    [[nodiscard]] T frobenius_norm(const Matrix<T, R, C> &mat) noexcept {
         static_assert(R != Dynamic && C != Dynamic, "frobenius_norm() requires fixed-size matrix");
         return std::sqrt(backend::dot<T, R * C>(mat.data(), mat.data()));
+    }
+
+    // Sum of all elements
+    template <typename T, std::size_t R, std::size_t C>
+    [[nodiscard]] constexpr T sum(const Matrix<T, R, C> &m) noexcept {
+        if (std::is_constant_evaluated()) {
+            T result{};
+            for (std::size_t i = 0; i < m.size(); ++i)
+                result += m[i];
+            return result;
+        }
+        if constexpr (R == Dynamic || C == Dynamic) {
+            return backend::reduce_sum_runtime<T>(m.data(), m.size());
+        } else {
+            return backend::reduce_sum<T, R * C>(m.data());
+        }
     }
 
     // =============================================================================

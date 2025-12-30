@@ -413,7 +413,8 @@ namespace optinum::simd {
     // Common operations (return scalars, no allocation needed)
     // =============================================================================
 
-    template <typename T, std::size_t N> constexpr T dot(const Vector<T, N> &lhs, const Vector<T, N> &rhs) noexcept {
+    template <typename T, std::size_t N>
+    [[nodiscard]] constexpr T dot(const Vector<T, N> &lhs, const Vector<T, N> &rhs) noexcept {
         if (std::is_constant_evaluated()) {
             T result{};
             for (std::size_t i = 0; i < lhs.size(); ++i)
@@ -427,7 +428,7 @@ namespace optinum::simd {
         }
     }
 
-    template <typename T, std::size_t N> constexpr T sum(const Vector<T, N> &v) noexcept {
+    template <typename T, std::size_t N> [[nodiscard]] constexpr T sum(const Vector<T, N> &v) noexcept {
         if (std::is_constant_evaluated()) {
             T result{};
             for (std::size_t i = 0; i < v.size(); ++i)
@@ -441,7 +442,7 @@ namespace optinum::simd {
         }
     }
 
-    template <typename T, std::size_t N> T norm(const Vector<T, N> &v) noexcept {
+    template <typename T, std::size_t N> [[nodiscard]] T norm(const Vector<T, N> &v) noexcept {
         if constexpr (N == Dynamic) {
             return backend::norm_l2_runtime<T>(v.data(), v.size());
         } else {
@@ -449,7 +450,9 @@ namespace optinum::simd {
         }
     }
 
-    template <typename T, std::size_t N> T norm_squared(const Vector<T, N> &v) noexcept { return dot(v, v); }
+    template <typename T, std::size_t N> [[nodiscard]] T norm_squared(const Vector<T, N> &v) noexcept {
+        return dot(v, v);
+    }
 
     // =============================================================================
     // I/O - Stream output operator

@@ -199,6 +199,11 @@ namespace optinum::simd {
             return *this;
         }
 
+        Complex &operator/=(T scalar) noexcept {
+            scale_inplace(T{1} / scalar);
+            return *this;
+        }
+
         // ===== REDUCTION OPERATIONS =====
 
         void magnitudes_to(T *out) const noexcept { as_view().magnitudes_to(out); }

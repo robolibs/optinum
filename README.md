@@ -294,6 +294,38 @@ void global_search() {
   - No hidden allocations (views are non-owning)
   - Cache-friendly column-major layout (BLAS/LAPACK compatible)
 
+## Error Handling Strategy
+
+Optinum uses a consistent error handling approach designed for real-time and embedded systems:
+
+1. **Fallible operations** use `dp::Result<T, dp::Error>`:
+   - `try_solve()`, `try_inverse()`, `try_lstsq()`, `try_dare()` - return Result
+   - `solve()`, `inverse()`, `lstsq()`, `dare()` - wrapper that returns zero/identity on error
+   ```cpp
+   auto result = on::lina::try_solve(A, b);
+   if (result.is_ok()) {
+       auto x = result.unwrap();
+   } else {
+       // Handle error: result.error().message()
+   }
+   ```
+
+2. **Bounds checking** uses `std::out_of_range` (STL convention):
+   - `at()` methods throw `std::out_of_range`
+   - `operator[]` does debug-only bounds checking (via `assert`)
+
+3. **Optimizers** use status field in result struct:
+   - `OptimizationResult.converged = false` on failure
+   - `OptimizationResult.status` contains error message
+   ```cpp
+   auto result = optimizer.optimize(objective, x);
+   if (!result.converged) {
+       std::cerr << "Optimization failed: " << result.status << "\n";
+   }
+   ```
+
+4. **Never use exceptions** for recoverable errors in new code - prefer `dp::Result` for explicit error handling
+
 ## Module Summary
 
 | Module | Files | Lines | Description |
