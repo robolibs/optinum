@@ -7,6 +7,8 @@
 // Returns mask<T,W> where true indicates finite value
 // =============================================================================
 
+#include <cmath>
+#include <cstring>
 #include <optinum/simd/arch/arch.hpp>
 #include <optinum/simd/mask.hpp>
 #include <optinum/simd/pack/pack.hpp>
@@ -23,8 +25,24 @@
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> mask<T, W> isfinite(const pack<T, W> &x) noexcept;
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // Returns mask where true (all bits set) indicates finite value
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE mask<T, W> isfinite(const pack<T, W> &x) noexcept {
+        mask<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            // Set all bits to 1 if finite, 0 otherwise
+            T mask_val;
+            if (std::isfinite(x.data_[i])) {
+                std::memset(&mask_val, 0xFF, sizeof(T));
+            } else {
+                mask_val = T(0);
+            }
+            result.data_[i] = mask_val;
+        }
+        return result;
+    }
 
     // =========================================================================
     // pack<float, 4> - SSE implementation

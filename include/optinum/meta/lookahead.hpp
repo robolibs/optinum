@@ -127,7 +127,7 @@ namespace optinum::meta {
 
                 // SIMD-accelerated slow weight update and reset
                 // slow = slow + alpha * (fast - slow) = (1-alpha)*slow + alpha*fast
-                constexpr std::size_t W = 4; // AVX: 4 doubles
+                constexpr std::size_t W = simd::backend::default_pack_width<double>();
                 using pack_t = simd::pack<double, W>;
 
                 const pack_t alpha_pack(config.alpha);

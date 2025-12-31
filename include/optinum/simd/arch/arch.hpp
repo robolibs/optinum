@@ -204,6 +204,35 @@
 #endif // RISC-V
 
 // =============================================================================
+// SIMD Disable Override (from build system: -DOPTINUM_SIMD_DISABLED)
+// =============================================================================
+
+#ifdef OPTINUM_SIMD_DISABLED
+// Undefine all SIMD capability macros when SIMD is disabled
+#undef OPTINUM_HAS_SSE
+#undef OPTINUM_HAS_SSE2
+#undef OPTINUM_HAS_SSE3
+#undef OPTINUM_HAS_SSSE3
+#undef OPTINUM_HAS_SSE41
+#undef OPTINUM_HAS_SSE42
+#undef OPTINUM_HAS_AVX
+#undef OPTINUM_HAS_AVX2
+#undef OPTINUM_HAS_AVX512F
+#undef OPTINUM_HAS_AVX512VL
+#undef OPTINUM_HAS_AVX512BW
+#undef OPTINUM_HAS_AVX512DQ
+#undef OPTINUM_HAS_AVX512CD
+#undef OPTINUM_HAS_FMA
+#undef OPTINUM_HAS_F16C
+#undef OPTINUM_HAS_BMI1
+#undef OPTINUM_HAS_BMI2
+#undef OPTINUM_HAS_NEON
+#undef OPTINUM_HAS_SVE
+#undef OPTINUM_HAS_SVE2
+#undef OPTINUM_HAS_RVV
+#endif
+
+// =============================================================================
 // SIMD Level Macros
 // =============================================================================
 
@@ -222,8 +251,22 @@
 #endif
 
 // =============================================================================
-// Include Appropriate SIMD Headers (MUST be outside namespace!)
+// Unified SIMD Availability Macro
 // =============================================================================
+
+#if defined(OPTINUM_HAS_SSE) || defined(OPTINUM_HAS_SSE2) || defined(OPTINUM_HAS_NEON) || defined(OPTINUM_HAS_SVE) ||  \
+    defined(OPTINUM_HAS_RVV)
+#define OPTINUM_HAS_SIMD 1
+#else
+#define OPTINUM_HAS_SIMD 0
+#endif
+
+// =============================================================================
+// Include Appropriate SIMD Headers (MUST be outside namespace!)
+// Only included when SIMD is available and not disabled
+// =============================================================================
+
+#if OPTINUM_HAS_SIMD
 
 #if defined(OPTINUM_HAS_AVX512F)
 #include <immintrin.h>
@@ -248,6 +291,8 @@
 #if defined(OPTINUM_HAS_NEON)
 #include <arm_neon.h>
 #endif
+
+#endif // OPTINUM_HAS_SIMD
 
 // =============================================================================
 // Namespace with constexpr constants and query functions
@@ -366,6 +411,14 @@ namespace optinum::simd::arch {
 
     [[nodiscard]] consteval bool has_sve() noexcept {
 #if defined(OPTINUM_HAS_SVE)
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    [[nodiscard]] consteval bool has_simd() noexcept {
+#if OPTINUM_HAS_SIMD
         return true;
 #else
         return false;

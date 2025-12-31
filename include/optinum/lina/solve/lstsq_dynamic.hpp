@@ -226,7 +226,7 @@ namespace optinum::lina {
         // (Ax)[i] = sum_j A[i,j] * x[j]
         // = sum_j (column j of A)[i] * x[j]
         r.fill(T{});
-        constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+        constexpr std::size_t W = simd::backend::default_pack_width<T>();
         for (std::size_t j = 0; j < n; ++j) {
             const T xj = x[j];
             const T *a_col = a.data() + j * m;

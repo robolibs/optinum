@@ -8,6 +8,8 @@
 // Property: NaN != NaN, so we compare x with itself
 // =============================================================================
 
+#include <cmath>
+#include <cstring>
 #include <optinum/simd/arch/arch.hpp>
 #include <optinum/simd/mask.hpp>
 #include <optinum/simd/pack/pack.hpp>
@@ -24,8 +26,24 @@
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> mask<T, W> isnan(const pack<T, W> &x) noexcept;
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // Returns mask where true (all bits set) indicates NaN
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE mask<T, W> isnan(const pack<T, W> &x) noexcept {
+        mask<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            // Set all bits to 1 if NaN, 0 otherwise
+            T mask_val;
+            if (std::isnan(x.data_[i])) {
+                std::memset(&mask_val, 0xFF, sizeof(T));
+            } else {
+                mask_val = T(0);
+            }
+            result.data_[i] = mask_val;
+        }
+        return result;
+    }
 
     // =========================================================================
     // pack<float, 4> - SSE implementation

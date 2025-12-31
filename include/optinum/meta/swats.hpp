@@ -200,7 +200,7 @@ namespace optinum::meta {
             T lr_sum = T{0};
 
             // SIMD-optimized Adam update
-            constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+            constexpr std::size_t W = simd::backend::default_pack_width<T>();
             using pack_t = simd::pack<T, W>;
 
             const pack_t beta1_pack(config.beta1);

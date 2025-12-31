@@ -24,8 +24,8 @@
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> pack<T, W> sqrt(const pack<T, W> &x) noexcept;
+    // Note: Generic scalar fallback for sqrt is provided in pack/pack.hpp
+    // The specializations below provide SIMD-optimized versions
 
     // =========================================================================
     // pack<float, 4> - SSE implementation

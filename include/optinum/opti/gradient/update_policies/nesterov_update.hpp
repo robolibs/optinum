@@ -71,7 +71,7 @@ namespace optinum::opti {
             // SIMD-optimized Nesterov update
             // 1. v_new = μ * v - α * g
             // 2. x_new = x + μ * v_new - α * g
-            constexpr std::size_t W = 4; // AVX: 4 doubles
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
             using pack_t = simd::pack<double, W>;
 
             const pack_t mu(momentum);

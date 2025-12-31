@@ -319,7 +319,7 @@ namespace optinum::meta {
 
                     // Compute y = B * D * z (SIMD for inner loop)
                     // SIMD width for this type
-                    constexpr std::size_t W_inner = sizeof(T) == 4 ? 8 : 4;
+                    constexpr std::size_t W_inner = simd::backend::default_pack_width<T>();
                     using PackInner = simd::pack<T, W_inner>;
 
                     // First compute D * z
@@ -379,7 +379,7 @@ namespace optinum::meta {
                 dp::mat::vector<T, dp::mat::Dynamic> m_old = m;
 
                 // Zero out mean using SIMD
-                constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+                constexpr std::size_t W = simd::backend::default_pack_width<T>();
                 using Pack = simd::pack<T, W>;
 
                 // Zero the mean vector

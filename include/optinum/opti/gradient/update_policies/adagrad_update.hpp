@@ -67,7 +67,7 @@ namespace optinum::opti {
             T *x_ptr = x.data();
 
             // SIMD-optimized AdaGrad update
-            constexpr std::size_t W = 4; // AVX: 4 doubles
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
             using pack_t = simd::pack<double, W>;
 
             const double step_val = double(step_size);

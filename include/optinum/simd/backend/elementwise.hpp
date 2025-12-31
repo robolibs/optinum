@@ -13,11 +13,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void add_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT a, const T *OPTINUM_RESTRICT b,
                                     std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         for (std::size_t i = 0; i < main; i += W) {
             auto va = pack_t::loadu(a + i);
@@ -33,11 +32,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void sub_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT a, const T *OPTINUM_RESTRICT b,
                                     std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         for (std::size_t i = 0; i < main; i += W) {
             auto va = pack_t::loadu(a + i);
@@ -53,11 +51,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void mul_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT a, const T *OPTINUM_RESTRICT b,
                                     std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         for (std::size_t i = 0; i < main; i += W) {
             auto va = pack_t::loadu(a + i);
@@ -73,11 +70,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void div_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT a, const T *OPTINUM_RESTRICT b,
                                     std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         for (std::size_t i = 0; i < main; i += W) {
             auto va = pack_t::loadu(a + i);
@@ -163,11 +159,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void mul_scalar_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT src, T scalar,
                                            std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         const pack_t s(scalar);
         for (std::size_t i = 0; i < main; i += W) {
@@ -183,11 +178,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void div_scalar_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT src, T scalar,
                                            std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         const pack_t s(scalar);
         for (std::size_t i = 0; i < main; i += W) {
@@ -250,11 +244,10 @@ namespace optinum::simd::backend {
 
     // Runtime version for Dynamic sizes
     template <typename T> OPTINUM_INLINE void fill_runtime(T *OPTINUM_RESTRICT dst, std::size_t n, T value) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         const pack_t v(value); // Broadcast value to all lanes
         for (std::size_t i = 0; i < main; i += W) {
@@ -336,11 +329,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void axpy_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT x, T alpha,
                                      const T *OPTINUM_RESTRICT d, std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         const pack_t alpha_pack(alpha);
         for (std::size_t i = 0; i < main; i += W) {
@@ -360,11 +352,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void axpy_inplace_runtime(T *OPTINUM_RESTRICT x, T alpha, const T *OPTINUM_RESTRICT d,
                                              std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         const pack_t alpha_pack(alpha);
         for (std::size_t i = 0; i < main; i += W) {
@@ -385,11 +376,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void scale_sub_runtime(T *OPTINUM_RESTRICT x, T alpha, const T *OPTINUM_RESTRICT g,
                                           std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         const pack_t alpha_pack(alpha);
         for (std::size_t i = 0; i < main; i += W) {
@@ -410,11 +400,10 @@ namespace optinum::simd::backend {
     template <typename T>
     OPTINUM_INLINE void fms_runtime(T *OPTINUM_RESTRICT out, const T *OPTINUM_RESTRICT a, T s,
                                     const T *OPTINUM_RESTRICT b, std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         const pack_t neg_s(-s);
         for (std::size_t i = 0; i < main; i += W) {
@@ -433,11 +422,10 @@ namespace optinum::simd::backend {
     // Computes: out[i] = -a[i] for all i
     template <typename T>
     OPTINUM_INLINE void negate_runtime(T *OPTINUM_RESTRICT out, const T *OPTINUM_RESTRICT a, std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         for (std::size_t i = 0; i < main; i += W) {
             auto va = pack_t::loadu(a + i);
@@ -452,11 +440,10 @@ namespace optinum::simd::backend {
     // negate_inplace_runtime: x = -x
     // Computes: x[i] = -x[i] for all i
     template <typename T> OPTINUM_INLINE void negate_inplace_runtime(T *OPTINUM_RESTRICT x, std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         for (std::size_t i = 0; i < main; i += W) {
             auto vx = pack_t::loadu(x + i);
@@ -472,11 +459,10 @@ namespace optinum::simd::backend {
     // Computes: dst[i] = src[i] for all i
     template <typename T>
     OPTINUM_INLINE void copy_runtime(T *OPTINUM_RESTRICT dst, const T *OPTINUM_RESTRICT src, std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         for (std::size_t i = 0; i < main; i += W) {
             pack_t::loadu(src + i).storeu(dst + i);

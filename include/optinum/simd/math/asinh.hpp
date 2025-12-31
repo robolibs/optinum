@@ -6,6 +6,7 @@
 // Valid for all real x
 // =============================================================================
 
+#include <cmath>
 #include <optinum/simd/mask.hpp>
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/math/sqrt.hpp>
@@ -22,6 +23,17 @@
 #endif
 
 namespace optinum::simd {
+
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE pack<T, W> asinh(const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::asinh(x.data_[i]);
+        }
+        return result;
+    }
 
     // =============================================================================
     // asinh(x) - Inverse hyperbolic sine

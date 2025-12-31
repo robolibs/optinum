@@ -5,11 +5,23 @@
 // Base-2 logarithm: log2(x) = log(x) / ln(2)
 // =============================================================================
 
+#include <cmath>
 #include <optinum/simd/math/detail/constants.hpp>
 #include <optinum/simd/math/log.hpp>
 #include <optinum/simd/pack/pack.hpp>
 
 namespace optinum::simd {
+
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE pack<T, W> log2(const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::log2(x.data_[i]);
+        }
+        return result;
+    }
 
     // =============================================================================
     // log2() - Base-2 logarithm

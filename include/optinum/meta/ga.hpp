@@ -565,7 +565,7 @@ namespace optinum::meta {
 
             case GACrossover::Uniform: {
                 // Uniform crossover - SIMD accelerated using pack blend
-                constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+                constexpr std::size_t W = simd::backend::default_pack_width<T>();
                 using pack_t = simd::pack<T, W>;
 
                 const std::size_t main = simd::backend::main_loop_count_runtime(dim, W);

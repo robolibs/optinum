@@ -88,7 +88,7 @@ namespace optinum::lina {
 
         // SIMD axpy: a[0:n] -= s * b[0:n]
         template <typename T> inline void axpy_simd(T *a, const T *b, T s, std::size_t n) noexcept {
-            constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+            constexpr std::size_t W = simd::backend::default_pack_width<T>();
             const std::size_t main = (n / W) * W;
 
             const simd::pack<T, W> vs(s);
@@ -154,7 +154,7 @@ namespace optinum::lina {
             v.fill(T{});
 
             // For each column j >= k, add w[j] * Q[:,j] to v
-            constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+            constexpr std::size_t W = simd::backend::default_pack_width<T>();
             for (std::size_t j = k; j < m; ++j) {
                 const T wj = w[j];
                 if (wj == T{})

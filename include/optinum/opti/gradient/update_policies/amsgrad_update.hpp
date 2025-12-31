@@ -87,7 +87,7 @@ namespace optinum::opti {
 
             // SIMD-optimized AMSGrad update
             // Use pack width based on double (moments are stored as double)
-            constexpr std::size_t W = 4; // AVX: 4 doubles
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
             using pack_t = simd::pack<double, W>;
 
             const pack_t beta1_pack(beta1);

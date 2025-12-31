@@ -144,6 +144,28 @@ test:
 t: test
 
 # ==================================================================================================
+# Test without SIMD (scalar fallback verification)
+# ==================================================================================================
+test-no-simd:
+ifeq ($(BUILD_SYSTEM),cmake)
+	@echo "Building and testing without SIMD..."
+	@mkdir -p $(BUILD_DIR)_no_simd
+	@cd $(BUILD_DIR)_no_simd && cmake -Wno-dev -D$(PROJECT_CAP)_ENABLE_SIMD=OFF -D$(PROJECT_CAP)_ENABLE_TESTS=ON .. 2>&1 | tee "$(TOP_DIR)/.complog_no_simd"
+	@cd $(BUILD_DIR)_no_simd && make -j$(shell nproc) 2>&1 | tee -a "$(TOP_DIR)/.complog_no_simd"
+	@cd $(BUILD_DIR)_no_simd && ctest --output-on-failure
+	@echo "Non-SIMD build and tests completed successfully!"
+else ifeq ($(BUILD_SYSTEM),xmake)
+	@echo "Building and testing without SIMD..."
+	@xmake f --simd=n --tests=y -y
+	@xmake -j$(shell nproc)
+	@xmake test
+	@echo "Non-SIMD build and tests completed successfully!"
+	@xmake f --simd=y --tests=y -y
+else
+	$(error test-no-simd is only supported for cmake and xmake build systems)
+endif
+
+# ==================================================================================================
 # Help
 # ==================================================================================================
 help:

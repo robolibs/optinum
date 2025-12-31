@@ -6,6 +6,7 @@
 // Valid for x in [-1, 1]
 // =============================================================================
 
+#include <cmath>
 #include <optinum/simd/mask.hpp>
 #include <optinum/simd/math/detail/constants.hpp>
 #include <optinum/simd/math/sqrt.hpp>
@@ -22,6 +23,17 @@
 #endif
 
 namespace optinum::simd {
+
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE pack<T, W> asin(const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::asin(x.data_[i]);
+        }
+        return result;
+    }
 
     // =============================================================================
     // asin(x) - Arc sine

@@ -277,7 +277,7 @@ namespace optinum::meta {
                 elite_mean.fill(T{0});
 
                 // SIMD width
-                constexpr std::size_t W = sizeof(T) == 4 ? 8 : 4;
+                constexpr std::size_t W = simd::backend::default_pack_width<T>();
                 using Pack = simd::pack<T, W>;
 
                 // Accumulate elite samples

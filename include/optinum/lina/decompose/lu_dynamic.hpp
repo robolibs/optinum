@@ -127,7 +127,7 @@ namespace optinum::lina {
         // In column-major, column k starts at data[k * n], elements are contiguous
         template <typename T>
         inline void axpy_col_simd(T *dst_col, const T *src_col, T scale, std::size_t start, std::size_t n) noexcept {
-            constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+            constexpr std::size_t W = simd::backend::default_pack_width<T>();
             const std::size_t len = n - start;
             const std::size_t main = (len / W) * W;
 
@@ -144,7 +144,7 @@ namespace optinum::lina {
 
         // SIMD scale column: dst_col[start:n] /= scalar
         template <typename T> inline void scale_col_simd(T *col, T scalar, std::size_t start, std::size_t n) noexcept {
-            constexpr std::size_t W = std::is_same_v<T, double> ? 4 : 8;
+            constexpr std::size_t W = simd::backend::default_pack_width<T>();
             const std::size_t len = n - start;
             const std::size_t main = (len / W) * W;
 
