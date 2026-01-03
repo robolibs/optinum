@@ -1,35 +1,56 @@
 #include <iostream>
-#include <optinum/optinum.hpp>
+#include <optinum/simd/simd.hpp>
+
+namespace dp = datapod;
+namespace simd = optinum::simd;
 
 int main() {
-    // Create from value
-    optinum::Scalar<float> a(3.14f);
-    optinum::Scalar<float> b(2.0f);
+    // Create scalars using dp::mat::scalar (owning storage)
+    dp::mat::Scalar<float> a{3.14f};
+    dp::mat::Scalar<float> b{2.0f};
 
-    // Arithmetic
-    auto c = a + b;
-    auto d = a * b;
+    // Create non-owning views using simd::Scalar
+    simd::Scalar<float> view_a(a);
+    simd::Scalar<float> view_b(b);
 
-    std::cout << "a = " << a.get() << "\n";
-    std::cout << "b = " << b.get() << "\n";
-    std::cout << "a + b = " << c.get() << "\n";
-    std::cout << "a * b = " << d.get() << "\n";
+    // Arithmetic using views (implicit conversion to T)
+    dp::mat::Scalar<float> c{static_cast<float>(view_a) + static_cast<float>(view_b)};
+    dp::mat::Scalar<float> d{static_cast<float>(view_a) * static_cast<float>(view_b)};
 
-    // Access underlying datapod type
-    datapod::mat::scalar<float> &pod = a.pod();
-    std::cout << "pod.value = " << pod.value << "\n";
+    std::cout << "a = " << view_a.get() << "\n";
+    std::cout << "b = " << view_b.get() << "\n";
+    std::cout << "a + b = " << c.value << "\n";
+    std::cout << "a * b = " << d.value << "\n";
 
-    // Create from datapod
-    datapod::mat::scalar<double> raw{42.0};
-    optinum::Scalar<double> wrapped(raw);
-    std::cout << "wrapped = " << wrapped.get() << "\n";
+    // Direct access via view
+    std::cout << "view_a.get() = " << view_a.get() << "\n";
 
-#if defined(SHORT_NAMESPACE)
-    // Short namespace usage
-    on::Scalar<int> x(10);
-    on::Scalar<int> y(20);
-    std::cout << "x + y = " << (x + y).get() << "\n";
-#endif
+    // Modify via view
+    view_a = 5.0f;
+    std::cout << "After view_a = 5.0f: a.value = " << a.value << "\n";
+
+    // Compound assignment via view
+    view_a += 2.0f;
+    std::cout << "After view_a += 2.0f: a.value = " << a.value << "\n";
+
+    // View from raw pointer
+    float raw_val = 42.0f;
+    simd::Scalar<float> view_raw(&raw_val);
+    std::cout << "view_raw.get() = " << view_raw.get() << "\n";
+
+    // Create double scalar with initializer
+    dp::mat::Scalar<double> raw{42.0};
+    simd::Scalar<double> view_double(raw);
+    std::cout << "raw = " << view_double.get() << "\n";
+
+    // Comparison operators
+    dp::mat::Scalar<float> x{10.0f};
+    dp::mat::Scalar<float> y{20.0f};
+    simd::Scalar<float> view_x(x);
+    simd::Scalar<float> view_y(y);
+
+    std::cout << "x < y: " << (view_x < view_y ? "true" : "false") << "\n";
+    std::cout << "x == y: " << (view_x == view_y ? "true" : "false") << "\n";
 
     return 0;
 }

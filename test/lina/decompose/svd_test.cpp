@@ -1,19 +1,22 @@
 #include <doctest/doctest.h>
 #include <optinum/lina/decompose/svd.hpp>
 
-using optinum::lina::svd;
+namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
+namespace dp = datapod;
+
 template <typename T, std::size_t M, std::size_t N>
-static Matrix<T, M, N> reconstruct(const optinum::lina::SVD<T, M, N> &f) {
+static dp::mat::Matrix<T, M, N> reconstruct(const lina::SVD<T, M, N> &f) {
     // A ~= U(:,0:K-1) * diag(S) * Vt
     constexpr std::size_t K = (M < N) ? M : N;
 
-    Matrix<T, M, N> usv;
-    usv.fill(T{});
+    dp::mat::Matrix<T, M, N> usv;
+    for (std::size_t i = 0; i < M * N; ++i)
+        usv[i] = T{};
 
     // Compute U(:,0:K-1) * diag(S) -> MxK
-    Matrix<T, M, K> us;
+    dp::mat::Matrix<T, M, K> us;
     for (std::size_t j = 0; j < K; ++j) {
         for (std::size_t i = 0; i < M; ++i) {
             us(i, j) = f.u(i, j) * f.s[j];
@@ -35,7 +38,7 @@ static Matrix<T, M, N> reconstruct(const optinum::lina::SVD<T, M, N> &f) {
 }
 
 TEST_CASE("lina::svd reconstructs A (3x2)") {
-    Matrix<double, 3, 2> a;
+    dp::mat::Matrix<double, 3, 2> a;
     a(0, 0) = 1.0;
     a(1, 0) = 2.0;
     a(2, 0) = 3.0;
@@ -43,7 +46,7 @@ TEST_CASE("lina::svd reconstructs A (3x2)") {
     a(1, 1) = 5.0;
     a(2, 1) = 6.0;
 
-    const auto f = svd<double, 3, 2>(a, 64);
+    const auto f = lina::svd<double, 3, 2>(Matrix<double, 3, 2>(a), 64);
     const auto r = reconstruct(f);
 
     for (std::size_t i = 0; i < 3; ++i) {
@@ -52,4 +55,3 @@ TEST_CASE("lina::svd reconstructs A (3x2)") {
         }
     }
 }
-

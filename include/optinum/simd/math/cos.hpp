@@ -8,18 +8,37 @@
 
 #include <optinum/simd/arch/arch.hpp>
 #include <optinum/simd/math/detail/constants.hpp>
+#include <optinum/simd/pack/pack.hpp>
+#if defined(OPTINUM_HAS_AVX)
 #include <optinum/simd/pack/avx.hpp>
+#endif
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> pack<T, W> cos(const pack<T, W> &x) noexcept;
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE pack<T, W> cos(const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::cos(x.data_[i]);
+        }
+        return result;
+    }
 
     // =========================================================================
     // pack<float, 4> - SSE implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_SSE41)
 
+#if defined(OPTINUM_HAS_SSE2)
     template <> inline pack<float, 4> cos(const pack<float, 4> &x) noexcept {
         __m128 vx = x.data_;
         __m128 sign_mask = _mm_set1_ps(-0.0f);
@@ -85,10 +104,16 @@ namespace optinum::simd {
         return pack<float, 4>(result);
     }
 
+#endif // OPTINUM_HAS_SSE41
+
     // =========================================================================
     // pack<float, 8> - AVX implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
 
+#endif // OPTINUM_HAS_SSE2
+
+#if defined(OPTINUM_HAS_AVX)
     template <> inline pack<float, 8> cos(const pack<float, 8> &x) noexcept {
         __m256 vx = x.data_;
         __m256 sign_mask = _mm256_set1_ps(-0.0f);
@@ -154,7 +179,11 @@ namespace optinum::simd {
         return pack<float, 8>(result);
     }
 
+#endif // OPTINUM_HAS_AVX
+
     // =========================================================================
+#endif // OPTINUM_HAS_AVX
+
     // pack<double, 2> - SSE implementation
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE41)

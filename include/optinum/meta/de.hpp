@@ -35,10 +35,13 @@
 #include <random>
 #include <vector>
 
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Mutation strategy for Differential Evolution
@@ -53,12 +56,12 @@ namespace optinum::meta {
      * Result of DE optimization
      */
     template <typename T> struct DEResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t generations;                      ///< Number of generations performed
-        std::size_t function_evaluations;             ///< Total function evaluations
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per generation
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t generations;                            ///< Number of generations performed
+        std::size_t function_evaluations;                   ///< Total function evaluations
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per generation
     };
 
     /**
@@ -74,8 +77,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> lower{-5.0, -5.0};
-     * simd::Vector<double, simd::Dynamic> upper{5.0, 5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = de.optimize(objective, lower, upper);
      * @endcode
@@ -116,8 +119,8 @@ namespace optinum::meta {
          * @return DEResult with best solution and convergence info
          */
         template <typename F>
-        DEResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        DEResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
             const std::size_t pop_size = config.population_size;
 
@@ -139,18 +142,18 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
             // Initialize population uniformly within bounds
-            std::vector<simd::Vector<T, simd::Dynamic>> population(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> population(pop_size);
             std::vector<T> fitness(pop_size);
             std::size_t total_evals = 0;
 
             // Best solution tracking
-            simd::Vector<T, simd::Dynamic> best_position(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position(dim);
             T best_value = std::numeric_limits<T>::max();
             std::size_t best_idx = 0;
 
             // Initialize population
             for (std::size_t i = 0; i < pop_size; ++i) {
-                population[i] = simd::Vector<T, simd::Dynamic>(dim);
+                population[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
                 for (std::size_t d = 0; d < dim; ++d) {
                     T r = uniform(rng);
                     population[i][d] = lower_bounds[d] + r * (upper_bounds[d] - lower_bounds[d]);
@@ -179,7 +182,7 @@ namespace optinum::meta {
             std::size_t horizon_idx = 0;
 
             // Trial vector for mutation/crossover
-            simd::Vector<T, simd::Dynamic> trial(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> trial(dim);
 
             // Main evolution loop
             std::size_t generation = 0;
@@ -203,32 +206,40 @@ namespace optinum::meta {
                     } while (r3 == i || r3 == r1 || r3 == r2);
 
                     // Mutation: create mutant vector based on strategy
-                    simd::Vector<T, simd::Dynamic> mutant(dim);
+                    // SIMD-optimized: use backend functions for vector arithmetic
+                    dp::mat::Vector<T, dp::mat::Dynamic> mutant(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> temp(dim); // Temporary for intermediate results
 
                     switch (config.strategy) {
                     case DEStrategy::Rand1:
                         // v = r1 + F*(r2 - r3)
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                population[r1][d] + config.mutation_factor * (population[r2][d] - population[r3][d]);
-                        }
+                        // Step 1: temp = r2 - r3
+                        simd::backend::sub_runtime<T>(temp.data(), population[r2].data(), population[r3].data(), dim);
+                        // Step 2: mutant = r1 + F*temp
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[r1].data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::Best1:
                         // v = best + F*(r1 - r2)
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                best_position[d] + config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // Step 1: temp = r1 - r2
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        // Step 2: mutant = best + F*temp
+                        simd::backend::axpy_runtime<T>(mutant.data(), best_position.data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::CurrentToBest1:
                         // v = x + F*(best - x) + F*(r1 - r2)
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] = population[i][d] +
-                                        config.mutation_factor * (best_position[d] - population[i][d]) +
-                                        config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // Step 1: temp = best - x
+                        simd::backend::sub_runtime<T>(temp.data(), best_position.data(), population[i].data(), dim);
+                        // Step 2: mutant = x + F*temp
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[i].data(), config.mutation_factor,
+                                                       temp.data(), dim);
+                        // Step 3: temp = r1 - r2
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        // Step 4: mutant += F*temp
+                        simd::backend::axpy_inplace_runtime<T>(mutant.data(), config.mutation_factor, temp.data(), dim);
                         break;
                     }
 
@@ -308,9 +319,9 @@ namespace optinum::meta {
          * @return DEResult with best solution and convergence info
          */
         template <typename F>
-        DEResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                             const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        DEResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
             const std::size_t pop_size = config.population_size;
 
@@ -331,23 +342,29 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
             // Initialize population - first member is the initial point
-            std::vector<simd::Vector<T, simd::Dynamic>> population(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> population(pop_size);
             std::vector<T> fitness(pop_size);
             std::size_t total_evals = 0;
 
             // Best solution tracking
-            simd::Vector<T, simd::Dynamic> best_position = initial;
-            T best_value = objective(initial);
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position(initial.size());
+            for (std::size_t i = 0; i < initial.size(); ++i) {
+                best_position[i] = initial[i];
+            }
+            T best_value = objective(best_position);
             ++total_evals;
             std::size_t best_idx = 0;
 
             // First member is the initial point
-            population[0] = initial;
+            population[0] = dp::mat::Vector<T, dp::mat::Dynamic>(initial.size());
+            for (std::size_t i = 0; i < initial.size(); ++i) {
+                population[0][i] = initial[i];
+            }
             fitness[0] = best_value;
 
             // Rest of population initialized randomly
             for (std::size_t i = 1; i < pop_size; ++i) {
-                population[i] = simd::Vector<T, simd::Dynamic>(dim);
+                population[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
                 for (std::size_t d = 0; d < dim; ++d) {
                     T r = uniform(rng);
                     population[i][d] = lower_bounds[d] + r * (upper_bounds[d] - lower_bounds[d]);
@@ -374,7 +391,7 @@ namespace optinum::meta {
             std::size_t horizon_idx = 0;
 
             // Trial vector
-            simd::Vector<T, simd::Dynamic> trial(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> trial(dim);
 
             // Main evolution loop
             std::size_t generation = 0;
@@ -396,30 +413,32 @@ namespace optinum::meta {
                         r3 = static_cast<std::size_t>(uniform(rng) * pop_size) % pop_size;
                     } while (r3 == i || r3 == r1 || r3 == r2);
 
-                    // Mutation
-                    simd::Vector<T, simd::Dynamic> mutant(dim);
+                    // Mutation - SIMD-optimized vector arithmetic
+                    dp::mat::Vector<T, dp::mat::Dynamic> mutant(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> temp(dim);
 
                     switch (config.strategy) {
                     case DEStrategy::Rand1:
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                population[r1][d] + config.mutation_factor * (population[r2][d] - population[r3][d]);
-                        }
+                        // v = r1 + F*(r2 - r3)
+                        simd::backend::sub_runtime<T>(temp.data(), population[r2].data(), population[r3].data(), dim);
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[r1].data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::Best1:
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] =
-                                best_position[d] + config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // v = best + F*(r1 - r2)
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        simd::backend::axpy_runtime<T>(mutant.data(), best_position.data(), config.mutation_factor,
+                                                       temp.data(), dim);
                         break;
 
                     case DEStrategy::CurrentToBest1:
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            mutant[d] = population[i][d] +
-                                        config.mutation_factor * (best_position[d] - population[i][d]) +
-                                        config.mutation_factor * (population[r1][d] - population[r2][d]);
-                        }
+                        // v = x + F*(best - x) + F*(r1 - r2)
+                        simd::backend::sub_runtime<T>(temp.data(), best_position.data(), population[i].data(), dim);
+                        simd::backend::axpy_runtime<T>(mutant.data(), population[i].data(), config.mutation_factor,
+                                                       temp.data(), dim);
+                        simd::backend::sub_runtime<T>(temp.data(), population[r1].data(), population[r2].data(), dim);
+                        simd::backend::axpy_inplace_runtime<T>(mutant.data(), config.mutation_factor, temp.data(), dim);
                         break;
                     }
 

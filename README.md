@@ -13,11 +13,11 @@ See [TODO.md](./TODO.md) for the complete development plan and current progress.
 **Optinum** is a header-only C++20 library that combines SIMD-accelerated tensor operations with numerical optimization algorithms, specifically designed for applications requiring real-time performance and deterministic behavior.
 
 The library provides five integrated modules:
-- **`simd/`** - SIMD-accelerated operations (SSE/AVX/AVX-512/NEON) with 40+ vectorized math functions
+- **`simd/`** - SIMD-accelerated operations (SSE/AVX/AVX-512/NEON) with 39 vectorized math functions
 - **`lina/`** - Linear algebra (LU, QR, SVD, Cholesky, eigendecomposition, solvers)
-- **`lie/`** - Lie groups (SO2, SE2, SO3, SE3, Sim2, Sim3) with batched SIMD operations
-- **`opti/`** - Gradient-based optimization (12 optimizers, L-BFGS, Gauss-Newton, Levenberg-Marquardt)
-- **`meta/`** - Metaheuristic optimization (PSO, CEM, CMA-ES, DE, GA, SA, MPPI)
+- **`lie/`** - Lie groups (SO2, SE2, SO3, SE3, Sim2, Sim3, RxSO2, RxSO3) with batched SIMD operations
+- **`opti/`** - Gradient-based optimization (11 update policies, L-BFGS, Gauss-Newton, Levenberg-Marquardt)
+- **`meta/`** - Metaheuristic optimization (PSO, CEM, CMA-ES, DE, GA, SA, MPPI, Lookahead, SWATS)
 
 Key design principles:
 - **Header-only** - Zero compilation, just include and use
@@ -40,16 +40,16 @@ Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ow
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                              optinum (on::)                                  │
 │                                                                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌───────────────┐ │
-│  │on::meta  │  │on::opti  │  │on::lina  │  │ on::lie   │  │   on::simd    │ │
-│  │(meta-    │─▶│(gradient │─▶│(linear   │─▶│(Lie       │─▶│(SIMD views +  │ │
-│  │heuristic)│  │  based)  │  │  algebra)│  │ groups)   │  │  algorithms)  │ │
-│  │          │  │          │  │          │  │           │  │               │ │
-│  │• PSO     │  │• Adam    │  │• LU, QR  │  │• SO2/SO3  │  │• pack<T,W>    │ │
-│  │• CEM     │  │• L-BFGS  │  │• SVD     │  │• SE2/SE3  │  │• 40+ math     │ │
-│  │• CMA-ES  │  │• Gauss-  │  │• Cholesky│  │• Sim2/3   │  │• views        │ │
-│  │• MPPI    │  │  Newton  │  │• solve   │  │• batched  │  │• algorithms   │ │
-│  └──────────┘  └──────────┘  └──────────┘  └───────────┘  └───────────────┘ │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌───────────────┐  │
+│  │on::meta  │  │on::opti  │  │on::lina  │  │ on::lie   │  │   on::simd    │  │
+│  │(meta-    │─▶│(gradient │─▶│(linear   │─▶│(Lie       │─▶│(SIMD views +  │  │
+│  │heuristic)│  │  based)  │  │  algebra)│  │ groups)   │  │  algorithms)  │  │
+│  │          │  │          │  │          │  │           │  │               │  │
+│  │• PSO     │  │• Adam    │  │• LU, QR  │  │• SO2/SO3  │  │• pack<T,W>    │  │
+│  │• CEM     │  │• L-BFGS  │  │• SVD     │  │• SE2/SE3  │  │• 39 math      │  │
+│  │• CMA-ES  │  │• Gauss-  │  │• Cholesky│  │• Sim2/3   │  │• views        │  │
+│  │• MPPI    │  │  Newton  │  │• solve   │  │• batched  │  │• algorithms   │  │
+│  └──────────┘  └──────────┘  └──────────┘  └───────────┘  └───────────────┘  │
 └────────────────────────────────────┬─────────────────────────────────────────┘
                                      │ wraps (zero-copy)
                                      ▼
@@ -57,16 +57,18 @@ Built on top of [datapod](https://codeberg.org/robolibs/datapod) for POD data ow
 │                            datapod (dp::)                                    │
 │                      (POD data storage - owns memory)                        │
 │                                                                              │
-│  dp::mat::scalar<T>    dp::mat::vector<T,N>    dp::mat::matrix<T,R,C>       │
-│       (rank-0)              (rank-1)                 (rank-2)                │
+│  dp::mat::scalar<T>      dp::mat::vector<T,N>    dp::mat::matrix<T,R,C>      │
+│       (rank-0)                (rank-1)                 (rank-2)              │
 │                                                                              │
-│  • Serializable for ROS2    • Cache-aligned    • Column-major (BLAS-like)   │
+│• Serializable for ROS2    • Cache-aligned      • Column-major (BLAS-like)    │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Data flow:**
 ```
 dp::mat::vector<float, N>   (owns memory - serializable for ROS2)
+         ↓
+on::Vector<float, N>           (a view over on::simd::pack<float,W>)
          ↓
 on::simd::view<W>(dp_vector)    (non-owning view - zero copy)
          ↓
@@ -163,15 +165,15 @@ void process_sensor_data() {
     // State vector: [x, y, theta, vx, vy]
     dp::mat::vector<float, 5> state;
     dp::mat::matrix<float, 5, 5> covariance;
-    
+
     // Create SIMD views (zero-copy, no allocation)
     auto x = on::simd::view<8>(state);
     auto P = on::simd::view<8>(covariance);
-    
+
     // SIMD-accelerated operations
     on::simd::scale(0.99f, x);              // Prediction step
     on::simd::axpy(1.0f, sensor_data, x);   // Measurement update
-    
+
     // Result already in 'state' - ready for serialization
 }
 ```
@@ -184,10 +186,10 @@ void process_sensor_data() {
 void solve_dynamics() {
     on::Matrix<double, 6, 6> A;  // Dynamics matrix
     on::Vector<double, 6> b;     // Target state
-    
+
     // Solve Ax = b using LU decomposition (SIMD-accelerated)
     auto result = on::lina::try_solve(A, b);
-    
+
     if (result.is_ok()) {
         auto x = result.unwrap();
         // Apply solution
@@ -203,11 +205,11 @@ void solve_dynamics() {
 void transform_points() {
     // Create SE3 pose from rotation and translation
     on::lie::SE3d pose = on::lie::SE3d::exp({0.1, 0.2, 0.3, 1.0, 2.0, 3.0});
-    
+
     // Transform a point
     on::Vector<double, 3> point{1.0, 0.0, 0.0};
     auto transformed = pose.act(point);
-    
+
     // Batched operations for point clouds
     on::lie::SE3Batch<double, 100> poses;  // 100 poses processed in parallel
 }
@@ -223,14 +225,14 @@ void optimize_trajectory() {
     auto objective = [](const auto& x) {
         return on::lina::dot(x, x);  // Sphere function
     };
-    
+
     // Configure Adam optimizer
     on::opti::Adam<double> optimizer({
         .learning_rate = 0.01,
         .beta1 = 0.9,
         .beta2 = 0.999
     });
-    
+
     on::Vector<double, 10> x;  // Initial guess
     auto result = optimizer.optimize(objective, x);
 }
@@ -247,14 +249,14 @@ void global_search() {
         .population_size = 50,
         .max_iterations = 1000
     });
-    
+
     auto result = optimizer.optimize(rastrigin_function, lower_bounds, upper_bounds);
 }
 ```
 
 ## Features
 
-- **SIMD Math Functions** - 40+ vectorized functions (exp, log, sin, cos, tanh, sqrt, erf, gamma)
+- **SIMD Math Functions** - 39 vectorized functions (exp, log, sin, cos, tanh, sqrt, erf, gamma, hypot)
   ```cpp
   auto x = on::simd::view<8>(data);  // AVX: 8 floats at once
   on::simd::exp(x);   // 7.94x speedup
@@ -268,17 +270,19 @@ void global_search() {
   auto [U, S, V] = on::lina::svd(A);  // Singular value decomposition
   ```
 
-- **Lie Groups** - SO2, SE2, SO3, SE3, Sim2, Sim3 with exp/log maps, adjoints, and Jacobians
+- **Lie Groups** - SO2, SE2, SO3, SE3, Sim2, Sim3, RxSO2, RxSO3 with exp/log maps, adjoints, and Jacobians
   ```cpp
   auto rotation = on::lie::SO3d::exp({0.1, 0.2, 0.3});
   auto pose = on::lie::SE3d::from_rotation_translation(rotation, translation);
   ```
 
-- **12 Gradient Optimizers** - Adam, AdaGrad, AdaDelta, RMSprop, NAdam, AdaBound, Yogi, Nesterov, Momentum, and more
+- **11 Gradient Update Policies** - Adam, AdaGrad, AdaDelta, RMSprop, NAdam, AdaBound, Yogi, Nesterov, Momentum, AMSGrad, Vanilla
+
+- **8 Decay Policies** - Cosine annealing, exponential, inverse time, linear, polynomial, step, warmup, no decay
 
 - **Quasi-Newton Methods** - L-BFGS, Gauss-Newton, Levenberg-Marquardt for nonlinear least squares
 
-- **7 Metaheuristics** - PSO, CEM, CMA-ES, DE, GA, SA, MPPI for global and black-box optimization
+- **9 Metaheuristics** - PSO, CEM, CMA-ES, DE, GA, SA, MPPI, Lookahead, SWATS for global and black-box optimization
 
 - **Non-Owning Views** - Zero-copy SIMD operations over `dp::mat::*` types
 
@@ -292,17 +296,49 @@ void global_search() {
   - No hidden allocations (views are non-owning)
   - Cache-friendly column-major layout (BLAS/LAPACK compatible)
 
+## Error Handling Strategy
+
+Optinum uses a consistent error handling approach designed for real-time and embedded systems:
+
+1. **Fallible operations** use `dp::Result<T, dp::Error>`:
+   - `try_solve()`, `try_inverse()`, `try_lstsq()`, `try_dare()` - return Result
+   - `solve()`, `inverse()`, `lstsq()`, `dare()` - wrapper that returns zero/identity on error
+   ```cpp
+   auto result = on::lina::try_solve(A, b);
+   if (result.is_ok()) {
+       auto x = result.unwrap();
+   } else {
+       // Handle error: result.error().message()
+   }
+   ```
+
+2. **Bounds checking** uses `std::out_of_range` (STL convention):
+   - `at()` methods throw `std::out_of_range`
+   - `operator[]` does debug-only bounds checking (via `assert`)
+
+3. **Optimizers** use status field in result struct:
+   - `OptimizationResult.converged = false` on failure
+   - `OptimizationResult.status` contains error message
+   ```cpp
+   auto result = optimizer.optimize(objective, x);
+   if (!result.converged) {
+       std::cerr << "Optimization failed: " << result.status << "\n";
+   }
+   ```
+
+4. **Never use exceptions** for recoverable errors in new code - prefer `dp::Result` for explicit error handling
+
 ## Module Summary
 
 | Module | Files | Lines | Description |
 |--------|-------|-------|-------------|
-| `simd/` | 89 | ~20,000 | SIMD pack types, views, 40+ math functions |
-| `lina/` | 28 | ~2,800 | 5 decompositions, solvers, DARE, Jacobian, Hessian |
-| `lie/` | 15 | ~4,400 | 8 Lie groups, batched SIMD, splines, averaging |
-| `opti/` | 25 | ~3,500 | 12 optimizers, 7 decay policies, line search |
-| `meta/` | 10 | ~2,000 | 7 metaheuristics, 2 meta-optimizers |
+| `simd/` | 92 | ~23,000 | SIMD pack types, views, 39 math functions |
+| `lina/` | 37 | ~5,400 | 7 decompositions, solvers, DARE, Jacobian, Hessian |
+| `lie/` | 22 | ~9,600 | 12 Lie groups, batched SIMD, splines, averaging |
+| `opti/` | 32 | ~5,400 | 11 update policies, 8 decay policies, line search |
+| `meta/` | 10 | ~3,900 | 9 metaheuristics |
 
-**Test Status:** 87/87 test suites passing (400+ test cases)
+**Test Status:** 104/105 test suites passing (500+ test cases)
 
 ## License
 

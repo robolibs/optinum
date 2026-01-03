@@ -19,11 +19,11 @@ namespace optinum::simd {
     // =============================================================================
     // complex_view<T, W> - SIMD view over complex number arrays
     //
-    // Provides transparent SIMD access to dp::mat::complex<T> arrays.
+    // Provides transparent SIMD access to dp::mat::Complex<T> arrays.
     // User works with complex numbers directly; SIMD is handled internally.
     //
     // Usage:
-    //   dp::mat::complex<double> nums[8];
+    //   dp::mat::Complex<double> nums[8];
     //   auto cv = complex_view<double, 4>(nums, 8);
     //   cv.conjugate_inplace();  // SIMD under the hood
     //
@@ -36,7 +36,7 @@ namespace optinum::simd {
         static_assert(W > 0, "complex_view requires W > 0");
 
       public:
-        using value_type = dp::mat::complex<T>;
+        using value_type = dp::mat::Complex<T>;
         using real_type = T;
         using pack_type = pack<value_type, W>;
         using real_pack = pack<T, W>;
@@ -135,6 +135,19 @@ namespace optinum::simd {
             }
         }
 
+        // ===== FILL OPERATIONS =====
+
+        // Fill all elements with a value
+        void fill(const value_type &val) noexcept {
+            pack_type p(val);
+            for (std::size_t i = 0; i < num_packs(); ++i) {
+                store_pack_safe(i, p);
+            }
+        }
+
+        // Fill with real value only (imag = 0)
+        void fill_real(T real_val) noexcept { fill(value_type{real_val, T{}}); }
+
         // ===== IN-PLACE OPERATIONS =====
 
         // Conjugate in place
@@ -183,7 +196,7 @@ namespace optinum::simd {
         }
 
         // Normalize to output
-        [[nodiscard]] complex_view normalized_to(value_type *out) const noexcept {
+        [[nodiscard]] complex_view normalize_to(value_type *out) const noexcept {
             complex_view result(out, size_);
             for (std::size_t i = 0; i < num_packs(); ++i) {
                 auto p = load_pack_safe(i);

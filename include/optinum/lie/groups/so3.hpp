@@ -1,6 +1,8 @@
 #pragma once
 
 #include <optinum/lie/core/constants.hpp>
+#include <optinum/simd/backend/cross.hpp>
+#include <optinum/simd/backend/matmul.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -19,7 +21,7 @@ namespace optinum::lie {
     // SO(3) represents 3D rotations. Internally stored as a unit quaternion.
     //
     // Quaternion convention: q = w + xi + yj + zk (scalar-first, Hamilton convention)
-    // Storage: dp::mat::quaternion<T> with [w, x, y, z]
+    // Storage: dp::mat::Quaternion<T> with [w, x, y, z]
     // DoF: 3 (rotation vector / axis-angle)
     // NumParams: 4 (unit quaternion)
     //
@@ -37,11 +39,11 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = simd::Vector<T, 3>; // R^3 (rotation vector)
-        using Quaternion = dp::mat::quaternion<T>;
-        using Point = simd::Vector<T, 3>; // 3D point
-        using RotationMatrix = simd::Matrix<T, 3, 3>;
-        using AdjointMatrix = simd::Matrix<T, 3, 3>; // Adj = R for SO3
+        using Tangent = dp::mat::Vector<T, 3>; // R^3 (rotation vector) - owning type
+        using Quaternion = dp::mat::Quaternion<T>;
+        using Point = dp::mat::Vector<T, 3>;             // 3D point - owning type
+        using RotationMatrix = dp::mat::Matrix<T, 3, 3>; // Owning type for return values
+        using AdjointMatrix = dp::mat::Matrix<T, 3, 3>;  // Owning type for return values
 
         // ===== CONSTANTS =====
         static constexpr std::size_t DoF = 3;
@@ -155,6 +157,84 @@ namespace optinum::lie {
             return SO3(M);
         }
 
+        /// Compute rotation that maps vector v1 to vector v2.
+        ///
+        /// Given two 3D vectors, computes the rotation R such that R * v1 is parallel to v2.
+        /// The vectors do not need to be normalized - the method handles normalization internally.
+        ///
+        /// Edge cases:
+        /// - Parallel vectors (same direction): returns identity rotation
+        /// - Anti-parallel vectors (opposite direction): returns 180° rotation around an orthogonal axis
+        ///
+        /// @param v1 Source vector (will be rotated)
+        /// @param v2 Target vector (rotation destination)
+        /// @return SO3 rotation that maps v1 direction to v2 direction
+        [[nodiscard]] static SO3 from_two_vectors(const Point &v1, const Point &v2) noexcept {
+            // Compute norms
+            const T norm1 = std::sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]);
+            const T norm2 = std::sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2]);
+
+            // Handle degenerate cases (zero vectors)
+            if (norm1 < epsilon<T> || norm2 < epsilon<T>) {
+                return identity();
+            }
+
+            // Normalize vectors
+            const T inv_norm1 = T(1) / norm1;
+            const T inv_norm2 = T(1) / norm2;
+            const Point u1{{v1[0] * inv_norm1, v1[1] * inv_norm1, v1[2] * inv_norm1}};
+            const Point u2{{v2[0] * inv_norm2, v2[1] * inv_norm2, v2[2] * inv_norm2}};
+
+            // Compute dot product (cosine of angle)
+            const T dot = u1[0] * u2[0] + u1[1] * u2[1] + u1[2] * u2[2];
+
+            // Compute cross product (axis of rotation, scaled by sin(angle))
+            const T cx = u1[1] * u2[2] - u1[2] * u2[1];
+            const T cy = u1[2] * u2[0] - u1[0] * u2[2];
+            const T cz = u1[0] * u2[1] - u1[1] * u2[0];
+            const T cross_norm = std::sqrt(cx * cx + cy * cy + cz * cz);
+
+            // Case 1: Vectors are nearly parallel (same direction)
+            if (dot > T(1) - epsilon<T>) {
+                return identity();
+            }
+
+            // Case 2: Vectors are nearly anti-parallel (opposite direction)
+            // Need to find an orthogonal axis for 180° rotation
+            if (dot < T(-1) + epsilon<T>) {
+                // Find an axis orthogonal to v1
+                // Try cross product with x-axis first, if too small use y-axis
+                Point ortho;
+                if (std::abs(u1[0]) < T(0.9)) {
+                    // Cross with x-axis: [1,0,0] x u1 = [0, u1[2], -u1[1]]
+                    ortho = Point{{T(0), u1[2], -u1[1]}};
+                } else {
+                    // Cross with y-axis: [0,1,0] x u1 = [-u1[2], 0, u1[0]]
+                    ortho = Point{{-u1[2], T(0), u1[0]}};
+                }
+
+                // Normalize the orthogonal axis
+                const T ortho_norm = std::sqrt(ortho[0] * ortho[0] + ortho[1] * ortho[1] + ortho[2] * ortho[2]);
+                const T inv_ortho_norm = T(1) / ortho_norm;
+                const Point axis{{ortho[0] * inv_ortho_norm, ortho[1] * inv_ortho_norm, ortho[2] * inv_ortho_norm}};
+
+                // 180° rotation around the orthogonal axis
+                return from_axis_angle(axis, pi<T>);
+            }
+
+            // Case 3: General case - use Rodrigues' rotation formula via quaternion
+            // The rotation quaternion from v1 to v2 can be computed as:
+            // q = [1 + dot, cross] normalized
+            // This is equivalent to half-angle formula
+            const T w = T(1) + dot;
+            Quaternion q{w, cx, cy, cz};
+
+            // Normalize the quaternion
+            const T qnorm = std::sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
+            const T inv_qnorm = T(1) / qnorm;
+            return SO3(q.w * inv_qnorm, q.x * inv_qnorm, q.y * inv_qnorm, q.z * inv_qnorm);
+        }
+
         // ===== CORE OPERATIONS =====
 
         // Logarithmic map: SO3 -> omega (axis-angle)
@@ -164,7 +244,7 @@ namespace optinum::lie {
 
             if (v_norm_sq < epsilon<T> * epsilon<T>) {
                 // Near identity: omega ≈ 2 * v
-                return Tangent{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z};
+                return Tangent{{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z}};
             }
 
             const T v_norm = std::sqrt(v_norm_sq);
@@ -173,7 +253,7 @@ namespace optinum::lie {
 
             // omega = theta * v / |v|
             const T scale = theta / v_norm;
-            return Tangent{scale * q_.x, scale * q_.y, scale * q_.z};
+            return Tangent{{scale * q_.x, scale * q_.y, scale * q_.z}};
         }
 
         // Log that also returns the angle
@@ -181,14 +261,14 @@ namespace optinum::lie {
             const T v_norm_sq = q_.x * q_.x + q_.y * q_.y + q_.z * q_.z;
 
             if (v_norm_sq < epsilon<T> * epsilon<T>) {
-                return {Tangent{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z}, T(0)};
+                return {Tangent{{T(2) * q_.x, T(2) * q_.y, T(2) * q_.z}}, T(0)};
             }
 
             const T v_norm = std::sqrt(v_norm_sq);
             const T theta = T(2) * std::atan2(v_norm, q_.w);
             const T scale = theta / v_norm;
 
-            return {Tangent{scale * q_.x, scale * q_.y, scale * q_.z}, theta};
+            return {Tangent{{scale * q_.x, scale * q_.y, scale * q_.z}}, theta};
         }
 
         // Inverse: quaternion conjugate (for unit quaternion)
@@ -211,20 +291,26 @@ namespace optinum::lie {
 
         // Rotate a 3D point: R * p  (equivalent to q * p * q^-1)
         [[nodiscard]] Point operator*(const Point &p) const noexcept {
-            // Optimized rotation using quaternion
+            // Optimized rotation using quaternion with SIMD cross product utilities
             // v' = q * v * q^-1 = v + 2*w*(q_v x v) + 2*(q_v x (q_v x v))
             // where q_v = [x, y, z]
 
-            // t = 2 * (q_v x v)
-            const T tx = T(2) * (q_.y * p[2] - q_.z * p[1]);
-            const T ty = T(2) * (q_.z * p[0] - q_.x * p[2]);
-            const T tz = T(2) * (q_.x * p[1] - q_.y * p[0]);
+            // q_v as array for SIMD cross product
+            const T q_v[3] = {q_.x, q_.y, q_.z};
 
-            // v' = v + w*t + (q_v x t)
+            // t = 2 * (q_v x v)
+            T t[3];
+            simd::backend::cross_scale(q_v, p.data(), T(2), t);
+
+            // t2 = q_v x t
+            T t2[3];
+            simd::backend::cross(q_v, t, t2);
+
+            // v' = v + w*t + t2
             Point result;
-            result[0] = p[0] + q_.w * tx + (q_.y * tz - q_.z * ty);
-            result[1] = p[1] + q_.w * ty + (q_.z * tx - q_.x * tz);
-            result[2] = p[2] + q_.w * tz + (q_.x * ty - q_.y * tx);
+            result[0] = p[0] + q_.w * t[0] + t2[0];
+            result[1] = p[1] + q_.w * t[1] + t2[1];
+            result[2] = p[2] + q_.w * t[2] + t2[2];
 
             return result;
         }
@@ -276,8 +362,8 @@ namespace optinum::lie {
         // vee: 3x3 skew-symmetric matrix -> omega
         [[nodiscard]] static Tangent vee(const RotationMatrix &Omega) noexcept {
             // Extract from skew-symmetric (average for numerical stability)
-            return Tangent{(Omega(2, 1) - Omega(1, 2)) / T(2), (Omega(0, 2) - Omega(2, 0)) / T(2),
-                           (Omega(1, 0) - Omega(0, 1)) / T(2)};
+            return Tangent{{(Omega(2, 1) - Omega(1, 2)) / T(2), (Omega(0, 2) - Omega(2, 0)) / T(2),
+                            (Omega(1, 0) - Omega(0, 1)) / T(2)}};
         }
 
         // Adjoint representation: Adj = R for SO3
@@ -285,7 +371,7 @@ namespace optinum::lie {
 
         // Lie bracket [a, b] = a x b (cross product for so(3))
         [[nodiscard]] static Tangent lie_bracket(const Tangent &a, const Tangent &b) noexcept {
-            return Tangent{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
+            return Tangent{{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]}};
         }
 
         // Generator matrices (3 generators for SO3)
@@ -329,25 +415,20 @@ namespace optinum::lie {
             const T a = (T(1) - c) / theta_sq;            // (1-cos)/theta^2
             const T b = (theta - s) / (theta_sq * theta); // (theta-sin)/theta^3
 
-            // hat(omega)
-            auto Omega = hat(omega);
+            // hat(omega) using SIMD skew utility
+            T Omega_data[9];
+            simd::backend::skew(omega.data(), Omega_data);
 
-            // hat(omega)^2
-            RotationMatrix Omega2;
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    T sum = T(0);
-                    for (int k = 0; k < 3; ++k) {
-                        sum += Omega(i, k) * Omega(k, j);
-                    }
-                    Omega2(i, j) = sum;
-                }
-            }
+            // hat(omega)^2 using SIMD matmul
+            T Omega2_data[9];
+            simd::backend::matmul<T, 3, 3, 3>(Omega2_data, Omega_data, Omega_data);
 
             // J = I + a * Omega + b * Omega^2
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    J(i, j) = (i == j ? T(1) : T(0)) + a * Omega(i, j) + b * Omega2(i, j);
+            // Column-major layout: J[col*3 + row]
+            for (int col = 0; col < 3; ++col) {
+                for (int row = 0; row < 3; ++row) {
+                    const int idx = col * 3 + row;
+                    J(row, col) = (row == col ? T(1) : T(0)) + a * Omega_data[idx] + b * Omega2_data[idx];
                 }
             }
 
@@ -383,25 +464,20 @@ namespace optinum::lie {
             const T cot_half = T(1) / std::tan(half_theta);
             const T a = T(1) / theta_sq - cot_half / (T(2) * theta);
 
-            // hat(omega)
-            auto Omega = hat(omega);
+            // hat(omega) using SIMD skew utility
+            T Omega_data[9];
+            simd::backend::skew(omega.data(), Omega_data);
 
-            // hat(omega)^2
-            RotationMatrix Omega2;
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    T sum = T(0);
-                    for (int k = 0; k < 3; ++k) {
-                        sum += Omega(i, k) * Omega(k, j);
-                    }
-                    Omega2(i, j) = sum;
-                }
-            }
+            // hat(omega)^2 using SIMD matmul
+            T Omega2_data[9];
+            simd::backend::matmul<T, 3, 3, 3>(Omega2_data, Omega_data, Omega_data);
 
             // J^-1 = I - 0.5*Omega + a*Omega^2
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    J_inv(i, j) = (i == j ? T(1) : T(0)) - T(0.5) * Omega(i, j) + a * Omega2(i, j);
+            // Column-major layout: J[col*3 + row]
+            for (int col = 0; col < 3; ++col) {
+                for (int row = 0; row < 3; ++row) {
+                    const int idx = col * 3 + row;
+                    J_inv(row, col) = (row == col ? T(1) : T(0)) - T(0.5) * Omega_data[idx] + a * Omega2_data[idx];
                 }
             }
 
@@ -429,9 +505,9 @@ namespace optinum::lie {
         [[nodiscard]] Tangent axis() const noexcept {
             const T v_norm = std::sqrt(q_.x * q_.x + q_.y * q_.y + q_.z * q_.z);
             if (v_norm < epsilon<T>) {
-                return Tangent{T(1), T(0), T(0)}; // Default to x-axis
+                return Tangent{{T(1), T(0), T(0)}}; // Default to x-axis
             }
-            return Tangent{q_.x / v_norm, q_.y / v_norm, q_.z / v_norm};
+            return Tangent{{q_.x / v_norm, q_.y / v_norm, q_.z / v_norm}};
         }
 
         // Extract Euler angles (ZYX convention: roll, pitch, yaw)
@@ -457,7 +533,7 @@ namespace optinum::lie {
             const T cosy_cosp = T(1) - T(2) * (y * y + z * z);
             const T yaw = std::atan2(siny_cosp, cosy_cosp);
 
-            return Tangent{roll, pitch, yaw};
+            return Tangent{{roll, pitch, yaw}};
         }
 
         // Raw data pointer
@@ -586,7 +662,7 @@ namespace optinum::lie {
 
         if (dot > T(1) - epsilon<T>) {
             // Linear interpolation for very close quaternions
-            dp::mat::quaternion<T> result{qa.w + t * (qb.w - qa.w), qa.x + t * (qb.x - qa.x), qa.y + t * (qb.y - qa.y),
+            dp::mat::Quaternion<T> result{qa.w + t * (qb.w - qa.w), qa.x + t * (qb.x - qa.x), qa.y + t * (qb.y - qa.y),
                                           qa.z + t * (qb.z - qa.z)};
             return SO3<T>(result);
         }

@@ -12,15 +12,35 @@
 // More stable than log(tgamma(x)) for large x
 // =============================================================================
 
+#include <cmath>
 #include <optinum/simd/arch/arch.hpp>
 #include <optinum/simd/math/log.hpp>
-#include <optinum/simd/pack/avx.hpp>
+#include <optinum/simd/pack/pack.hpp>
+
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_AVX)
+#include <optinum/simd/pack/avx.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> pack<T, W> lgamma(const pack<T, W> &x) noexcept;
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE pack<T, W> lgamma(const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::lgamma(x.data_[i]);
+        }
+        return result;
+    }
 
     namespace detail {
         // Lanczos coefficients for g = 7
@@ -54,7 +74,6 @@ namespace optinum::simd {
 // SSE Implementation for float (W=4)
 // =============================================================================
 #if defined(OPTINUM_HAS_SSE41)
-
     template <> inline pack<float, 4> lgamma(const pack<float, 4> &x) noexcept {
         using namespace detail;
 
@@ -119,14 +138,12 @@ namespace optinum::simd {
 
         return pack<float, 4>(vresult);
     }
-
 #endif // OPTINUM_HAS_SSE41
 
 // =============================================================================
 // AVX Implementation for float (W=8)
 // =============================================================================
 #if defined(OPTINUM_HAS_AVX)
-
     template <> inline pack<float, 8> lgamma(const pack<float, 8> &x) noexcept {
         using namespace detail;
 
@@ -189,14 +206,12 @@ namespace optinum::simd {
 
         return pack<float, 8>(vresult);
     }
-
 #endif // OPTINUM_HAS_AVX
 
 // =============================================================================
 // SSE Implementation for double (W=2)
 // =============================================================================
 #if defined(OPTINUM_HAS_SSE41)
-
     template <> inline pack<double, 2> lgamma(const pack<double, 2> &x) noexcept {
         using namespace detail;
 
@@ -256,14 +271,12 @@ namespace optinum::simd {
 
         return pack<double, 2>(vresult);
     }
-
 #endif // OPTINUM_HAS_SSE41
 
 // =============================================================================
 // AVX Implementation for double (W=4)
 // =============================================================================
 #if defined(OPTINUM_HAS_AVX)
-
     template <> inline pack<double, 4> lgamma(const pack<double, 4> &x) noexcept {
         using namespace detail;
 
@@ -301,11 +314,11 @@ namespace optinum::simd {
         vsum = _mm256_add_pd(vsum, _mm256_div_pd(_mm256_set1_pd(LGAMMA_C4_D), vxp4));
         __m256d vxp5 = _mm256_add_pd(vz, _mm256_set1_pd(5.0));
         vsum = _mm256_add_pd(vsum, _mm256_div_pd(_mm256_set1_pd(LGAMMA_C5_D), vxp5));
-        __m256d vxp6 = _mm256_add_pd(vx, _mm256_set1_pd(6.0));
+        __m256d vxp6 = _mm256_add_pd(vz, _mm256_set1_pd(6.0));
         vsum = _mm256_add_pd(vsum, _mm256_div_pd(_mm256_set1_pd(LGAMMA_C6_D), vxp6));
-        __m256d vxp7 = _mm256_add_pd(vx, _mm256_set1_pd(7.0));
+        __m256d vxp7 = _mm256_add_pd(vz, _mm256_set1_pd(7.0));
         vsum = _mm256_add_pd(vsum, _mm256_div_pd(_mm256_set1_pd(LGAMMA_C7_D), vxp7));
-        __m256d vxp8 = _mm256_add_pd(vx, _mm256_set1_pd(8.0));
+        __m256d vxp8 = _mm256_add_pd(vz, _mm256_set1_pd(8.0));
         vsum = _mm256_add_pd(vsum, _mm256_div_pd(_mm256_set1_pd(LGAMMA_C8_D), vxp8));
 #endif
 
@@ -322,7 +335,6 @@ namespace optinum::simd {
 
         return pack<double, 4>(vresult);
     }
-
 #endif // OPTINUM_HAS_AVX
 
 } // namespace optinum::simd

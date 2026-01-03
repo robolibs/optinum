@@ -9,6 +9,7 @@
 #include <optinum/simd/vector.hpp>
 
 namespace on = optinum;
+namespace dp = datapod;
 
 // =============================================================================
 // Debug Configuration Tests
@@ -49,7 +50,8 @@ TEST_CASE("debug - Configuration queries") {
 TEST_CASE("debug - Vector bounds checking") {
     using namespace on::simd;
 
-    Vector<float, 4> v;
+    dp::mat::Vector<float, 4> v_storage;
+    Vector<float, 4> v(v_storage);
     v.fill(1.0f);
 
     SUBCASE("Valid access - should not abort") {
@@ -82,7 +84,8 @@ TEST_CASE("debug - Vector bounds checking") {
 TEST_CASE("debug - Matrix bounds checking") {
     using namespace on::simd;
 
-    Matrix<float, 3, 3> m;
+    dp::mat::Matrix<float, 3, 3> m_storage;
+    Matrix<float, 3, 3> m(m_storage);
     m.fill(2.0f);
 
     SUBCASE("Valid 2D access - should not abort") {
@@ -180,15 +183,17 @@ TEST_CASE("debug - Integration with SIMD operations") {
     using namespace on::simd;
 
     SUBCASE("Vector operations with matching sizes") {
-        Vector<float, 4> v1, v2;
+        dp::mat::Vector<float, 4> v1_storage, v2_storage, v3_storage, v4_storage, v5_storage, v6_storage;
+        Vector<float, 4> v1(v1_storage), v2(v2_storage);
+        Vector<float, 4> v3(v3_storage), v4(v4_storage), v5(v5_storage), v6(v6_storage);
         v1.fill(1.0f);
         v2.fill(2.0f);
 
-        // These operations should work fine
-        auto v3 = v1 + v2;
-        auto v4 = v1 - v2;
-        auto v5 = v1 * v2;
-        auto v6 = v1 / v2;
+        // Use free functions to write results to output
+        add(v3_storage.data(), v1, v2);
+        sub(v4_storage.data(), v1, v2);
+        mul(v5_storage.data(), v1, v2);
+        div(v6_storage.data(), v1, v2);
 
         CHECK(v3[0] == doctest::Approx(3.0f));
         CHECK(v4[0] == doctest::Approx(-1.0f));
@@ -197,37 +202,47 @@ TEST_CASE("debug - Integration with SIMD operations") {
     }
 
     SUBCASE("Matrix operations with matching dimensions") {
-        Matrix<float, 3, 3> m1, m2;
+        dp::mat::Matrix<float, 3, 3> m1_storage, m2_storage, m3_storage, m4_storage;
+        Matrix<float, 3, 3> m1(m1_storage), m2(m2_storage);
+        Matrix<float, 3, 3> m3(m3_storage), m4(m4_storage);
         m1.fill(1.0f);
         m2.fill(2.0f);
 
-        // Element-wise operations
-        auto m3 = m1 + m2;
-        auto m4 = m1 - m2;
+        // Element-wise operations using free functions
+        add(m3_storage.data(), m1, m2);
+        sub(m4_storage.data(), m1, m2);
 
         CHECK(m3(0, 0) == doctest::Approx(3.0f));
         CHECK(m4(0, 0) == doctest::Approx(-1.0f));
     }
 
     SUBCASE("Matrix multiplication with compatible dimensions") {
-        Matrix<float, 2, 3> m1;
-        Matrix<float, 3, 4> m2;
+        dp::mat::Matrix<float, 2, 3> m1_storage;
+        dp::mat::Matrix<float, 3, 4> m2_storage;
+        dp::mat::Matrix<float, 2, 4> m3_storage;
+        Matrix<float, 2, 3> m1(m1_storage);
+        Matrix<float, 3, 4> m2(m2_storage);
+        Matrix<float, 2, 4> m3(m3_storage);
         m1.fill(1.0f);
         m2.fill(2.0f);
 
         // 2x3 * 3x4 -> 2x4 should work
-        auto m3 = m1 * m2;
+        matmul_to(m3_storage.data(), m1, m2);
         CHECK(m3(0, 0) == doctest::Approx(6.0f)); // sum of 3 * (1*2)
     }
 
     SUBCASE("Matrix-vector multiplication with compatible dimensions") {
-        Matrix<float, 3, 4> m;
-        Vector<float, 4> v;
+        dp::mat::Matrix<float, 3, 4> m_storage;
+        dp::mat::Vector<float, 4> v_storage;
+        dp::mat::Vector<float, 3> result_storage;
+        Matrix<float, 3, 4> m(m_storage);
+        Vector<float, 4> v(v_storage);
+        Vector<float, 3> result(result_storage);
         m.fill(1.0f);
         v.fill(2.0f);
 
         // 3x4 * 4 -> 3 should work
-        auto result = m * v;
+        matvec_to(result_storage.data(), m, v);
         CHECK(result[0] == doctest::Approx(8.0f)); // sum of 4 * (1*2)
     }
 }
@@ -240,7 +255,8 @@ TEST_CASE("debug - Performance characteristics") {
     using namespace on::simd;
 
     SUBCASE("No overhead when disabled") {
-        Vector<float, 100> v;
+        dp::mat::Vector<float, 100> v_storage;
+        Vector<float, 100> v(v_storage);
         v.iota();
 
         // Access all elements - should have no overhead when debug is disabled
@@ -253,7 +269,8 @@ TEST_CASE("debug - Performance characteristics") {
     }
 
     SUBCASE("Matrix access pattern") {
-        Matrix<float, 10, 10> m;
+        dp::mat::Matrix<float, 10, 10> m_storage;
+        Matrix<float, 10, 10> m(m_storage);
         m.iota();
 
         float sum = 0.0f;
@@ -280,7 +297,8 @@ TEST_CASE("debug - Usage examples") {
         // before including optinum headers, or set it in your build system:
         // -DOPTINUM_ENABLE_RUNTIME_CHECKS
 
-        Vector<float, 4> v;
+        dp::mat::Vector<float, 4> v_storage;
+        Vector<float, 4> v(v_storage);
         v.fill(1.0f);
 
         // With debug enabled, this would abort:

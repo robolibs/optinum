@@ -27,6 +27,18 @@ namespace optinum::simd {
     // =============================================================================
 
     // -------------------------------------------------------------------------
+    // Generic scalar fallback for any pack size (including pack<T, 1>)
+    // -------------------------------------------------------------------------
+    template <typename T, std::size_t W>
+    OPTINUM_INLINE pack<T, W> atan2(const pack<T, W> &y, const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::atan2(y.data_[i], x.data_[i]);
+        }
+        return result;
+    }
+
+    // -------------------------------------------------------------------------
     // pack<float, 4> - SSE
     // -------------------------------------------------------------------------
     OPTINUM_INLINE pack<float, 4> atan2(const pack<float, 4> &y, const pack<float, 4> &x) noexcept {

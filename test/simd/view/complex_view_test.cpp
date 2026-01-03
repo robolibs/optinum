@@ -17,7 +17,7 @@ namespace dp = datapod;
 // =============================================================================
 
 TEST_CASE("complex_view - Construction and size queries") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[8];
     for (std::size_t i = 0; i < 8; ++i) {
@@ -43,7 +43,7 @@ TEST_CASE("complex_view - Construction and size queries") {
 }
 
 TEST_CASE("complex_view - Element access") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
 
@@ -73,7 +73,7 @@ TEST_CASE("complex_view - Element access") {
 // =============================================================================
 
 TEST_CASE("complex_view - Conjugate in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, -6.0}, {0.0, 1.0}};
 
@@ -94,7 +94,7 @@ TEST_CASE("complex_view - Conjugate in-place") {
 }
 
 TEST_CASE("complex_view - Normalize in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {
         {3.0, 4.0}, // magnitude = 5
@@ -123,7 +123,7 @@ TEST_CASE("complex_view - Normalize in-place") {
 }
 
 TEST_CASE("complex_view - Scale in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[2] = {{1.0, 2.0}, {3.0, 4.0}};
 
@@ -137,7 +137,7 @@ TEST_CASE("complex_view - Scale in-place") {
 }
 
 TEST_CASE("complex_view - Negate in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[2] = {{1.0, 2.0}, {-3.0, 4.0}};
 
@@ -155,7 +155,7 @@ TEST_CASE("complex_view - Negate in-place") {
 // =============================================================================
 
 TEST_CASE("complex_view - Conjugate to output") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t input[2] = {{1.0, 2.0}, {3.0, -4.0}};
     complex_t output[2];
@@ -178,7 +178,7 @@ TEST_CASE("complex_view - Conjugate to output") {
 // =============================================================================
 
 TEST_CASE("complex_view - Addition") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t a[2] = {{1.0, 2.0}, {3.0, 4.0}};
     complex_t b[2] = {{5.0, 6.0}, {7.0, 8.0}};
@@ -195,7 +195,7 @@ TEST_CASE("complex_view - Addition") {
 }
 
 TEST_CASE("complex_view - Subtraction") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t a[2] = {{5.0, 6.0}, {7.0, 8.0}};
     complex_t b[2] = {{1.0, 2.0}, {3.0, 4.0}};
@@ -212,7 +212,7 @@ TEST_CASE("complex_view - Subtraction") {
 }
 
 TEST_CASE("complex_view - Multiplication") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // (1 + 2i) * (3 + 4i) = (1*3 - 2*4) + (1*4 + 2*3)i = -5 + 10i
     complex_t a[2] = {{1.0, 2.0}, {1.0, 0.0}};
@@ -232,7 +232,7 @@ TEST_CASE("complex_view - Multiplication") {
 }
 
 TEST_CASE("complex_view - Division") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // (3 + 4i) / (1 + 2i) = (3 + 4i)(1 - 2i) / (1 + 4) = (11 - 2i) / 5 = 2.2 - 0.4i
     complex_t a[2] = {{3.0, 4.0}, {1.0, 0.0}};
@@ -256,7 +256,7 @@ TEST_CASE("complex_view - Division") {
 // =============================================================================
 
 TEST_CASE("complex_view - Magnitudes") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {
         {3.0, 4.0}, // magnitude = 5
@@ -274,7 +274,7 @@ TEST_CASE("complex_view - Magnitudes") {
 }
 
 TEST_CASE("complex_view - Phases") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {
         {1.0, 0.0}, // phase = 0
@@ -292,7 +292,7 @@ TEST_CASE("complex_view - Phases") {
 }
 
 TEST_CASE("complex_view - Real and imaginary parts") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}};
     double reals[3], imags[3];
@@ -311,7 +311,7 @@ TEST_CASE("complex_view - Real and imaginary parts") {
 }
 
 TEST_CASE("complex_view - Sum") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[4] = {{1.0, 1.0}, {2.0, 2.0}, {3.0, 3.0}, {4.0, 4.0}};
 
@@ -323,7 +323,7 @@ TEST_CASE("complex_view - Sum") {
 }
 
 TEST_CASE("complex_view - Dot product (Hermitian)") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // Hermitian inner product: <a, b> = sum(conj(a) * b)
     complex_t a[2] = {{1.0, 0.0}, {0.0, 1.0}}; // [1, i]
@@ -343,7 +343,7 @@ TEST_CASE("complex_view - Dot product (Hermitian)") {
 // =============================================================================
 
 TEST_CASE("complex_view - Subview") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[8];
     for (std::size_t i = 0; i < 8; ++i) {
@@ -363,7 +363,7 @@ TEST_CASE("complex_view - Subview") {
 // =============================================================================
 
 TEST_CASE("complex_view - Tail handling") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // 5 complex numbers (not a multiple of typical SIMD width 4)
     complex_t data[5] = {{3.0, 4.0}, {0.0, 2.0}, {1.0, 0.0}, {1.0, 1.0}, {5.0, 0.0}};
@@ -387,97 +387,73 @@ TEST_CASE("complex_view - Tail handling") {
 }
 
 // =============================================================================
-// Complex Container (owning) Tests
+// Complex Array View Tests
 // =============================================================================
 
-TEST_CASE("Complex container - Basic operations") {
-    on::Complex<double, 4> nums;
+TEST_CASE("Complex array view - Basic operations") {
+    using complex_t = dp::mat::Complex<double>;
 
-    SUBCASE("Default construction") { CHECK(nums.size() == 4); }
+    SUBCASE("Construction from raw pointer") {
+        complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
+        on::Complex<double, 4> view(data);
 
-    SUBCASE("Zeros factory") {
-        auto z = on::Complex<double, 4>::zeros();
-        for (std::size_t i = 0; i < 4; ++i) {
-            CHECK(z[i].real == doctest::Approx(0.0));
-            CHECK(z[i].imag == doctest::Approx(0.0));
-        }
+        CHECK(view.size() == 4);
+        CHECK(view[0].real == doctest::Approx(1.0));
+        CHECK(view[3].imag == doctest::Approx(8.0));
     }
 
-    SUBCASE("Ones factory") {
-        auto o = on::Complex<double, 4>::ones();
-        for (std::size_t i = 0; i < 4; ++i) {
-            CHECK(o[i].real == doctest::Approx(1.0));
-            CHECK(o[i].imag == doctest::Approx(0.0));
-        }
-    }
+    SUBCASE("Construction from dp::mat::vector") {
+        dp::mat::Vector<complex_t, 4> storage;
+        storage[0] = {1.0, 2.0};
+        storage[1] = {3.0, 4.0};
+        storage[2] = {5.0, 6.0};
+        storage[3] = {7.0, 8.0};
 
-    SUBCASE("Unit imaginary factory") {
-        auto ui = on::Complex<double, 4>::unit_imaginary();
-        for (std::size_t i = 0; i < 4; ++i) {
-            CHECK(ui[i].real == doctest::Approx(0.0));
-            CHECK(ui[i].imag == doctest::Approx(1.0));
-        }
+        on::Complex<double, 4> view(storage);
+
+        CHECK(view.size() == 4);
+        CHECK(view[0].real == doctest::Approx(1.0));
     }
 
     SUBCASE("Conjugate in-place") {
-        nums[0] = {1.0, 2.0};
-        nums[1] = {3.0, 4.0};
-        nums[2] = {5.0, 6.0};
-        nums[3] = {7.0, 8.0};
+        complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
+        on::Complex<double, 4> view(data);
 
-        nums.conjugate_inplace();
+        view.conjugate_inplace();
 
-        CHECK(nums[0].imag == doctest::Approx(-2.0));
-        CHECK(nums[1].imag == doctest::Approx(-4.0));
-    }
-
-    SUBCASE("Binary operations") {
-        on::Complex<double, 2> a, b;
-        a[0] = {1.0, 2.0};
-        a[1] = {3.0, 4.0};
-        b[0] = {5.0, 6.0};
-        b[1] = {7.0, 8.0};
-
-        auto sum = a + b;
-        CHECK(sum[0].real == doctest::Approx(6.0));
-        CHECK(sum[0].imag == doctest::Approx(8.0));
-
-        auto prod = a * b;
-        // (1+2i)*(5+6i) = 5+6i+10i-12 = -7+16i
-        CHECK(prod[0].real == doctest::Approx(-7.0));
-        CHECK(prod[0].imag == doctest::Approx(16.0));
-    }
-
-    SUBCASE("Iteration") {
-        auto o = on::Complex<double, 4>::ones();
-        int count = 0;
-        for (const auto &c : o) {
-            CHECK(c.real == doctest::Approx(1.0));
-            count++;
-        }
-        CHECK(count == 4);
+        CHECK(data[0].imag == doctest::Approx(-2.0));
+        CHECK(data[1].imag == doctest::Approx(-4.0));
     }
 
     SUBCASE("Sum reduction") {
-        nums[0] = {1.0, 1.0};
-        nums[1] = {2.0, 2.0};
-        nums[2] = {3.0, 3.0};
-        nums[3] = {4.0, 4.0};
+        complex_t data[4] = {{1.0, 1.0}, {2.0, 2.0}, {3.0, 3.0}, {4.0, 4.0}};
+        on::Complex<double, 4> view(data);
 
-        auto s = nums.sum();
+        auto s = view.sum();
         CHECK(s.real == doctest::Approx(10.0));
         CHECK(s.imag == doctest::Approx(10.0));
     }
 
     SUBCASE("Dot product") {
-        on::Complex<double, 2> a, b;
-        a[0] = {1.0, 0.0};
-        a[1] = {0.0, 1.0};
-        b[0] = {1.0, 0.0};
-        b[1] = {0.0, 1.0};
+        complex_t a[2] = {{1.0, 0.0}, {0.0, 1.0}};
+        complex_t b[2] = {{1.0, 0.0}, {0.0, 1.0}};
+        on::Complex<double, 2> va(a);
+        on::Complex<double, 2> vb(b);
 
-        auto d = a.dot(b);
+        auto d = va.dot(vb);
         CHECK(d.real == doctest::Approx(2.0));
         CHECK(d.imag == doctest::Approx(0.0).epsilon(1e-10));
+    }
+
+    SUBCASE("Iteration") {
+        complex_t data[4] = {{1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}, {1.0, 0.0}};
+        on::Complex<double, 4> view(data);
+
+        int count = 0;
+        for (const auto &c : view) {
+            CHECK(c.real == doctest::Approx(1.0));
+            count++;
+        }
+        CHECK(count == 4);
     }
 }

@@ -5,13 +5,17 @@
 // Line search algorithms: Armijo (backtracking) and Wolfe conditions
 // =============================================================================
 
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix/vector.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/bridge.hpp>
 
 #include <cmath>
 #include <limits>
 #include <string>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * @brief Result of a line search operation
@@ -115,8 +119,8 @@ namespace optinum::opti {
          * @note The direction should be a descent direction (grad0^T * direction < 0)
          */
         template <typename FunctionType, std::size_t N>
-        LineSearchResult<T> search(FunctionType &func, const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction,
-                                   T f0, const simd::Vector<T, N> &grad0) {
+        LineSearchResult<T> search(FunctionType &func, const dp::mat::Vector<T, N> &x,
+                                   const dp::mat::Vector<T, N> &direction, T f0, const dp::mat::Vector<T, N> &grad0) {
             const std::size_t n = x.size();
 
             // Compute directional derivative: phi'(0) = grad0^T * direction
@@ -134,8 +138,8 @@ namespace optinum::opti {
             std::size_t func_evals = 0;
 
             // Allocate x_new once
-            simd::Vector<T, N> x_new;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::Vector<T, N> x_new;
+            if constexpr (N == dp::mat::Dynamic) {
                 x_new.resize(n);
             }
 
@@ -179,9 +183,9 @@ namespace optinum::opti {
          * More efficient when gradient is needed anyway (avoids recomputation).
          */
         template <typename FunctionType, std::size_t N>
-        LineSearchResult<T> search_with_gradient(FunctionType &func, const simd::Vector<T, N> &x,
-                                                 const simd::Vector<T, N> &direction, T f0,
-                                                 const simd::Vector<T, N> &grad0, simd::Vector<T, N> &grad_new) {
+        LineSearchResult<T> search_with_gradient(FunctionType &func, const dp::mat::Vector<T, N> &x,
+                                                 const dp::mat::Vector<T, N> &direction, T f0,
+                                                 const dp::mat::Vector<T, N> &grad0, dp::mat::Vector<T, N> &grad_new) {
             const std::size_t n = x.size();
 
             // Compute directional derivative
@@ -195,8 +199,8 @@ namespace optinum::opti {
             T alpha = alpha_init;
             std::size_t func_evals = 0;
 
-            simd::Vector<T, N> x_new;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::Vector<T, N> x_new;
+            if constexpr (N == dp::mat::Dynamic) {
                 x_new.resize(n);
                 grad_new.resize(n);
             }
@@ -233,15 +237,15 @@ namespace optinum::opti {
 
       private:
         /// Compute dot product using SIMD
-        template <std::size_t N> T compute_dot(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) const {
-            return simd::dot(a, b);
+        template <std::size_t N> T compute_dot(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b) const {
+            return simd::view(a).dot(simd::view(b));
         }
 
-        /// Compute x_new = x + alpha * direction using SIMD
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
-        void compute_step(const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction, T alpha,
-                          simd::Vector<T, N> &x_new) const {
-            x_new = x + direction * alpha;
+        void compute_step(const dp::mat::Vector<T, N> &x, const dp::mat::Vector<T, N> &direction, T alpha,
+                          dp::mat::Vector<T, N> &x_new) const {
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 
@@ -323,8 +327,9 @@ namespace optinum::opti {
          * @return LineSearchResult with step size and diagnostics
          */
         template <typename FunctionType, std::size_t N>
-        LineSearchResult<T> search(FunctionType &func, const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction,
-                                   T f0, const simd::Vector<T, N> &grad0, simd::Vector<T, N> &grad_new) {
+        LineSearchResult<T> search(FunctionType &func, const dp::mat::Vector<T, N> &x,
+                                   const dp::mat::Vector<T, N> &direction, T f0, const dp::mat::Vector<T, N> &grad0,
+                                   dp::mat::Vector<T, N> &grad_new) {
             const std::size_t n = x.size();
 
             // Compute initial directional derivative: phi'(0) = grad0^T * direction
@@ -340,8 +345,8 @@ namespace optinum::opti {
             T curvature_threshold = c2 * std::abs(dphi0);
 
             // Allocate working vectors
-            simd::Vector<T, N> x_new;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::Vector<T, N> x_new;
+            if constexpr (N == dp::mat::Dynamic) {
                 x_new.resize(n);
                 grad_new.resize(n);
             }
@@ -428,10 +433,11 @@ namespace optinum::opti {
          * Uses bisection with safeguards to find the optimal step size.
          */
         template <typename FunctionType, std::size_t N>
-        LineSearchResult<T> zoom(FunctionType &func, const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction,
-                                 T f0, T dphi0, T armijo_slope, T curvature_threshold, T alpha_lo, T alpha_hi, T f_lo,
-                                 [[maybe_unused]] T f_hi, simd::Vector<T, N> &x_new, simd::Vector<T, N> &grad_new,
-                                 std::size_t &func_evals, std::size_t &grad_evals) {
+        LineSearchResult<T> zoom(FunctionType &func, const dp::mat::Vector<T, N> &x,
+                                 const dp::mat::Vector<T, N> &direction, T f0, T dphi0, T armijo_slope,
+                                 T curvature_threshold, T alpha_lo, T alpha_hi, T f_lo, [[maybe_unused]] T f_hi,
+                                 dp::mat::Vector<T, N> &x_new, dp::mat::Vector<T, N> &grad_new, std::size_t &func_evals,
+                                 std::size_t &grad_evals) {
             for (std::size_t iter = 0; iter < max_zoom_iters; ++iter) {
                 // Bisection (could use quadratic interpolation for faster convergence)
                 T alpha = (alpha_lo + alpha_hi) / T(2);
@@ -489,15 +495,15 @@ namespace optinum::opti {
         }
 
         /// Compute dot product using SIMD
-        template <std::size_t N> T compute_dot(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) const {
-            return simd::dot(a, b);
+        template <std::size_t N> T compute_dot(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b) const {
+            return simd::view(a).dot(simd::view(b));
         }
 
-        /// Compute x_new = x + alpha * direction using SIMD
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
-        void compute_step(const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction, T alpha,
-                          simd::Vector<T, N> &x_new) const {
-            x_new = x + direction * alpha;
+        void compute_step(const dp::mat::Vector<T, N> &x, const dp::mat::Vector<T, N> &direction, T alpha,
+                          dp::mat::Vector<T, N> &x_new) const {
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 
@@ -523,8 +529,9 @@ namespace optinum::opti {
         WeakWolfeLineSearch(T c1_val, T c2_val) : c1(c1_val), c2(c2_val) {}
 
         template <typename FunctionType, std::size_t N>
-        LineSearchResult<T> search(FunctionType &func, const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction,
-                                   T f0, const simd::Vector<T, N> &grad0, simd::Vector<T, N> &grad_new) {
+        LineSearchResult<T> search(FunctionType &func, const dp::mat::Vector<T, N> &x,
+                                   const dp::mat::Vector<T, N> &direction, T f0, const dp::mat::Vector<T, N> &grad0,
+                                   dp::mat::Vector<T, N> &grad_new) {
             const std::size_t n = x.size();
 
             T dphi0 = compute_dot(grad0, direction);
@@ -536,8 +543,8 @@ namespace optinum::opti {
             T armijo_slope = c1 * dphi0;
             T curvature_threshold = c2 * dphi0; // Note: dphi0 is negative
 
-            simd::Vector<T, N> x_new;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::Vector<T, N> x_new;
+            if constexpr (N == dp::mat::Dynamic) {
                 x_new.resize(n);
                 grad_new.resize(n);
             }
@@ -597,14 +604,15 @@ namespace optinum::opti {
         }
 
       private:
-        template <std::size_t N> T compute_dot(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) const {
-            return simd::dot(a, b);
+        template <std::size_t N> T compute_dot(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b) const {
+            return simd::view(a).dot(simd::view(b));
         }
 
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
-        void compute_step(const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction, T alpha,
-                          simd::Vector<T, N> &x_new) const {
-            x_new = x + direction * alpha;
+        void compute_step(const dp::mat::Vector<T, N> &x, const dp::mat::Vector<T, N> &direction, T alpha,
+                          dp::mat::Vector<T, N> &x_new) const {
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 
@@ -631,8 +639,8 @@ namespace optinum::opti {
         explicit GoldsteinLineSearch(T c_val) : c(c_val) {}
 
         template <typename FunctionType, std::size_t N>
-        LineSearchResult<T> search(FunctionType &func, const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction,
-                                   T f0, const simd::Vector<T, N> &grad0) {
+        LineSearchResult<T> search(FunctionType &func, const dp::mat::Vector<T, N> &x,
+                                   const dp::mat::Vector<T, N> &direction, T f0, const dp::mat::Vector<T, N> &grad0) {
             const std::size_t n = x.size();
 
             T dphi0 = compute_dot(grad0, direction);
@@ -645,8 +653,8 @@ namespace optinum::opti {
             T lower_slope = (T(1) - c) * dphi0;
             T upper_slope = c * dphi0;
 
-            simd::Vector<T, N> x_new;
-            if constexpr (N == simd::Dynamic) {
+            dp::mat::Vector<T, N> x_new;
+            if constexpr (N == dp::mat::Dynamic) {
                 x_new.resize(n);
             }
 
@@ -696,14 +704,15 @@ namespace optinum::opti {
         }
 
       private:
-        template <std::size_t N> T compute_dot(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) const {
-            return simd::dot(a, b);
+        template <std::size_t N> T compute_dot(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b) const {
+            return simd::view(a).dot(simd::view(b));
         }
 
+        /// Compute x_new = x + alpha * direction (SIMD optimized)
         template <std::size_t N>
-        void compute_step(const simd::Vector<T, N> &x, const simd::Vector<T, N> &direction, T alpha,
-                          simd::Vector<T, N> &x_new) const {
-            x_new = x + direction * alpha;
+        void compute_step(const dp::mat::Vector<T, N> &x, const dp::mat::Vector<T, N> &direction, T alpha,
+                          dp::mat::Vector<T, N> &x_new) const {
+            simd::backend::axpy_runtime<T>(x_new.data(), x.data(), alpha, direction.data(), x.size());
         }
     };
 

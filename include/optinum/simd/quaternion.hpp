@@ -2,22 +2,22 @@
 
 // =============================================================================
 // optinum/simd/quaternion.hpp
-// High-level quaternion array container with transparent SIMD
+// Non-owning view over quaternion arrays with transparent SIMD operations
 // =============================================================================
 //
-// This file provides a simple owning container for quaternion arrays.
-// For non-owning views with SIMD operations, use quaternion_view.hpp
-// For low-level SIMD pack operations, use pack/quaternion.hpp
+// This file provides a non-owning view over quaternion arrays.
+// For SIMD pack operations, use pack/quaternion.hpp
+// For lower-level SIMD views, use view/quaternion_view.hpp
 //
 // Usage:
-//   Quaternion<double, 8> rotations;
-//   rotations[0] = dp::mat::quaternion<double>::from_axis_angle(0, 0, 1, M_PI/4);
+//   dp::mat::Vector<dp::mat::Quaternion<double>, 8> storage;
+//   Quaternion<double, 8> rotations(storage);
+//   rotations[0] = dp::mat::Quaternion<double>::from_axis_angle(0, 0, 1, M_PI/4);
 //   rotations.normalize_inplace();  // SIMD under the hood
 //
-// Or use the view() bridge for existing arrays:
-//   dp::mat::quaternion<double> quats[8];
-//   auto qv = view(quats);  // auto-detect SIMD width
-//   qv.normalize_inplace();
+// Or from raw pointer:
+//   dp::mat::Quaternion<double>* ptr = ...;
+//   Quaternion<double, 8> view(ptr, 8);
 // =============================================================================
 
 #include <datapod/matrix/math/quaternion.hpp>
@@ -33,10 +33,10 @@ namespace optinum::simd {
     namespace dp = ::datapod;
 
     /**
-     * @brief Quaternion array container with transparent SIMD operations
+     * @brief Non-owning view over quaternion arrays with transparent SIMD operations
      *
-     * High-level container for N quaternions. Operations use SIMD internally
-     * via quaternion_view. User works with dp::mat::quaternion<T> directly.
+     * Provides a view over N quaternions. Operations use SIMD internally
+     * via quaternion_view. User works with dp::mat::Quaternion<T> directly.
      *
      * Use cases:
      *   - Batch rotation operations
@@ -49,71 +49,73 @@ namespace optinum::simd {
         static_assert(std::is_floating_point_v<T>, "Quaternion<T, N> requires floating-point type");
 
       public:
-        using value_type = dp::mat::quaternion<T>;
-        using pod_type = dp::mat::vector<value_type, N>;
+        using value_type = dp::mat::Quaternion<T>;
+        using pod_type = dp::mat::Vector<value_type, N>;
         using real_type = T;
         using view_type = quaternion_view<T, detail::default_width<T>()>;
+        using size_type = std::size_t;
+        using pointer = value_type *;
+        using const_pointer = const value_type *;
 
         static constexpr std::size_t extent = N;
         static constexpr std::size_t rank = 1;
 
       private:
-        pod_type pod_;
+        pointer ptr_ = nullptr;
+        size_type size_ = 0;
 
       public:
         // ===== CONSTRUCTORS =====
 
-        constexpr Quaternion() noexcept : pod_() {}
-        constexpr Quaternion(const Quaternion &) = default;
+        // Default constructor (null view)
+        constexpr Quaternion() noexcept = default;
+
+        // Constructor from raw pointer (non-owning view)
+        constexpr Quaternion(pointer ptr, size_type n) noexcept : ptr_(ptr), size_(n) {}
+
+        // Constructor from const pointer (non-owning view)
+        constexpr Quaternion(const_pointer ptr, size_type n) noexcept : ptr_(const_cast<pointer>(ptr)), size_(n) {}
+
+        // Constructor from pod_type reference (non-owning view)
+        constexpr Quaternion(pod_type &pod) noexcept : ptr_(pod.data()), size_(N) {}
+        constexpr Quaternion(const pod_type &pod) noexcept : ptr_(const_cast<pointer>(pod.data())), size_(N) {}
+
+        // Copy/move (shallow - copies pointer, not data)
+        constexpr Quaternion(const Quaternion &) noexcept = default;
         constexpr Quaternion(Quaternion &&) noexcept = default;
-        constexpr Quaternion &operator=(const Quaternion &) = default;
+        constexpr Quaternion &operator=(const Quaternion &) noexcept = default;
         constexpr Quaternion &operator=(Quaternion &&) noexcept = default;
 
-        // Direct initialization from pod
-        constexpr explicit Quaternion(const pod_type &p) noexcept : pod_(p) {}
+        // ===== VALIDITY CHECK =====
+
+        [[nodiscard]] constexpr bool valid() const noexcept { return ptr_ != nullptr; }
+        constexpr explicit operator bool() const noexcept { return valid(); }
 
         // ===== ELEMENT ACCESS =====
 
-        [[nodiscard]] constexpr value_type &operator[](std::size_t i) noexcept { return pod_[i]; }
-        [[nodiscard]] constexpr const value_type &operator[](std::size_t i) const noexcept { return pod_[i]; }
+        [[nodiscard]] constexpr value_type &operator[](size_type i) noexcept { return ptr_[i]; }
+        [[nodiscard]] constexpr const value_type &operator[](size_type i) const noexcept { return ptr_[i]; }
 
         // ===== RAW DATA ACCESS =====
 
-        [[nodiscard]] constexpr value_type *data() noexcept { return pod_.data(); }
-        [[nodiscard]] constexpr const value_type *data() const noexcept { return pod_.data(); }
-
-        // Get underlying pod
-        [[nodiscard]] constexpr pod_type &pod() noexcept { return pod_; }
-        [[nodiscard]] constexpr const pod_type &pod() const noexcept { return pod_; }
+        [[nodiscard]] constexpr pointer data() noexcept { return ptr_; }
+        [[nodiscard]] constexpr const_pointer data() const noexcept { return ptr_; }
 
         // Get SIMD view (for advanced operations)
-        [[nodiscard]] view_type as_view() noexcept { return view(pod_); }
-        [[nodiscard]] view_type as_view() const noexcept { return view(pod_); }
+        [[nodiscard]] view_type as_view() noexcept { return view_type(ptr_, size_); }
+        [[nodiscard]] view_type as_view() const noexcept { return view_type(ptr_, size_); }
 
         // ===== SIZE =====
 
-        [[nodiscard]] static constexpr std::size_t size() noexcept { return N; }
+        [[nodiscard]] constexpr size_type size() const noexcept { return size_; }
+        [[nodiscard]] static constexpr bool empty() noexcept { return false; }
 
         // ===== FILL OPERATIONS =====
 
         constexpr void fill(const value_type &val) noexcept {
-            for (std::size_t i = 0; i < N; ++i) {
-                pod_[i] = val;
+            for (size_type i = 0; i < size_; ++i) {
+                ptr_[i] = val;
             }
-        }
-
-        // ===== FACTORY FUNCTIONS =====
-
-        [[nodiscard]] static constexpr Quaternion identity() noexcept {
-            Quaternion q;
-            q.fill(value_type::identity());
-            return q;
-        }
-
-        [[nodiscard]] static constexpr Quaternion zeros() noexcept {
-            Quaternion q;
-            q.fill(value_type{T{}, T{}, T{}, T{}});
-            return q;
         }
 
         // ===== IN-PLACE OPERATIONS (SIMD accelerated) =====
@@ -124,60 +126,44 @@ namespace optinum::simd {
 
         void inverse_inplace() noexcept { as_view().inverse_inplace(); }
 
-        // ===== OPERATIONS RETURNING NEW ARRAY =====
+        // ===== OPERATIONS WRITING TO OUTPUT =====
 
-        [[nodiscard]] Quaternion conjugate() const noexcept {
-            Quaternion result;
-            (void)as_view().conjugate_to(result.data());
-            return result;
-        }
+        void conjugate_to(pointer out) const noexcept { (void)as_view().conjugate_to(out); }
 
-        [[nodiscard]] Quaternion normalized() const noexcept {
-            Quaternion result;
-            (void)as_view().normalized_to(result.data());
-            return result;
-        }
+        void normalize_to(pointer out) const noexcept { (void)as_view().normalize_to(out); }
 
-        [[nodiscard]] Quaternion inverse() const noexcept {
-            Quaternion result;
-            (void)as_view().inverse_to(result.data());
-            return result;
-        }
+        void inverse_to(pointer out) const noexcept { (void)as_view().inverse_to(out); }
 
         // ===== BINARY OPERATIONS =====
 
-        [[nodiscard]] Quaternion operator*(const Quaternion &other) const noexcept {
-            Quaternion result;
-            (void)as_view().multiply_to(other.as_view(), result.data());
-            return result;
+        void multiply_to(const Quaternion &other, pointer out) const noexcept {
+            (void)as_view().multiply_to(other.as_view(), out);
         }
 
-        Quaternion &operator*=(const Quaternion &other) noexcept {
-            Quaternion result;
-            (void)as_view().multiply_to(other.as_view(), result.data());
-            pod_ = result.pod_;
-            return *this;
+        void multiply_inplace(const Quaternion &other) noexcept {
+            // Need temporary storage for in-place multiply
+            alignas(32) value_type temp[N];
+            (void)as_view().multiply_to(other.as_view(), temp);
+            for (size_type i = 0; i < size_; ++i) {
+                ptr_[i] = temp[i];
+            }
         }
 
         // ===== INTERPOLATION =====
 
-        [[nodiscard]] Quaternion slerp(const Quaternion &other, T t) const noexcept {
-            Quaternion result;
-            (void)as_view().slerp_to(other.as_view(), t, result.data());
-            return result;
+        void slerp_to(const Quaternion &other, T t, pointer out) const noexcept {
+            (void)as_view().slerp_to(other.as_view(), t, out);
         }
 
-        [[nodiscard]] Quaternion nlerp(const Quaternion &other, T t) const noexcept {
-            Quaternion result;
-            (void)as_view().nlerp_to(other.as_view(), t, result.data());
-            return result;
+        void nlerp_to(const Quaternion &other, T t, pointer out) const noexcept {
+            (void)as_view().nlerp_to(other.as_view(), t, out);
         }
 
         // ===== REDUCTION OPERATIONS =====
 
-        void norms(T *out) const noexcept { as_view().norms_to(out); }
+        void norms_to(T *out) const noexcept { as_view().norms_to(out); }
 
-        void dot(const Quaternion &other, T *out) const noexcept { as_view().dot_to(other.as_view(), out); }
+        void dot_to(const Quaternion &other, T *out) const noexcept { as_view().dot_to(other.as_view(), out); }
 
         // ===== ROTATION OPERATIONS =====
 
@@ -187,10 +173,8 @@ namespace optinum::simd {
 
         void to_euler(T *roll, T *pitch, T *yaw) const noexcept { as_view().to_euler(roll, pitch, yaw); }
 
-        static Quaternion from_euler(const T *roll, const T *pitch, const T *yaw) noexcept {
-            Quaternion result;
-            view_type::from_euler(roll, pitch, yaw, result.data(), N);
-            return result;
+        static void from_euler(const T *roll, const T *pitch, const T *yaw, pointer out) noexcept {
+            view_type::from_euler(roll, pitch, yaw, out, N);
         }
 
         void to_axis_angle(T *ax, T *ay, T *az, T *angle) const noexcept { as_view().to_axis_angle(ax, ay, az, angle); }
@@ -199,9 +183,9 @@ namespace optinum::simd {
 
         friend std::ostream &operator<<(std::ostream &os, const Quaternion &q) {
             os << "[";
-            for (std::size_t i = 0; i < N; ++i) {
+            for (size_type i = 0; i < q.size_; ++i) {
                 os << "(" << q[i].w << "+" << q[i].x << "i+" << q[i].y << "j+" << q[i].z << "k)";
-                if (i + 1 < N)
+                if (i + 1 < q.size_)
                     os << ", ";
             }
             os << "]";
@@ -210,10 +194,12 @@ namespace optinum::simd {
 
         // ===== ITERATORS =====
 
-        value_type *begin() noexcept { return pod_.data(); }
-        value_type *end() noexcept { return pod_.data() + N; }
-        const value_type *begin() const noexcept { return pod_.data(); }
-        const value_type *end() const noexcept { return pod_.data() + N; }
+        pointer begin() noexcept { return ptr_; }
+        pointer end() noexcept { return ptr_ + size_; }
+        const_pointer begin() const noexcept { return ptr_; }
+        const_pointer end() const noexcept { return ptr_ + size_; }
+        const_pointer cbegin() const noexcept { return ptr_; }
+        const_pointer cend() const noexcept { return ptr_ + size_; }
     };
 
     // ===== TYPE ALIASES =====

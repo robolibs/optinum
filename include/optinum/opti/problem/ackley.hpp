@@ -2,9 +2,11 @@
 
 #include <cmath>
 
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Ackley function - multimodal benchmark with a nearly flat outer region
@@ -33,7 +35,7 @@ namespace optinum::opti {
      *   Ackley<double, Dynamic> - Dynamic size
      */
     template <typename T, std::size_t N> struct Ackley {
-        using tensor_type = simd::Vector<T, N>;
+        using tensor_type = dp::mat::Vector<T, N>;
 
         static constexpr T A = T{20};                         ///< First exponential scaling
         static constexpr T B = T{0.2};                        ///< Decay rate for quadratic term
@@ -130,7 +132,7 @@ namespace optinum::opti {
         /// Get the global minimum location (all zeros)
         static tensor_type minimum_location(std::size_t dim = N) {
             tensor_type x;
-            if constexpr (N == simd::Dynamic) {
+            if constexpr (N == dp::mat::Dynamic) {
                 x.resize(dim);
             }
             for (std::size_t i = 0; i < x.size(); ++i) {

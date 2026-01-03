@@ -37,7 +37,7 @@ class Timer {
 };
 
 // Generate random data
-void fill_random(datapod::mat::vector<float, NUM_ELEMENTS> &vec, float min_val, float max_val) {
+void fill_random(datapod::mat::Vector<float, NUM_ELEMENTS> &vec, float min_val, float max_val) {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(min_val, max_val);
     for (std::size_t i = 0; i < NUM_ELEMENTS; ++i) {
@@ -49,8 +49,8 @@ void fill_random(datapod::mat::vector<float, NUM_ELEMENTS> &vec, float min_val, 
 // Scalar Benchmarks
 // =============================================================================
 
-double benchmark_scalar_exp(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                            datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_scalar_exp(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                            datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
@@ -61,8 +61,8 @@ double benchmark_scalar_exp(const datapod::mat::vector<float, NUM_ELEMENTS> &inp
     return timer.elapsed_ms();
 }
 
-double benchmark_scalar_log(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                            datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_scalar_log(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                            datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
@@ -73,8 +73,8 @@ double benchmark_scalar_log(const datapod::mat::vector<float, NUM_ELEMENTS> &inp
     return timer.elapsed_ms();
 }
 
-double benchmark_scalar_sin(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                            datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_scalar_sin(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                            datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
@@ -85,8 +85,8 @@ double benchmark_scalar_sin(const datapod::mat::vector<float, NUM_ELEMENTS> &inp
     return timer.elapsed_ms();
 }
 
-double benchmark_scalar_cos(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                            datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_scalar_cos(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                            datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
@@ -97,8 +97,8 @@ double benchmark_scalar_cos(const datapod::mat::vector<float, NUM_ELEMENTS> &inp
     return timer.elapsed_ms();
 }
 
-double benchmark_scalar_tanh(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                             datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_scalar_tanh(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                             datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
@@ -109,8 +109,8 @@ double benchmark_scalar_tanh(const datapod::mat::vector<float, NUM_ELEMENTS> &in
     return timer.elapsed_ms();
 }
 
-double benchmark_scalar_sqrt(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                             datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_scalar_sqrt(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                             datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
@@ -126,8 +126,8 @@ double benchmark_scalar_sqrt(const datapod::mat::vector<float, NUM_ELEMENTS> &in
 // =============================================================================
 
 template <std::size_t W>
-double benchmark_simd_exp(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                          datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_simd_exp(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                          datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     const std::size_t vec_count = NUM_ELEMENTS / W;
     Timer timer;
     timer.start();
@@ -142,8 +142,8 @@ double benchmark_simd_exp(const datapod::mat::vector<float, NUM_ELEMENTS> &input
 }
 
 template <std::size_t W>
-double benchmark_simd_log(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                          datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_simd_log(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                          datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     const std::size_t vec_count = NUM_ELEMENTS / W;
     Timer timer;
     timer.start();
@@ -158,8 +158,8 @@ double benchmark_simd_log(const datapod::mat::vector<float, NUM_ELEMENTS> &input
 }
 
 template <std::size_t W>
-double benchmark_simd_sin(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                          datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_simd_sin(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                          datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     const std::size_t vec_count = NUM_ELEMENTS / W;
     Timer timer;
     timer.start();
@@ -174,8 +174,8 @@ double benchmark_simd_sin(const datapod::mat::vector<float, NUM_ELEMENTS> &input
 }
 
 template <std::size_t W>
-double benchmark_simd_cos(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                          datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_simd_cos(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                          datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     const std::size_t vec_count = NUM_ELEMENTS / W;
     Timer timer;
     timer.start();
@@ -190,8 +190,8 @@ double benchmark_simd_cos(const datapod::mat::vector<float, NUM_ELEMENTS> &input
 }
 
 template <std::size_t W>
-double benchmark_simd_tanh(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                           datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_simd_tanh(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                           datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     const std::size_t vec_count = NUM_ELEMENTS / W;
     Timer timer;
     timer.start();
@@ -206,8 +206,8 @@ double benchmark_simd_tanh(const datapod::mat::vector<float, NUM_ELEMENTS> &inpu
 }
 
 template <std::size_t W>
-double benchmark_simd_sqrt(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                           datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_simd_sqrt(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                           datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     const std::size_t vec_count = NUM_ELEMENTS / W;
     Timer timer;
     timer.start();
@@ -235,13 +235,13 @@ int main() {
     std::cout << "================================================================\n\n";
 
     // Datapod 0.0.8 heap-allocated vectors
-    datapod::mat::vector<float, NUM_ELEMENTS> input_exp;
-    datapod::mat::vector<float, NUM_ELEMENTS> input_log;
-    datapod::mat::vector<float, NUM_ELEMENTS> input_trig;
-    datapod::mat::vector<float, NUM_ELEMENTS> input_tanh;
-    datapod::mat::vector<float, NUM_ELEMENTS> input_sqrt;
-    datapod::mat::vector<float, NUM_ELEMENTS> output_scalar;
-    datapod::mat::vector<float, NUM_ELEMENTS> output_simd;
+    datapod::mat::Vector<float, NUM_ELEMENTS> input_exp;
+    datapod::mat::Vector<float, NUM_ELEMENTS> input_log;
+    datapod::mat::Vector<float, NUM_ELEMENTS> input_trig;
+    datapod::mat::Vector<float, NUM_ELEMENTS> input_tanh;
+    datapod::mat::Vector<float, NUM_ELEMENTS> input_sqrt;
+    datapod::mat::Vector<float, NUM_ELEMENTS> output_scalar;
+    datapod::mat::Vector<float, NUM_ELEMENTS> output_simd;
 
     std::cout << "Datapod vector info:\n";
     std::cout << "  uses_heap: " << std::boolalpha << input_exp.uses_heap << "\n";

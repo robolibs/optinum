@@ -24,6 +24,8 @@
 #include <optinum/lie/core/concepts.hpp>
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/so3.hpp>
+#include <optinum/simd/datapods.hpp>
+#include <optinum/simd/pack/pack.hpp>
 #include <optinum/simd/vector.hpp>
 
 #include <cmath>
@@ -33,6 +35,12 @@
 #include <vector>
 
 namespace optinum::lie {
+
+    // Bring in operators for dp::mat::vector from simd namespace
+    using optinum::simd::operator+=;
+    using optinum::simd::operator-=;
+    using optinum::simd::operator*=;
+    using optinum::simd::operator/=;
 
     // ===== ITERATIVE BIINVARIANT MEAN =====
     //
@@ -82,12 +90,12 @@ namespace optinum::lie {
             Tangent v_sum = (mean_inv * G(*it)).log();
             ++it;
 
-            // Add remaining logs - use SIMD operators
+            // Add remaining logs
             for (; it != std::end(elements); ++it) {
                 v_sum += (mean_inv * G(*it)).log();
             }
 
-            // Scale by 1/n - use SIMD operator
+            // Scale by 1/n
             v_sum *= inv_n;
 
             // Check convergence: ||v||^2 < tolerance^2
@@ -267,30 +275,41 @@ namespace optinum::lie {
             }
         }
 
-        // Power iteration to find dominant eigenvector
+        // Power iteration to find dominant eigenvector (SIMD optimized)
         // (M is positive semi-definite, so this converges to the eigenvector
         // with largest eigenvalue, which corresponds to the average quaternion)
-        T v[4] = {T(1), T(0), T(0), T(0)}; // Initial guess
+        //
+        // Use SIMD pack<T,4> for 4x4 matrix-vector multiply
+        using Pack4 = simd::pack<T, 4>;
+
+        alignas(32) T v[4] = {T(1), T(0), T(0), T(0)}; // Initial guess
 
         for (int iter = 0; iter < 20; ++iter) {
-            // Multiply: v_new = M * v
-            T v_new[4] = {T(0), T(0), T(0), T(0)};
+            // Load v into a pack
+            auto v_pack = Pack4::load(v);
+
+            // Multiply: v_new = M * v using SIMD dot products
+            alignas(32) T v_new[4];
             for (int i = 0; i < 4; ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    v_new[i] += M[i][j] * v[j];
-                }
+                // Load row i of M
+                alignas(32) T row[4] = {M[i][0], M[i][1], M[i][2], M[i][3]};
+                auto row_pack = Pack4::load(row);
+                // Dot product: row · v
+                v_new[i] = (row_pack * v_pack).hsum();
             }
 
-            // Normalize
-            T norm = std::sqrt(v_new[0] * v_new[0] + v_new[1] * v_new[1] + v_new[2] * v_new[2] + v_new[3] * v_new[3]);
+            // Compute norm using SIMD
+            auto v_new_pack = Pack4::load(v_new);
+            T norm_sq = (v_new_pack * v_new_pack).hsum();
+            T norm = std::sqrt(norm_sq);
+
             if (norm < epsilon<T>) {
                 break;
             }
+
+            // Normalize using SIMD
             T inv_norm = T(1) / norm;
-            v[0] = v_new[0] * inv_norm;
-            v[1] = v_new[1] * inv_norm;
-            v[2] = v_new[2] * inv_norm;
-            v[3] = v_new[3] * inv_norm;
+            (v_new_pack * Pack4(inv_norm)).store(v);
         }
 
         // Ensure positive scalar part (canonical form)
@@ -367,25 +386,28 @@ namespace optinum::lie {
             }
         }
 
-        // Power iteration
-        T v[4] = {T(1), T(0), T(0), T(0)};
+        // Power iteration (SIMD optimized)
+        using Pack4 = simd::pack<T, 4>;
+        alignas(32) T v[4] = {T(1), T(0), T(0), T(0)};
         for (int iter = 0; iter < 20; ++iter) {
-            T v_new[4] = {T(0), T(0), T(0), T(0)};
+            auto v_pack = Pack4::load(v);
+
+            alignas(32) T v_new[4];
             for (int i = 0; i < 4; ++i) {
-                for (int j = 0; j < 4; ++j) {
-                    v_new[i] += M[i][j] * v[j];
-                }
+                alignas(32) T row[4] = {M[i][0], M[i][1], M[i][2], M[i][3]};
+                auto row_pack = Pack4::load(row);
+                v_new[i] = (row_pack * v_pack).hsum();
             }
 
-            T norm = std::sqrt(v_new[0] * v_new[0] + v_new[1] * v_new[1] + v_new[2] * v_new[2] + v_new[3] * v_new[3]);
+            auto v_new_pack = Pack4::load(v_new);
+            T norm_sq = (v_new_pack * v_new_pack).hsum();
+            T norm = std::sqrt(norm_sq);
+
             if (norm < epsilon<T>) {
                 break;
             }
             T inv_norm = T(1) / norm;
-            v[0] = v_new[0] * inv_norm;
-            v[1] = v_new[1] * inv_norm;
-            v[2] = v_new[2] * inv_norm;
-            v[3] = v_new[3] * inv_norm;
+            (v_new_pack * Pack4(inv_norm)).store(v);
         }
 
         if (v[0] < T(0)) {

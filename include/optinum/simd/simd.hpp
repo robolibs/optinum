@@ -39,13 +39,18 @@
 #include <optinum/simd/backend/reduce.hpp>
 #include <optinum/simd/backend/transpose.hpp>
 
-// User-facing types (legacy, wrapping datapod)
+// Non-owning view types over datapod storage
+// Use dp::mat::vector/matrix/tensor for ownership, simd::Vector/Matrix/Tensor for views
 #include <optinum/simd/complex.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/quaternion.hpp>
 #include <optinum/simd/scalar.hpp>
 #include <optinum/simd/tensor.hpp>
 #include <optinum/simd/vector.hpp>
+
+// Factory functions and SIMD convenience operations
+// zeros<T,N>(), ones<T,N>(), identity<T,N>(), norm(), dot(), sum(), etc.
+#include <optinum/simd/datapods.hpp>
 
 // I/O utilities
 #include <optinum/simd/io.hpp>

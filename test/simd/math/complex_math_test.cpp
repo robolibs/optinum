@@ -6,7 +6,7 @@ using optinum::simd::pack;
 namespace dp = datapod;
 
 TEST_CASE("Complex exp") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
     using cpack = pack<complex_t, 2>;
 
     // exp(i*pi) = -1
@@ -22,7 +22,7 @@ TEST_CASE("Complex exp") {
 }
 
 TEST_CASE("Complex log and exp inverse") {
-    using complex_t = dp::mat::complex<float>;
+    using complex_t = dp::mat::Complex<float>;
     using cpack = pack<complex_t, 4>;
 
     pack<float, 4> r, i;
@@ -43,7 +43,7 @@ TEST_CASE("Complex log and exp inverse") {
 }
 
 TEST_CASE("Complex sqrt") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
     using cpack = pack<complex_t, 2>;
 
     // sqrt(-1) = i
@@ -59,7 +59,7 @@ TEST_CASE("Complex sqrt") {
 }
 
 TEST_CASE("Complex sin and cos") {
-    using complex_t = dp::mat::complex<float>;
+    using complex_t = dp::mat::Complex<float>;
     using cpack = pack<complex_t, 4>;
 
     pack<float, 4> r, i;
@@ -85,7 +85,7 @@ TEST_CASE("Complex sin and cos") {
 }
 
 TEST_CASE("Complex sinh and cosh") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
     using cpack = pack<complex_t, 2>;
 
     pack<double, 2> r, i;
@@ -104,7 +104,7 @@ TEST_CASE("Complex sinh and cosh") {
 }
 
 TEST_CASE("Complex asin") {
-    using complex_t = dp::mat::complex<float>;
+    using complex_t = dp::mat::Complex<float>;
     using cpack = pack<complex_t, 4>;
 
     pack<float, 4> r, i;
@@ -120,7 +120,7 @@ TEST_CASE("Complex asin") {
 }
 
 TEST_CASE("Complex power") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
     using cpack = pack<complex_t, 2>;
 
     // (1+i)^2 = 1 + 2i - 1 = 2i

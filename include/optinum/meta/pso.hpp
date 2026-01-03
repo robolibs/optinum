@@ -31,20 +31,23 @@
 #include <random>
 #include <vector>
 
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Result of PSO optimization
      */
     template <typename T> struct PSOResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t iterations;                       ///< Number of iterations performed
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per iteration (for analysis)
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t iterations;                             ///< Number of iterations performed
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per iteration (for analysis)
     };
 
     /**
@@ -58,8 +61,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> lower{-5.0, -5.0};
-     * simd::Vector<double, simd::Dynamic> upper{5.0, 5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = pso.optimize(objective, lower, upper);
      * @endcode
@@ -101,8 +104,8 @@ namespace optinum::meta {
          * @return PSOResult with best solution and convergence info
          */
         template <typename F>
-        PSOResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                              const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        PSOResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
             const std::size_t n_particles = config.population_size;
 
@@ -123,24 +126,24 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
             // Compute velocity limits based on range
-            simd::Vector<T, simd::Dynamic> velocity_max(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> velocity_max(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 velocity_max[d] = config.velocity_clamp * (upper_bounds[d] - lower_bounds[d]);
             }
 
             // Initialize particles: positions, velocities, personal bests
             // Using std::vector of simd::Vector for population (each particle is a vector)
-            std::vector<simd::Vector<T, simd::Dynamic>> positions(n_particles);
-            std::vector<simd::Vector<T, simd::Dynamic>> velocities(n_particles);
-            std::vector<simd::Vector<T, simd::Dynamic>> pbest_positions(n_particles);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> positions(n_particles);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> velocities(n_particles);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> pbest_positions(n_particles);
             std::vector<T> pbest_values(n_particles);
             std::vector<T> current_values(n_particles);
 
             // Initialize each particle
             for (std::size_t i = 0; i < n_particles; ++i) {
-                positions[i] = simd::Vector<T, simd::Dynamic>(dim);
-                velocities[i] = simd::Vector<T, simd::Dynamic>(dim);
-                pbest_positions[i] = simd::Vector<T, simd::Dynamic>(dim);
+                positions[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
+                velocities[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
+                pbest_positions[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
 
                 for (std::size_t d = 0; d < dim; ++d) {
                     // Random position within bounds
@@ -169,7 +172,7 @@ namespace optinum::meta {
                     gbest_idx = i;
                 }
             }
-            simd::Vector<T, simd::Dynamic> gbest_position = pbest_positions[gbest_idx];
+            dp::mat::Vector<T, dp::mat::Dynamic> gbest_position = pbest_positions[gbest_idx];
 
             // History tracking
             std::vector<T> history;
@@ -181,6 +184,12 @@ namespace optinum::meta {
             std::vector<T> horizon_buffer(config.horizon_size, gbest_value);
             std::size_t horizon_idx = 0;
 
+            // Pre-allocate temporary vectors for SIMD operations
+            dp::mat::Vector<T, dp::mat::Dynamic> r1_vec(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> r2_vec(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> temp1(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> temp2(dim);
+
             // Main optimization loop
             std::size_t iteration = 0;
             bool converged = false;
@@ -188,23 +197,37 @@ namespace optinum::meta {
             for (; iteration < config.max_iterations; ++iteration) {
                 // Update each particle
                 for (std::size_t i = 0; i < n_particles; ++i) {
-                    // Generate random coefficients
+                    // Generate random coefficient vectors for SIMD processing
                     for (std::size_t d = 0; d < dim; ++d) {
-                        T r1 = uniform(rng);
-                        T r2 = uniform(rng);
+                        r1_vec[d] = uniform(rng);
+                        r2_vec[d] = uniform(rng);
+                    }
 
-                        // Velocity update: v = w*v + c1*r1*(pbest-x) + c2*r2*(gbest-x)
-                        velocities[i][d] = config.inertia_weight * velocities[i][d] +
-                                           config.cognitive_coeff * r1 * (pbest_positions[i][d] - positions[i][d]) +
-                                           config.social_coeff * r2 * (gbest_position[d] - positions[i][d]);
+                    // SIMD-optimized velocity update: v = w*v + c1*r1*(pbest-x) + c2*r2*(gbest-x)
+                    // Step 1: Scale velocity by inertia weight: v *= w
+                    simd::backend::mul_scalar_runtime<T>(velocities[i].data(), velocities[i].data(),
+                                                         config.inertia_weight, dim);
 
-                        // Clamp velocity
+                    // Step 2: Compute cognitive component: temp1 = pbest - x
+                    simd::backend::sub_runtime<T>(temp1.data(), pbest_positions[i].data(), positions[i].data(), dim);
+                    // temp1 *= c1 * r1 (element-wise)
+                    simd::backend::mul_runtime<T>(temp1.data(), temp1.data(), r1_vec.data(), dim);
+                    simd::backend::mul_scalar_runtime<T>(temp1.data(), temp1.data(), config.cognitive_coeff, dim);
+
+                    // Step 3: Compute social component: temp2 = gbest - x
+                    simd::backend::sub_runtime<T>(temp2.data(), gbest_position.data(), positions[i].data(), dim);
+                    // temp2 *= c2 * r2 (element-wise)
+                    simd::backend::mul_runtime<T>(temp2.data(), temp2.data(), r2_vec.data(), dim);
+                    simd::backend::mul_scalar_runtime<T>(temp2.data(), temp2.data(), config.social_coeff, dim);
+
+                    // Step 4: v += temp1 + temp2
+                    simd::backend::add_runtime<T>(velocities[i].data(), velocities[i].data(), temp1.data(), dim);
+                    simd::backend::add_runtime<T>(velocities[i].data(), velocities[i].data(), temp2.data(), dim);
+
+                    // Clamp velocity and update position (scalar loop for clamping)
+                    for (std::size_t d = 0; d < dim; ++d) {
                         velocities[i][d] = std::clamp(velocities[i][d], -velocity_max[d], velocity_max[d]);
-
-                        // Position update: x = x + v
                         positions[i][d] += velocities[i][d];
-
-                        // Clamp position to bounds
                         positions[i][d] = std::clamp(positions[i][d], lower_bounds[d], upper_bounds[d]);
                     }
 
@@ -214,12 +237,12 @@ namespace optinum::meta {
                     // Update personal best
                     if (current_values[i] < pbest_values[i]) {
                         pbest_values[i] = current_values[i];
-                        pbest_positions[i] = positions[i];
+                        simd::backend::copy_runtime<T>(pbest_positions[i].data(), positions[i].data(), dim);
 
                         // Update global best
                         if (current_values[i] < gbest_value) {
                             gbest_value = current_values[i];
-                            gbest_position = positions[i];
+                            simd::backend::copy_runtime<T>(gbest_position.data(), positions[i].data(), dim);
                         }
                     }
                 }
@@ -265,9 +288,9 @@ namespace optinum::meta {
          * @return PSOResult with best solution and convergence info
          */
         template <typename F>
-        PSOResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                              const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                              const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        PSOResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             // Use initial point as one of the particles by seeding the RNG
             // For now, just delegate to the bounds-only version
             // The initial point could be used to bias the initial population

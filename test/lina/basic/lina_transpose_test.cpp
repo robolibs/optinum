@@ -1,10 +1,13 @@
 #include <doctest/doctest.h>
 #include <optinum/lina/basic/transpose.hpp>
 
+namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
+namespace dp = datapod;
+
 TEST_CASE("lina::transpose") {
-    Matrix<int, 2, 3> a;
+    dp::mat::Matrix<int, 2, 3> a;
     a(0, 0) = 1;
     a(1, 0) = 4;
     a(0, 1) = 2;
@@ -12,7 +15,7 @@ TEST_CASE("lina::transpose") {
     a(0, 2) = 3;
     a(1, 2) = 6;
 
-    const auto at = optinum::lina::transpose(a);
+    const auto at = lina::transpose(Matrix<int, 2, 3>(a));
     CHECK(at.rows() == 3);
     CHECK(at.cols() == 2);
     CHECK(at(0, 0) == 1);

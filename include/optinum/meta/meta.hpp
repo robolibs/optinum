@@ -32,9 +32,11 @@
 
 namespace optinum::meta {
 
+    namespace dp = ::datapod;
+
     /// Common result type for metaheuristic optimizers
     template <typename T> struct MetaResult {
-        simd::Vector<T, simd::Dynamic> best_position;
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position;
         T best_value;
         std::size_t iterations;
         std::size_t function_evaluations;

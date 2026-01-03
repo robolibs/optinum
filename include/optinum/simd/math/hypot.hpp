@@ -7,21 +7,42 @@
 // Avoids overflow/underflow by scaling
 // =============================================================================
 
+#include <cmath>
 #include <optinum/simd/arch/arch.hpp>
 #include <optinum/simd/math/abs.hpp>
 #include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/pack/pack.hpp>
+#if defined(OPTINUM_HAS_AVX)
 #include <optinum/simd/pack/avx.hpp>
+#endif
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> pack<T, W> hypot(const pack<T, W> &x, const pack<T, W> &y) noexcept;
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W>
+    OPTINUM_INLINE pack<T, W> hypot(const pack<T, W> &x, const pack<T, W> &y) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::hypot(x.data_[i], y.data_[i]);
+        }
+        return result;
+    }
 
     // =========================================================================
     // pack<float, 4> - SSE implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_SSE2)
 
+#if defined(OPTINUM_HAS_SSE2)
     template <> inline pack<float, 4> hypot(const pack<float, 4> &x, const pack<float, 4> &y) noexcept {
         __m128 vx = x.data_;
         __m128 vy = y.data_;
@@ -53,10 +74,16 @@ namespace optinum::simd {
         return pack<float, 4>(vresult);
     }
 
+#endif // OPTINUM_HAS_SSE2
+
     // =========================================================================
     // pack<float, 8> - AVX implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
 
+#endif // OPTINUM_HAS_SSE2
+
+#if defined(OPTINUM_HAS_AVX)
     template <> inline pack<float, 8> hypot(const pack<float, 8> &x, const pack<float, 8> &y) noexcept {
         __m256 vx = x.data_;
         __m256 vy = y.data_;
@@ -88,7 +115,11 @@ namespace optinum::simd {
         return pack<float, 8>(vresult);
     }
 
+#endif // OPTINUM_HAS_AVX
+
     // =========================================================================
+#endif // OPTINUM_HAS_AVX
+
     // pack<double, 2> - SSE implementation
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE2)

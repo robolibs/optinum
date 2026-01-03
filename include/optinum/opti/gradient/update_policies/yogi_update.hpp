@@ -1,14 +1,13 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Yogi update policy
@@ -45,14 +44,14 @@ namespace optinum::opti {
             : beta1(b1), beta2(b2), epsilon(eps) {}
 
         /**
-         * Update the iterate using Yogi (SIMD-optimized)
+         * Update the iterate using Yogi
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate η
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -83,45 +82,90 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    double g_sq = g_i * g_i;
+            // SIMD-optimized Yogi update
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
+            using pack_t = simd::pack<double, W>;
 
-                    // Update biased first moment: m = beta1 * m + (1 - beta1) * g
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+            const pack_t beta1_pack(beta1);
+            const pack_t one_m_beta1(one_minus_beta1);
+            const pack_t one_m_beta2(one_minus_beta2);
+            const pack_t step_corr(step_correction);
+            const pack_t eps(epsilon);
+            const pack_t zero(0.0);
 
-                    // Yogi update for second moment: v = v + (1 - beta2) * sign(g² - v) * g²
-                    // sign(g² - v) determines whether to increase or decrease v
-                    double diff = g_sq - v_ptr[i];
-                    double sign_diff = (diff > 0.0) ? 1.0 : ((diff < 0.0) ? -1.0 : 0.0);
-                    v_ptr[i] = v_ptr[i] + one_minus_beta2 * sign_diff * g_sq;
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
 
-                    // Ensure v stays non-negative (numerical stability)
-                    if (v_ptr[i] < 0.0) {
-                        v_ptr[i] = 0.0;
-                    }
-
-                    // Update iterate: x = x - step_correction * m / (sqrt(v) + eps)
-                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient (convert to double if needed)
+                pack_t g;
+                if constexpr (std::is_same_v<T, double>) {
+                    g = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g = pack_t::loadu(g_tmp);
                 }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    double g_sq = g_i * g_i;
 
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                auto g_sq = g * g;
 
-                    double diff = g_sq - v_ptr[i];
-                    double sign_diff = (diff > 0.0) ? 1.0 : ((diff < 0.0) ? -1.0 : 0.0);
-                    v_ptr[i] = v_ptr[i] + one_minus_beta2 * sign_diff * g_sq;
+                // Load moments
+                auto m_pack = pack_t::loadu(m_ptr + i);
+                auto v_pack = pack_t::loadu(v_ptr + i);
 
-                    if (v_ptr[i] < 0.0) {
-                        v_ptr[i] = 0.0;
-                    }
+                // Update first moment: m = β₁ * m + (1 - β₁) * g
+                m_pack = pack_t::fma(beta1_pack, m_pack, one_m_beta1 * g);
+                m_pack.storeu(m_ptr + i);
 
-                    x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
+                // Yogi update: v = v + (1 - β₂) * sign(g² - v) * g²
+                // Compute sign using comparisons: sign(x) = (x > 0) ? 1 : ((x < 0) ? -1 : 0)
+                auto diff = g_sq - v_pack;
+                // For each lane, compute sign manually
+                alignas(32) double sign_vals[W];
+                alignas(32) double diff_vals[W];
+                diff.storeu(diff_vals);
+                for (std::size_t j = 0; j < W; ++j) {
+                    sign_vals[j] = (diff_vals[j] > 0.0) ? 1.0 : ((diff_vals[j] < 0.0) ? -1.0 : 0.0);
                 }
+                auto sign_diff = pack_t::loadu(sign_vals);
+                v_pack = v_pack + one_m_beta2 * sign_diff * g_sq;
+
+                // Clamp v to non-negative
+                alignas(32) double v_vals[W];
+                v_pack.storeu(v_vals);
+                for (std::size_t j = 0; j < W; ++j) {
+                    if (v_vals[j] < 0.0)
+                        v_vals[j] = 0.0;
+                }
+                v_pack = pack_t::loadu(v_vals);
+                v_pack.storeu(v_ptr + i);
+
+                // Compute update: step_correction * m / (√v + ε)
+                auto update = step_corr * m_pack / (v_pack.sqrt() + eps);
+
+                // Apply update to x
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack - update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] -= T(update[j]);
+                    }
+                }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
+                double g_sq = g_i * g_i;
+                m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                double diff = g_sq - v_ptr[i];
+                double sign_diff = (diff > 0.0) ? 1.0 : ((diff < 0.0) ? -1.0 : 0.0);
+                v_ptr[i] = v_ptr[i] + one_minus_beta2 * sign_diff * g_sq;
+                if (v_ptr[i] < 0.0)
+                    v_ptr[i] = 0.0;
+                x_ptr[i] -= T(step_correction * m_ptr[i] / (std::sqrt(v_ptr[i]) + epsilon));
             }
         }
 
@@ -140,9 +184,9 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> m; ///< First moment estimate (momentum)
-        simd::Vector<double, simd::Dynamic> v; ///< Second moment estimate (variance)
-        std::size_t iteration = 0;             ///< Iteration counter for bias correction
+        dp::mat::Vector<double, dp::mat::Dynamic> m; ///< First moment estimate (momentum)
+        dp::mat::Vector<double, dp::mat::Dynamic> v; ///< Second moment estimate (variance)
+        std::size_t iteration = 0;                   ///< Iteration counter for bias correction
     };
 
 } // namespace optinum::opti

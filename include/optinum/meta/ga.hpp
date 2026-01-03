@@ -37,10 +37,15 @@
 #include <random>
 #include <vector>
 
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/bridge.hpp>
+#include <optinum/simd/math/pow.hpp>
+#include <optinum/simd/pack/pack.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Selection strategy for parent selection
@@ -72,12 +77,12 @@ namespace optinum::meta {
      * Result of GA optimization
      */
     template <typename T> struct GAResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t generations;                      ///< Number of generations performed
-        std::size_t function_evaluations;             ///< Total function evaluations
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per generation
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t generations;                            ///< Number of generations performed
+        std::size_t function_evaluations;                   ///< Total function evaluations
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per generation
     };
 
     /**
@@ -93,8 +98,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> lower{-5.0, -5.0};
-     * simd::Vector<double, simd::Dynamic> upper{5.0, 5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = ga.optimize(objective, lower, upper);
      * @endcode
@@ -142,8 +147,8 @@ namespace optinum::meta {
          * @return GAResult with best solution and convergence info
          */
         template <typename F>
-        GAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        GAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
             const std::size_t pop_size = config.population_size;
 
@@ -164,17 +169,17 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
             // Initialize population
-            std::vector<simd::Vector<T, simd::Dynamic>> population(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> population(pop_size);
             std::vector<T> fitness(pop_size);
             std::size_t total_evals = 0;
 
             // Best solution tracking
-            simd::Vector<T, simd::Dynamic> best_position(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position(dim);
             T best_value = std::numeric_limits<T>::max();
 
             // Initialize population randomly
             for (std::size_t i = 0; i < pop_size; ++i) {
-                population[i] = simd::Vector<T, simd::Dynamic>(dim);
+                population[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
                 for (std::size_t d = 0; d < dim; ++d) {
                     T r = uniform(rng);
                     population[i][d] = lower_bounds[d] + r * (upper_bounds[d] - lower_bounds[d]);
@@ -200,7 +205,7 @@ namespace optinum::meta {
             std::size_t horizon_idx = 0;
 
             // Offspring storage
-            std::vector<simd::Vector<T, simd::Dynamic>> offspring(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> offspring(pop_size);
             std::vector<T> offspring_fitness(pop_size);
 
             // Ranking for selection
@@ -234,8 +239,8 @@ namespace optinum::meta {
                     }
 
                     // Create offspring
-                    simd::Vector<T, simd::Dynamic> child1(dim);
-                    simd::Vector<T, simd::Dynamic> child2(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child1(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child2(dim);
 
                     // Crossover
                     if (uniform(rng) < config.crossover_prob) {
@@ -304,9 +309,9 @@ namespace optinum::meta {
          * Optimize starting from an initial point
          */
         template <typename F>
-        GAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                             const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        GAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
             const std::size_t pop_size = config.population_size;
 
@@ -321,21 +326,27 @@ namespace optinum::meta {
             std::mt19937 rng(rd());
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
-            std::vector<simd::Vector<T, simd::Dynamic>> population(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> population(pop_size);
             std::vector<T> fitness(pop_size);
             std::size_t total_evals = 0;
 
-            simd::Vector<T, simd::Dynamic> best_position = initial;
-            T best_value = objective(initial);
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position(initial.size());
+            for (std::size_t i = 0; i < initial.size(); ++i) {
+                best_position[i] = initial[i];
+            }
+            T best_value = objective(best_position);
             ++total_evals;
 
             // First individual is the initial point
-            population[0] = initial;
+            population[0] = dp::mat::Vector<T, dp::mat::Dynamic>(initial.size());
+            for (std::size_t i = 0; i < initial.size(); ++i) {
+                population[0][i] = initial[i];
+            }
             fitness[0] = best_value;
 
             // Rest initialized randomly
             for (std::size_t i = 1; i < pop_size; ++i) {
-                population[i] = simd::Vector<T, simd::Dynamic>(dim);
+                population[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
                 for (std::size_t d = 0; d < dim; ++d) {
                     T r = uniform(rng);
                     population[i][d] = lower_bounds[d] + r * (upper_bounds[d] - lower_bounds[d]);
@@ -358,7 +369,7 @@ namespace optinum::meta {
             std::vector<T> horizon_buffer(config.horizon_size, best_value);
             std::size_t horizon_idx = 0;
 
-            std::vector<simd::Vector<T, simd::Dynamic>> offspring(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> offspring(pop_size);
             std::vector<T> offspring_fitness(pop_size);
             std::vector<std::size_t> ranking(pop_size);
 
@@ -383,8 +394,8 @@ namespace optinum::meta {
                         parent2 = select_parent(fitness, ranking, rng, uniform);
                     }
 
-                    simd::Vector<T, simd::Dynamic> child1(dim);
-                    simd::Vector<T, simd::Dynamic> child2(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child1(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child2(dim);
 
                     if (uniform(rng) < config.crossover_prob) {
                         crossover_op(population[parent1], population[parent2], child1, child2, lower_bounds,
@@ -506,10 +517,11 @@ namespace optinum::meta {
          * Crossover operation
          */
         template <typename RNG, typename Dist>
-        void crossover_op(const simd::Vector<T, simd::Dynamic> &parent1, const simd::Vector<T, simd::Dynamic> &parent2,
-                          simd::Vector<T, simd::Dynamic> &child1, simd::Vector<T, simd::Dynamic> &child2,
-                          const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                          const simd::Vector<T, simd::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
+        void crossover_op(const dp::mat::Vector<T, dp::mat::Dynamic> &parent1,
+                          const dp::mat::Vector<T, dp::mat::Dynamic> &parent2,
+                          dp::mat::Vector<T, dp::mat::Dynamic> &child1, dp::mat::Vector<T, dp::mat::Dynamic> &child2,
+                          const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                          const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
             const std::size_t dim = parent1.size();
 
             switch (config.crossover) {
@@ -552,8 +564,38 @@ namespace optinum::meta {
             }
 
             case GACrossover::Uniform: {
-                // Uniform crossover
-                for (std::size_t d = 0; d < dim; ++d) {
+                // Uniform crossover - SIMD accelerated using pack blend
+                constexpr std::size_t W = simd::backend::default_pack_width<T>();
+                using pack_t = simd::pack<T, W>;
+
+                const std::size_t main = simd::backend::main_loop_count_runtime(dim, W);
+
+                // SIMD loop - generate random mask and blend
+                for (std::size_t d = 0; d < main; d += W) {
+                    auto p1 = pack_t::loadu(parent1.data() + d);
+                    auto p2 = pack_t::loadu(parent2.data() + d);
+
+                    // Generate random mask for each lane
+                    alignas(32) T mask_vals[W];
+                    for (std::size_t j = 0; j < W; ++j) {
+                        mask_vals[j] = uniform(rng) < T{0.5} ? T{1} : T{0};
+                    }
+                    auto mask = pack_t::loadu(mask_vals);
+
+                    // Blend: child1 = mask * p1 + (1-mask) * p2
+                    // child2 = mask * p2 + (1-mask) * p1
+                    auto one = pack_t(T{1});
+                    auto inv_mask = one - mask;
+
+                    auto c1 = mask * p1 + inv_mask * p2;
+                    auto c2 = mask * p2 + inv_mask * p1;
+
+                    c1.storeu(child1.data() + d);
+                    c2.storeu(child2.data() + d);
+                }
+
+                // Scalar tail
+                for (std::size_t d = main; d < dim; ++d) {
                     if (uniform(rng) < T{0.5}) {
                         child1[d] = parent1[d];
                         child2[d] = parent2[d];
@@ -566,16 +608,17 @@ namespace optinum::meta {
             }
 
             case GACrossover::SinglePoint: {
-                // Single-point crossover
+                // Single-point crossover - SIMD accelerated
                 std::size_t point = static_cast<std::size_t>(uniform(rng) * dim) % dim;
-                for (std::size_t d = 0; d < dim; ++d) {
-                    if (d < point) {
-                        child1[d] = parent1[d];
-                        child2[d] = parent2[d];
-                    } else {
-                        child1[d] = parent2[d];
-                        child2[d] = parent1[d];
-                    }
+                // Copy first part: child1 gets parent1[0:point], child2 gets parent2[0:point]
+                if (point > 0) {
+                    simd::backend::copy_runtime<T>(child1.data(), parent1.data(), point);
+                    simd::backend::copy_runtime<T>(child2.data(), parent2.data(), point);
+                }
+                // Copy second part: child1 gets parent2[point:], child2 gets parent1[point:]
+                if (point < dim) {
+                    simd::backend::copy_runtime<T>(child1.data() + point, parent2.data() + point, dim - point);
+                    simd::backend::copy_runtime<T>(child2.data() + point, parent1.data() + point, dim - point);
                 }
                 break;
             }
@@ -586,8 +629,9 @@ namespace optinum::meta {
          * Mutation operation
          */
         template <typename RNG, typename Dist>
-        void mutate(simd::Vector<T, simd::Dynamic> &individual, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                    const simd::Vector<T, simd::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
+        void mutate(dp::mat::Vector<T, dp::mat::Dynamic> &individual,
+                    const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                    const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
             const std::size_t dim = individual.size();
             std::normal_distribution<T> normal(T{0}, T{1});
 

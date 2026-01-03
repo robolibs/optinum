@@ -31,9 +31,13 @@
 #include <cstddef>
 #include <limits>
 
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/backend/backend.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * SWATS (Switching from Adam to SGD) Update Policy
@@ -53,8 +57,8 @@ namespace optinum::meta {
      * gd.step_size = 0.001;
      *
      * // Or use standalone
-     * simd::Vector<double, 3> x{1.0, 2.0, 3.0};
-     * simd::Vector<double, 3> grad{0.1, 0.2, 0.3};
+     * dp::mat::Vector<double, 3> x{1.0, 2.0, 3.0};
+     * dp::mat::Vector<double, 3> grad{0.1, 0.2, 0.3};
      * swats.update(x, 0.001, grad);
      *
      * // Check if switched
@@ -99,7 +103,7 @@ namespace optinum::meta {
          * @param gradient Current gradient
          */
         template <std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization
@@ -173,10 +177,10 @@ namespace optinum::meta {
 
       private:
         /**
-         * Adam update step
+         * Adam update step - SIMD accelerated
          */
         template <std::size_t N>
-        void update_adam(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update_adam(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             T one_minus_beta1 = T{1} - config.beta1;
@@ -195,7 +199,60 @@ namespace optinum::meta {
             // Compute effective learning rate for switching criterion
             T lr_sum = T{0};
 
-            for (std::size_t i = 0; i < n; ++i) {
+            // SIMD-optimized Adam update
+            constexpr std::size_t W = simd::backend::default_pack_width<T>();
+            using pack_t = simd::pack<T, W>;
+
+            const pack_t beta1_pack(config.beta1);
+            const pack_t beta2_pack(config.beta2);
+            const pack_t one_m_beta1(one_minus_beta1);
+            const pack_t one_m_beta2(one_minus_beta2);
+            const pack_t step_corr(step_correction);
+            const pack_t eps(config.epsilon);
+            const pack_t step_size_pack(step_size);
+            const pack_t bias_corr2_pack(bias_correction2);
+
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            pack_t lr_sum_pack(T{0});
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient
+                auto g = pack_t::loadu(g_ptr + i);
+
+                // Load moments
+                auto m_pack = pack_t::loadu(m_ptr + i);
+                auto v_pack = pack_t::loadu(v_ptr + i);
+
+                // Update first moment: m = beta1 * m + (1 - beta1) * g
+                m_pack = pack_t::fma(beta1_pack, m_pack, one_m_beta1 * g);
+
+                // Update second moment: v = beta2 * v + (1 - beta2) * g²
+                v_pack = pack_t::fma(beta2_pack, v_pack, one_m_beta2 * g * g);
+
+                // Store updated moments
+                m_pack.storeu(m_ptr + i);
+                v_pack.storeu(v_ptr + i);
+
+                // Compute bias-corrected v_hat for effective learning rate
+                auto v_hat = v_pack / bias_corr2_pack;
+                auto effective_lr = step_size_pack / (v_hat.sqrt() + eps);
+                lr_sum_pack = lr_sum_pack + effective_lr;
+
+                // Compute update: step_correction * m / (sqrt(v) + eps)
+                auto update = step_corr * m_pack / (v_pack.sqrt() + eps);
+
+                // Apply update to x
+                auto x_pack = pack_t::loadu(x_ptr + i);
+                (x_pack - update).storeu(x_ptr + i);
+            }
+
+            // Reduce SIMD lr_sum
+            lr_sum = lr_sum_pack.hsum();
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
                 T g_i = g_ptr[i];
 
                 // Update biased first moment: m = beta1 * m + (1 - beta1) * g
@@ -205,7 +262,6 @@ namespace optinum::meta {
                 v_ptr[i] = config.beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
 
                 // Compute bias-corrected estimates
-                T m_hat = m_ptr[i] / bias_correction1;
                 T v_hat = v_ptr[i] / bias_correction2;
 
                 // Effective per-parameter learning rate
@@ -230,16 +286,13 @@ namespace optinum::meta {
         }
 
         /**
-         * SGD update step (after switching)
+         * SGD update step (after switching) - SIMD accelerated
          */
-        template <std::size_t N> void update_sgd(simd::Vector<T, N> &x, const simd::Vector<T, N> &gradient) noexcept {
+        template <std::size_t N>
+        void update_sgd(dp::mat::Vector<T, N> &x, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
-            T *x_ptr = x.data();
-            const T *g_ptr = gradient.data();
-
-            for (std::size_t i = 0; i < n; ++i) {
-                x_ptr[i] -= sgd_lr_ * g_ptr[i];
-            }
+            // x -= sgd_lr * gradient using SIMD scale_sub
+            simd::backend::scale_sub_runtime<T>(x.data(), sgd_lr_, gradient.data(), n);
         }
 
         /**
@@ -249,7 +302,8 @@ namespace optinum::meta {
          * learning rate. When the variance of the learning rate becomes small,
          * we switch to SGD.
          */
-        template <std::size_t N> void check_switch_criterion(T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        template <std::size_t N>
+        void check_switch_criterion(T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = gradient.size();
 
             // Compute current effective learning rate
@@ -277,13 +331,13 @@ namespace optinum::meta {
             }
         }
 
-        simd::Vector<T, simd::Dynamic> m_; ///< First moment estimate
-        simd::Vector<T, simd::Dynamic> v_; ///< Second moment estimate
-        std::size_t iteration_ = 0;        ///< Current iteration
-        bool switched_ = false;            ///< Whether we've switched to SGD
-        std::size_t switch_iter_ = 0;      ///< Iteration at which we switched
-        T sgd_lr_ = T{0};                  ///< Learning rate for SGD phase
-        T lr_avg_ = T{0};                  ///< Exponential moving average of learning rate
+        dp::mat::Vector<T, dp::mat::Dynamic> m_; ///< First moment estimate
+        dp::mat::Vector<T, dp::mat::Dynamic> v_; ///< Second moment estimate
+        std::size_t iteration_ = 0;              ///< Current iteration
+        bool switched_ = false;                  ///< Whether we've switched to SGD
+        std::size_t switch_iter_ = 0;            ///< Iteration at which we switched
+        T sgd_lr_ = T{0};                        ///< Learning rate for SGD phase
+        T lr_avg_ = T{0};                        ///< Exponential moving average of learning rate
     };
 
 } // namespace optinum::meta

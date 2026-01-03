@@ -32,21 +32,26 @@
 #include <random>
 #include <vector>
 
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/bridge.hpp>
+#include <optinum/simd/math/sqrt.hpp>
+#include <optinum/simd/pack/pack.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Result of CEM optimization
      */
     template <typename T> struct CEMResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t iterations;                       ///< Number of iterations performed
-        std::size_t function_evaluations;             ///< Total function evaluations
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per iteration
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t iterations;                             ///< Number of iterations performed
+        std::size_t function_evaluations;                   ///< Total function evaluations
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per iteration
     };
 
     /**
@@ -61,8 +66,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> lower{-5.0, -5.0};
-     * simd::Vector<double, simd::Dynamic> upper{5.0, 5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+     * dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
      *
      * auto result = cem.optimize(objective, lower, upper);
      * @endcode
@@ -105,8 +110,8 @@ namespace optinum::meta {
          * @return CEMResult with best solution and convergence info
          */
         template <typename F>
-        CEMResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                              const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CEMResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
 
             // Validate inputs
@@ -118,13 +123,13 @@ namespace optinum::meta {
             }
 
             // Initialize mean at center of bounds
-            simd::Vector<T, simd::Dynamic> mean(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> mean(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 mean[d] = (lower_bounds[d] + upper_bounds[d]) / T{2};
             }
 
             // Initialize std based on range
-            simd::Vector<T, simd::Dynamic> std_dev(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> std_dev(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 std_dev[d] = config.initial_std * (upper_bounds[d] - lower_bounds[d]) / T{4};
             }
@@ -140,7 +145,8 @@ namespace optinum::meta {
          * @param initial_mean Initial mean of the distribution
          * @return CEMResult with best solution and convergence info
          */
-        template <typename F> CEMResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial_mean) {
+        template <typename F>
+        CEMResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial_mean) {
             const std::size_t dim = initial_mean.size();
 
             if (dim == 0) {
@@ -148,12 +154,12 @@ namespace optinum::meta {
             }
 
             // Initialize std
-            simd::Vector<T, simd::Dynamic> std_dev(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> std_dev(dim);
             std_dev.fill(config.initial_std);
 
             // No bounds
-            simd::Vector<T, simd::Dynamic> lower_bounds(dim);
-            simd::Vector<T, simd::Dynamic> upper_bounds(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> lower_bounds(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> upper_bounds(dim);
             lower_bounds.fill(-std::numeric_limits<T>::max());
             upper_bounds.fill(std::numeric_limits<T>::max());
 
@@ -171,9 +177,9 @@ namespace optinum::meta {
          * @return CEMResult with best solution and convergence info
          */
         template <typename F>
-        CEMResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial_mean,
-                              const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                              const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CEMResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial_mean,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial_mean.size();
 
             if (dim == 0 || lower_bounds.size() != dim || upper_bounds.size() != dim) {
@@ -181,12 +187,17 @@ namespace optinum::meta {
             }
 
             // Initialize std based on range
-            simd::Vector<T, simd::Dynamic> std_dev(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> std_dev(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 std_dev[d] = config.initial_std * (upper_bounds[d] - lower_bounds[d]) / T{4};
             }
 
-            return optimize_impl(std::forward<F>(objective), initial_mean, std_dev, lower_bounds, upper_bounds);
+            dp::mat::Vector<T, dp::mat::Dynamic> mean_copy(initial_mean.size());
+            for (std::size_t i = 0; i < initial_mean.size(); ++i) {
+                mean_copy[i] = initial_mean[i];
+            }
+
+            return optimize_impl(std::forward<F>(objective), mean_copy, std_dev, lower_bounds, upper_bounds);
         }
 
       private:
@@ -194,10 +205,10 @@ namespace optinum::meta {
          * Core optimization implementation
          */
         template <typename F>
-        CEMResult<T> optimize_impl(F &&objective, simd::Vector<T, simd::Dynamic> mean,
-                                   simd::Vector<T, simd::Dynamic> std_dev,
-                                   const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                                   const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        CEMResult<T> optimize_impl(F &&objective, dp::mat::Vector<T, dp::mat::Dynamic> mean,
+                                   dp::mat::Vector<T, dp::mat::Dynamic> std_dev,
+                                   const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                                   const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = mean.size();
             const std::size_t n_samples = config.population_size;
             const std::size_t n_elite =
@@ -208,12 +219,12 @@ namespace optinum::meta {
             std::mt19937 rng(rd());
 
             // Storage for samples and their fitness values
-            std::vector<simd::Vector<T, simd::Dynamic>> samples(n_samples);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> samples(n_samples);
             std::vector<T> fitness(n_samples);
             std::vector<std::size_t> indices(n_samples);
 
             // Best solution tracking
-            simd::Vector<T, simd::Dynamic> best_position = mean;
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position = mean;
             T best_value = std::numeric_limits<T>::max();
             std::size_t total_evals = 0;
 
@@ -234,7 +245,7 @@ namespace optinum::meta {
             for (; iteration < config.max_iterations; ++iteration) {
                 // Sample population from current distribution
                 for (std::size_t i = 0; i < n_samples; ++i) {
-                    samples[i] = simd::Vector<T, simd::Dynamic>(dim);
+                    samples[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
 
                     for (std::size_t d = 0; d < dim; ++d) {
                         std::normal_distribution<T> dist(mean[d], std_dev[d]);
@@ -261,34 +272,75 @@ namespace optinum::meta {
                 std::sort(indices.begin(), indices.end(),
                           [&fitness](std::size_t a, std::size_t b) { return fitness[a] < fitness[b]; });
 
-                // Compute elite mean
-                simd::Vector<T, simd::Dynamic> elite_mean(dim);
+                // Compute elite mean (SIMD)
+                dp::mat::Vector<T, dp::mat::Dynamic> elite_mean(dim);
                 elite_mean.fill(T{0});
 
+                // SIMD width
+                constexpr std::size_t W = simd::backend::default_pack_width<T>();
+                using Pack = simd::pack<T, W>;
+
+                // Accumulate elite samples
                 for (std::size_t i = 0; i < n_elite; ++i) {
                     std::size_t idx = indices[i];
-                    for (std::size_t d = 0; d < dim; ++d) {
-                        elite_mean[d] += samples[idx][d];
+                    const auto &sample = samples[idx];
+
+                    std::size_t d = 0;
+                    for (; d + W <= dim; d += W) {
+                        auto mean_pack = Pack::loadu(&elite_mean[d]);
+                        auto sample_pack = Pack::loadu(&sample[d]);
+                        (mean_pack + sample_pack).storeu(&elite_mean[d]);
+                    }
+                    for (; d < dim; ++d) {
+                        elite_mean[d] += sample[d];
                     }
                 }
-                for (std::size_t d = 0; d < dim; ++d) {
-                    elite_mean[d] /= static_cast<T>(n_elite);
+
+                // Divide by n_elite
+                const T inv_n_elite = T{1} / static_cast<T>(n_elite);
+                Pack inv_n_pack(inv_n_elite);
+                std::size_t d = 0;
+                for (; d + W <= dim; d += W) {
+                    auto mean_pack = Pack::loadu(&elite_mean[d]);
+                    (mean_pack * inv_n_pack).storeu(&elite_mean[d]);
+                }
+                for (; d < dim; ++d) {
+                    elite_mean[d] *= inv_n_elite;
                 }
 
-                // Compute elite standard deviation
-                simd::Vector<T, simd::Dynamic> elite_std(dim);
+                // Compute elite standard deviation (SIMD)
+                dp::mat::Vector<T, dp::mat::Dynamic> elite_std(dim);
                 elite_std.fill(T{0});
 
                 for (std::size_t i = 0; i < n_elite; ++i) {
                     std::size_t idx = indices[i];
-                    for (std::size_t d = 0; d < dim; ++d) {
-                        T diff = samples[idx][d] - elite_mean[d];
+                    const auto &sample = samples[idx];
+
+                    d = 0;
+                    for (; d + W <= dim; d += W) {
+                        auto sample_pack = Pack::loadu(&sample[d]);
+                        auto mean_pack = Pack::loadu(&elite_mean[d]);
+                        auto std_pack = Pack::loadu(&elite_std[d]);
+                        auto diff = sample_pack - mean_pack;
+                        (std_pack + diff * diff).storeu(&elite_std[d]);
+                    }
+                    for (; d < dim; ++d) {
+                        T diff = sample[d] - elite_mean[d];
                         elite_std[d] += diff * diff;
                     }
                 }
-                for (std::size_t d = 0; d < dim; ++d) {
-                    elite_std[d] = std::sqrt(elite_std[d] / static_cast<T>(n_elite));
-                    // Ensure minimum std
+
+                // Finalize std: sqrt(sum/n) and clamp to min
+                Pack min_std_pack(config.min_std);
+                d = 0;
+                for (; d + W <= dim; d += W) {
+                    auto std_pack = Pack::loadu(&elite_std[d]);
+                    auto result = simd::sqrt(std_pack * inv_n_pack);
+                    result = Pack::max(result, min_std_pack);
+                    result.storeu(&elite_std[d]);
+                }
+                for (; d < dim; ++d) {
+                    elite_std[d] = std::sqrt(elite_std[d] * inv_n_elite);
                     elite_std[d] = std::max(elite_std[d], config.min_std);
                 }
 

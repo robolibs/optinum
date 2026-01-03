@@ -18,6 +18,21 @@
 
 namespace optinum::simd::backend {
 
+    // Compile-time preferred pack width based on SIMD level
+    template <typename T> [[nodiscard]] consteval std::size_t default_pack_width() noexcept {
+        if constexpr (!std::is_same_v<T, float> && !std::is_same_v<T, double>) {
+            return 1;
+        } else if constexpr (arch::simd_level() >= 512) {
+            return 64 / sizeof(T); // AVX-512: 16 floats or 8 doubles
+        } else if constexpr (arch::simd_level() >= 256) {
+            return 32 / sizeof(T); // AVX: 8 floats or 4 doubles
+        } else if constexpr (arch::simd_level() >= 128) {
+            return 16 / sizeof(T); // SSE/NEON: 4 floats or 2 doubles
+        } else {
+            return 1; // Scalar fallback
+        }
+    }
+
     template <typename T, std::size_t N> [[nodiscard]] consteval std::size_t preferred_simd_lanes() noexcept {
         static_assert(N > 0);
         if constexpr (!std::is_same_v<T, float> && !std::is_same_v<T, double>) {

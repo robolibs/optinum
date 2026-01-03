@@ -3,6 +3,7 @@
 // Tests for diagonal_view - non-owning view over matrix diagonals
 // =============================================================================
 
+#include <datapod/matrix.hpp>
 #include <doctest/doctest.h>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/pack/sse.hpp>
@@ -325,7 +326,9 @@ TEST_CASE("diagonal_view - Helper functions") {
 TEST_CASE("diagonal_view - Integration with Matrix") {
     using namespace on::simd;
 
-    on::simd::Matrix<float, 4, 4> m;
+    // Create backing storage and view
+    datapod::mat::Matrix<float, 4, 4> m_storage;
+    on::simd::Matrix<float, 4, 4> m(m_storage);
     for (std::size_t i = 0; i < 4; ++i) {
         for (std::size_t j = 0; j < 4; ++j) {
             m(i, j) = static_cast<float>(i * 4 + j + 1);

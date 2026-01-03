@@ -1,14 +1,13 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * NAdam (Nesterov-accelerated Adaptive Moment Estimation) update policy
@@ -62,14 +61,14 @@ namespace optinum::opti {
             : beta1(b1), beta2(b2), epsilon(eps) {}
 
         /**
-         * Update the iterate using NAdam (SIMD-optimized)
+         * Update the iterate using NAdam
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate η
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -108,50 +107,77 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
+            // SIMD-optimized NAdam update
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
+            using pack_t = simd::pack<double, W>;
 
-                    // Update biased first moment: m = β₁ * m + (1 - β₁) * g
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+            const pack_t beta1_pack(beta1);
+            const pack_t beta2_pack(beta2);
+            const pack_t one_m_beta1(one_minus_beta1);
+            const pack_t one_m_beta2(one_minus_beta2);
+            const pack_t step_corr(step_correction);
+            const pack_t eps(epsilon);
+            const pack_t bc1_next(bias_correction1_next);
+            const pack_t bc1(bias_correction1);
 
-                    // Update biased second moment: v = β₂ * v + (1 - β₂) * g²
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
 
-                    // NAdam lookahead momentum:
-                    // m̄ = β₁ * m / (1 - β₁^(t+1)) + (1 - β₁) * g / (1 - β₁^t)
-                    // This is equivalent to using the "future" momentum estimate
-                    double m_hat_next = beta1 * m_ptr[i] / bias_correction1_next;
-                    double g_hat = one_minus_beta1 * g_i / bias_correction1;
-                    double m_bar = m_hat_next + g_hat;
-
-                    // Bias-corrected second moment (already incorporated in step_correction)
-                    double v_sqrt = std::sqrt(v_ptr[i]) + epsilon;
-
-                    // Update: x = x - η * m̄ / (√v̂ + ε)
-                    x_ptr[i] -= T(step_correction * m_bar / v_sqrt);
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient (convert to double if needed)
+                pack_t g;
+                if constexpr (std::is_same_v<T, double>) {
+                    g = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g = pack_t::loadu(g_tmp);
                 }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
 
-                    // Update biased first moment
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                // Load moments
+                auto m_pack = pack_t::loadu(m_ptr + i);
+                auto v_pack = pack_t::loadu(v_ptr + i);
 
-                    // Update biased second moment
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                // Update first moment: m = β₁ * m + (1 - β₁) * g
+                m_pack = pack_t::fma(beta1_pack, m_pack, one_m_beta1 * g);
 
-                    // NAdam lookahead momentum
-                    double m_hat_next = beta1 * m_ptr[i] / bias_correction1_next;
-                    double g_hat = one_minus_beta1 * g_i / bias_correction1;
-                    double m_bar = m_hat_next + g_hat;
+                // Update second moment: v = β₂ * v + (1 - β₂) * g²
+                v_pack = pack_t::fma(beta2_pack, v_pack, one_m_beta2 * g * g);
 
-                    // Bias-corrected second moment
-                    double v_sqrt = std::sqrt(v_ptr[i]) + epsilon;
+                // Store updated moments
+                m_pack.storeu(m_ptr + i);
+                v_pack.storeu(v_ptr + i);
 
-                    // Update
-                    x_ptr[i] -= T(step_correction * m_bar / v_sqrt);
+                // NAdam lookahead momentum: m̄ = β₁ * m / bc1_next + (1 - β₁) * g / bc1
+                auto m_hat_next = beta1_pack * m_pack / bc1_next;
+                auto g_hat = one_m_beta1 * g / bc1;
+                auto m_bar = m_hat_next + g_hat;
+
+                // Compute update: step_correction * m̄ / (√v + ε)
+                auto update = step_corr * m_bar / (v_pack.sqrt() + eps);
+
+                // Apply update to x
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack - update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] -= T(update[j]);
+                    }
                 }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
+                m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                double m_hat_next = beta1 * m_ptr[i] / bias_correction1_next;
+                double g_hat = one_minus_beta1 * g_i / bias_correction1;
+                double m_bar = m_hat_next + g_hat;
+                double v_sqrt = std::sqrt(v_ptr[i]) + epsilon;
+                x_ptr[i] -= T(step_correction * m_bar / v_sqrt);
             }
         }
 
@@ -170,9 +196,9 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> m; ///< First moment estimate (momentum)
-        simd::Vector<double, simd::Dynamic> v; ///< Second moment estimate (variance)
-        std::size_t iteration = 0;             ///< Iteration counter for bias correction
+        dp::mat::Vector<double, dp::mat::Dynamic> m; ///< First moment estimate (momentum)
+        dp::mat::Vector<double, dp::mat::Dynamic> v; ///< Second moment estimate (variance)
+        std::size_t iteration = 0;                   ///< Iteration counter for bias correction
     };
 
 } // namespace optinum::opti

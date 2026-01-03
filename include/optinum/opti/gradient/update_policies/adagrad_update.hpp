@@ -1,14 +1,13 @@
 #pragma once
 
 #include <cmath>
-#include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * AdaGrad (Adaptive Gradient) update policy
@@ -44,14 +43,14 @@ namespace optinum::opti {
         explicit AdaGradUpdate(double eps = 1e-8) : epsilon(eps) {}
 
         /**
-         * Update the iterate using AdaGrad (SIMD-optimized)
+         * Update the iterate using AdaGrad
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate η
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -67,20 +66,57 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    // Accumulate squared gradient: G = G + g²
-                    G_ptr[i] += g_i * g_i;
-                    // Update iterate: x = x - (η / √(G + ε)) * g
-                    x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(G_ptr[i]) + epsilon));
+            // SIMD-optimized AdaGrad update
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
+            using pack_t = simd::pack<double, W>;
+
+            const double step_val = double(step_size);
+            const pack_t step_pack(step_val);
+            const pack_t eps(epsilon);
+
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient (convert to double if needed)
+                pack_t g;
+                if constexpr (std::is_same_v<T, double>) {
+                    g = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g = pack_t::loadu(g_tmp);
                 }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
-                    G_ptr[i] += g_i * g_i;
-                    x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(G_ptr[i]) + epsilon));
+
+                // Load accumulated squared gradient
+                auto G_pack = pack_t::loadu(G_ptr + i);
+
+                // Accumulate squared gradient: G = G + g²
+                G_pack = G_pack + g * g;
+
+                // Store updated G
+                G_pack.storeu(G_ptr + i);
+
+                // Compute update: (η / √(G + ε)) * g
+                auto update = step_pack * g / (G_pack.sqrt() + eps);
+
+                // Apply update to x
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack - update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] -= T(update[j]);
+                    }
                 }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
+                G_ptr[i] += g_i * g_i;
+                x_ptr[i] -= T(double(step_size) * g_i / (std::sqrt(G_ptr[i]) + epsilon));
             }
         }
 
@@ -93,7 +129,7 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> sum_squared_grad; ///< Accumulated sum of squared gradients G
+        dp::mat::Vector<double, dp::mat::Dynamic> sum_squared_grad; ///< Accumulated sum of squared gradients G
     };
 
 } // namespace optinum::opti

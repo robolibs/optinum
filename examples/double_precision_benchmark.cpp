@@ -24,9 +24,9 @@ int main() {
     constexpr size_t ITERATIONS = 10000;
 
     // Allocate aligned memory
-    alignas(32) datapod::mat::vector<double, N> input;
-    alignas(32) datapod::mat::vector<double, N> output;
-    alignas(32) datapod::mat::vector<double, N> scalar_output;
+    alignas(32) datapod::mat::Vector<double, N> input;
+    alignas(32) datapod::mat::Vector<double, N> output;
+    alignas(32) datapod::mat::Vector<double, N> scalar_output;
 
     std::cout << "Double Precision SIMD Math Benchmark\n";
     std::cout << "Array size: " << N << " doubles\n";
@@ -403,7 +403,7 @@ int main() {
 
     // pow() benchmark
     {
-        alignas(32) datapod::mat::vector<double, N> exponent;
+        alignas(32) datapod::mat::Vector<double, N> exponent;
         for (size_t i = 0; i < N; ++i) {
             input[i] = 1.0 + (10.0 * i) / N;
             exponent[i] = 0.5 + (2.0 * i) / N;
@@ -643,7 +643,7 @@ int main() {
 
     // atan2() benchmark
     {
-        alignas(32) datapod::mat::vector<double, N> y_vals;
+        alignas(32) datapod::mat::Vector<double, N> y_vals;
         for (size_t i = 0; i < N; ++i) {
             input[i] = -5.0 + (10.0 * i) / N;  // x values
             y_vals[i] = -5.0 + (10.0 * i) / N; // y values
@@ -998,8 +998,8 @@ int main() {
             input[i] = -10.0 + (20.0 * i) / N;
         }
 
-        alignas(32) datapod::mat::vector<double, N> lo_vals;
-        alignas(32) datapod::mat::vector<double, N> hi_vals;
+        alignas(32) datapod::mat::Vector<double, N> lo_vals;
+        alignas(32) datapod::mat::Vector<double, N> hi_vals;
         for (size_t i = 0; i < N; ++i) {
             lo_vals[i] = -5.0;
             hi_vals[i] = 5.0;
@@ -1039,7 +1039,7 @@ int main() {
 
     // hypot() benchmark
     {
-        alignas(32) datapod::mat::vector<double, N> input2;
+        alignas(32) datapod::mat::Vector<double, N> input2;
         for (size_t i = 0; i < N; ++i) {
             input[i] = -10.0 + (20.0 * i) / N;
             input2[i] = 5.0 + (10.0 * i) / N;

@@ -66,83 +66,85 @@ namespace optinum::simd {
     // =============================================================================
 
     // -------------------------------------------------------------------------
-    // Scalar view (from datapod::mat::scalar<T>)
+    // Scalar view (from datapod::mat::Scalar<T>)
     // -------------------------------------------------------------------------
 
-    template <std::size_t W, typename T> OPTINUM_INLINE scalar_view<T, W> view(datapod::mat::scalar<T> &s) noexcept {
+    template <std::size_t W, typename T> OPTINUM_INLINE scalar_view<T, W> view(datapod::mat::Scalar<T> &s) noexcept {
         return scalar_view<T, W>(&s.value);
     }
 
     template <std::size_t W, typename T>
-    OPTINUM_INLINE scalar_view<const T, W> view(const datapod::mat::scalar<T> &s) noexcept {
+    OPTINUM_INLINE scalar_view<const T, W> view(const datapod::mat::Scalar<T> &s) noexcept {
         return scalar_view<const T, W>(&s.value);
     }
 
     // Auto-detect width for scalar
-    template <typename T> OPTINUM_INLINE auto view(datapod::mat::scalar<T> &s) noexcept {
+    template <typename T> OPTINUM_INLINE auto view(datapod::mat::Scalar<T> &s) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return scalar_view<T, W>(&s.value);
     }
 
-    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::scalar<T> &s) noexcept {
+    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::Scalar<T> &s) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return scalar_view<const T, W>(&s.value);
     }
 
     // -------------------------------------------------------------------------
-    // Vector view (from datapod::mat::vector<T, N>)
+    // Vector view (from datapod::mat::Vector<T, N>)
     // -------------------------------------------------------------------------
 
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE vector_view<T, W> view(datapod::mat::vector<T, N> &v) noexcept {
-        return vector_view<T, W>(v.data(), N);
+    OPTINUM_INLINE vector_view<T, W> view(datapod::mat::Vector<T, N> &v) noexcept {
+        // Use v.size() for runtime size (handles both fixed and Dynamic)
+        return vector_view<T, W>(v.data(), v.size());
     }
 
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE vector_view<const T, W> view(const datapod::mat::vector<T, N> &v) noexcept {
-        return vector_view<const T, W>(v.data(), N);
+    OPTINUM_INLINE vector_view<const T, W> view(const datapod::mat::Vector<T, N> &v) noexcept {
+        return vector_view<const T, W>(v.data(), v.size());
     }
 
     // Auto-detect width for vector
-    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::vector<T, N> &v) noexcept {
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::Vector<T, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return vector_view<T, W>(v.data(), N);
+        return vector_view<T, W>(v.data(), v.size());
     }
 
-    template <typename T, std::size_t N> OPTINUM_INLINE auto view(const datapod::mat::vector<T, N> &v) noexcept {
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(const datapod::mat::Vector<T, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return vector_view<const T, W>(v.data(), N);
+        return vector_view<const T, W>(v.data(), v.size());
     }
 
     // -------------------------------------------------------------------------
-    // Matrix view (from datapod::mat::matrix<T, R, C>)
+    // Matrix view (from datapod::mat::Matrix<T, R, C>)
     // -------------------------------------------------------------------------
 
     template <std::size_t W, typename T, std::size_t R, std::size_t C>
-    OPTINUM_INLINE matrix_view<T, W> view(datapod::mat::matrix<T, R, C> &m) noexcept {
-        return matrix_view<T, W>(m.data(), R, C);
+    OPTINUM_INLINE matrix_view<T, W> view(datapod::mat::Matrix<T, R, C> &m) noexcept {
+        // Use m.rows()/m.cols() for runtime size (handles both fixed and Dynamic)
+        return matrix_view<T, W>(m.data(), m.rows(), m.cols());
     }
 
     template <std::size_t W, typename T, std::size_t R, std::size_t C>
-    OPTINUM_INLINE matrix_view<const T, W> view(const datapod::mat::matrix<T, R, C> &m) noexcept {
-        return matrix_view<const T, W>(m.data(), R, C);
+    OPTINUM_INLINE matrix_view<const T, W> view(const datapod::mat::Matrix<T, R, C> &m) noexcept {
+        return matrix_view<const T, W>(m.data(), m.rows(), m.cols());
     }
 
     // Auto-detect width for matrix
     template <typename T, std::size_t R, std::size_t C>
-    OPTINUM_INLINE auto view(datapod::mat::matrix<T, R, C> &m) noexcept {
+    OPTINUM_INLINE auto view(datapod::mat::Matrix<T, R, C> &m) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return matrix_view<T, W>(m.data(), R, C);
+        return matrix_view<T, W>(m.data(), m.rows(), m.cols());
     }
 
     template <typename T, std::size_t R, std::size_t C>
-    OPTINUM_INLINE auto view(const datapod::mat::matrix<T, R, C> &m) noexcept {
+    OPTINUM_INLINE auto view(const datapod::mat::Matrix<T, R, C> &m) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return matrix_view<const T, W>(m.data(), R, C);
+        return matrix_view<const T, W>(m.data(), m.rows(), m.cols());
     }
 
     // -------------------------------------------------------------------------
-    // Tensor view (from datapod::mat::tensor<T, Dims...>)
+    // Tensor view (from datapod::mat::Tensor<T, Dims...>)
     // -------------------------------------------------------------------------
 
     namespace detail {
@@ -159,7 +161,7 @@ namespace optinum::simd {
     } // namespace detail
 
     template <std::size_t W, typename T, std::size_t... Dims>
-    OPTINUM_INLINE auto view(datapod::mat::tensor<T, Dims...> &t) noexcept {
+    OPTINUM_INLINE auto view(datapod::mat::Tensor<T, Dims...> &t) noexcept {
         constexpr std::size_t Rank = sizeof...(Dims);
         constexpr std::array<std::size_t, Rank> extents = {Dims...};
         constexpr std::array<std::size_t, Rank> strides = detail::compute_strides(extents);
@@ -167,7 +169,7 @@ namespace optinum::simd {
     }
 
     template <std::size_t W, typename T, std::size_t... Dims>
-    OPTINUM_INLINE auto view(const datapod::mat::tensor<T, Dims...> &t) noexcept {
+    OPTINUM_INLINE auto view(const datapod::mat::Tensor<T, Dims...> &t) noexcept {
         constexpr std::size_t Rank = sizeof...(Dims);
         constexpr std::array<std::size_t, Rank> extents = {Dims...};
         constexpr std::array<std::size_t, Rank> strides = detail::compute_strides(extents);
@@ -175,7 +177,7 @@ namespace optinum::simd {
     }
 
     // Auto-detect width for tensor
-    template <typename T, std::size_t... Dims> OPTINUM_INLINE auto view(datapod::mat::tensor<T, Dims...> &t) noexcept {
+    template <typename T, std::size_t... Dims> OPTINUM_INLINE auto view(datapod::mat::Tensor<T, Dims...> &t) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         constexpr std::size_t Rank = sizeof...(Dims);
         constexpr std::array<std::size_t, Rank> extents = {Dims...};
@@ -184,7 +186,7 @@ namespace optinum::simd {
     }
 
     template <typename T, std::size_t... Dims>
-    OPTINUM_INLINE auto view(const datapod::mat::tensor<T, Dims...> &t) noexcept {
+    OPTINUM_INLINE auto view(const datapod::mat::Tensor<T, Dims...> &t) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         constexpr std::size_t Rank = sizeof...(Dims);
         constexpr std::array<std::size_t, Rank> extents = {Dims...};
@@ -193,191 +195,191 @@ namespace optinum::simd {
     }
 
     // -------------------------------------------------------------------------
-    // Complex view (from dp::mat::complex<T> arrays)
+    // Complex view (from dp::mat::Complex<T> arrays)
     // -------------------------------------------------------------------------
 
     // From raw pointer + size
     template <std::size_t W, typename T>
-    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
+    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::Complex<T> *ptr, std::size_t n) noexcept {
         return complex_view<T, W>(ptr, n);
     }
 
     template <std::size_t W, typename T>
-    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
-        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(ptr), n);
+    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::Complex<T> *ptr, std::size_t n) noexcept {
+        return complex_view<T, W>(const_cast<datapod::mat::Complex<T> *>(ptr), n);
     }
 
     // Auto-detect width from raw pointer
-    template <typename T> OPTINUM_INLINE auto view(datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
+    template <typename T> OPTINUM_INLINE auto view(datapod::mat::Complex<T> *ptr, std::size_t n) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return complex_view<T, W>(ptr, n);
     }
 
-    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::complex<T> *ptr, std::size_t n) noexcept {
+    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::Complex<T> *ptr, std::size_t n) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(ptr), n);
+        return complex_view<T, W>(const_cast<datapod::mat::Complex<T> *>(ptr), n);
     }
 
     // From C-style array
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::complex<T> (&arr)[N]) noexcept {
+    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::Complex<T> (&arr)[N]) noexcept {
         return complex_view<T, W>(arr, N);
     }
 
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::complex<T> (&arr)[N]) noexcept {
-        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(arr), N);
+    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::Complex<T> (&arr)[N]) noexcept {
+        return complex_view<T, W>(const_cast<datapod::mat::Complex<T> *>(arr), N);
     }
 
     // Auto-detect width from C-style array
-    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::complex<T> (&arr)[N]) noexcept {
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::Complex<T> (&arr)[N]) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return complex_view<T, W>(arr, N);
     }
 
-    template <typename T, std::size_t N> OPTINUM_INLINE auto view(const datapod::mat::complex<T> (&arr)[N]) noexcept {
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(const datapod::mat::Complex<T> (&arr)[N]) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(arr), N);
+        return complex_view<T, W>(const_cast<datapod::mat::Complex<T> *>(arr), N);
     }
 
-    // From datapod::mat::vector<complex<T>, N>
+    // From datapod::mat::Vector<complex<T>, N>
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
+    OPTINUM_INLINE complex_view<T, W> view(datapod::mat::Vector<datapod::mat::Complex<T>, N> &v) noexcept {
         return complex_view<T, W>(v.data(), N);
     }
 
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
-        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(v.data()), N);
+    OPTINUM_INLINE complex_view<T, W> view(const datapod::mat::Vector<datapod::mat::Complex<T>, N> &v) noexcept {
+        return complex_view<T, W>(const_cast<datapod::mat::Complex<T> *>(v.data()), N);
     }
 
-    // Auto-detect width from datapod::mat::vector<complex<T>, N>
+    // Auto-detect width from datapod::mat::Vector<complex<T>, N>
     template <typename T, std::size_t N>
-    OPTINUM_INLINE auto view(datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
+    OPTINUM_INLINE auto view(datapod::mat::Vector<datapod::mat::Complex<T>, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return complex_view<T, W>(v.data(), N);
     }
 
     template <typename T, std::size_t N>
-    OPTINUM_INLINE auto view(const datapod::mat::vector<datapod::mat::complex<T>, N> &v) noexcept {
+    OPTINUM_INLINE auto view(const datapod::mat::Vector<datapod::mat::Complex<T>, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return complex_view<T, W>(const_cast<datapod::mat::complex<T> *>(v.data()), N);
+        return complex_view<T, W>(const_cast<datapod::mat::Complex<T> *>(v.data()), N);
     }
 
     // -------------------------------------------------------------------------
-    // Quaternion view (from dp::mat::quaternion<T> arrays)
+    // Quaternion view (from dp::mat::Quaternion<T> arrays)
     // -------------------------------------------------------------------------
 
     // From raw pointer + size
     template <std::size_t W, typename T>
-    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
+    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::Quaternion<T> *ptr, std::size_t n) noexcept {
         return quaternion_view<T, W>(ptr, n);
     }
 
     template <std::size_t W, typename T>
-    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
-        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(ptr), n);
+    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::Quaternion<T> *ptr, std::size_t n) noexcept {
+        return quaternion_view<T, W>(const_cast<datapod::mat::Quaternion<T> *>(ptr), n);
     }
 
     // Auto-detect width from raw pointer
-    template <typename T> OPTINUM_INLINE auto view(datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
+    template <typename T> OPTINUM_INLINE auto view(datapod::mat::Quaternion<T> *ptr, std::size_t n) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return quaternion_view<T, W>(ptr, n);
     }
 
-    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::quaternion<T> *ptr, std::size_t n) noexcept {
+    template <typename T> OPTINUM_INLINE auto view(const datapod::mat::Quaternion<T> *ptr, std::size_t n) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(ptr), n);
+        return quaternion_view<T, W>(const_cast<datapod::mat::Quaternion<T> *>(ptr), n);
     }
 
     // From C-style array
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::quaternion<T> (&arr)[N]) noexcept {
+    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::Quaternion<T> (&arr)[N]) noexcept {
         return quaternion_view<T, W>(arr, N);
     }
 
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::quaternion<T> (&arr)[N]) noexcept {
-        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(arr), N);
+    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::Quaternion<T> (&arr)[N]) noexcept {
+        return quaternion_view<T, W>(const_cast<datapod::mat::Quaternion<T> *>(arr), N);
     }
 
     // Auto-detect width from C-style array
-    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::quaternion<T> (&arr)[N]) noexcept {
+    template <typename T, std::size_t N> OPTINUM_INLINE auto view(datapod::mat::Quaternion<T> (&arr)[N]) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return quaternion_view<T, W>(arr, N);
     }
 
     template <typename T, std::size_t N>
-    OPTINUM_INLINE auto view(const datapod::mat::quaternion<T> (&arr)[N]) noexcept {
+    OPTINUM_INLINE auto view(const datapod::mat::Quaternion<T> (&arr)[N]) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(arr), N);
+        return quaternion_view<T, W>(const_cast<datapod::mat::Quaternion<T> *>(arr), N);
     }
 
-    // From datapod::mat::vector<quaternion<T>, N>
+    // From datapod::mat::Vector<quaternion<T>, N>
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
+    OPTINUM_INLINE quaternion_view<T, W> view(datapod::mat::Vector<datapod::mat::Quaternion<T>, N> &v) noexcept {
         return quaternion_view<T, W>(v.data(), N);
     }
 
     template <std::size_t W, typename T, std::size_t N>
-    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
-        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(v.data()), N);
+    OPTINUM_INLINE quaternion_view<T, W> view(const datapod::mat::Vector<datapod::mat::Quaternion<T>, N> &v) noexcept {
+        return quaternion_view<T, W>(const_cast<datapod::mat::Quaternion<T> *>(v.data()), N);
     }
 
-    // Auto-detect width from datapod::mat::vector<quaternion<T>, N>
+    // Auto-detect width from datapod::mat::Vector<quaternion<T>, N>
     template <typename T, std::size_t N>
-    OPTINUM_INLINE auto view(datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
+    OPTINUM_INLINE auto view(datapod::mat::Vector<datapod::mat::Quaternion<T>, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
         return quaternion_view<T, W>(v.data(), N);
     }
 
     template <typename T, std::size_t N>
-    OPTINUM_INLINE auto view(const datapod::mat::vector<datapod::mat::quaternion<T>, N> &v) noexcept {
+    OPTINUM_INLINE auto view(const datapod::mat::Vector<datapod::mat::Quaternion<T>, N> &v) noexcept {
         constexpr std::size_t W = detail::default_width<T>();
-        return quaternion_view<T, W>(const_cast<datapod::mat::quaternion<T> *>(v.data()), N);
+        return quaternion_view<T, W>(const_cast<datapod::mat::Quaternion<T> *>(v.data()), N);
     }
 
     // -------------------------------------------------------------------------
-    // Spatial Quaternion support (dp::Quaternion -> dp::mat::quaternion<double>)
-    // These work because dp::Quaternion inherits from dp::mat::quaternion<double>
+    // Spatial Quaternion support (dp::Quaternion -> dp::mat::Quaternion<double>)
+    // These work because dp::Quaternion inherits from dp::mat::Quaternion<double>
     // -------------------------------------------------------------------------
 
     // From raw pointer + size (spatial Quaternion)
     template <std::size_t W>
     OPTINUM_INLINE quaternion_view<double, W> view(datapod::Quaternion *ptr, std::size_t n) noexcept {
-        // dp::Quaternion inherits from dp::mat::quaternion<double>, so this cast is safe
-        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(ptr), n);
+        // dp::Quaternion inherits from dp::mat::Quaternion<double>, so this cast is safe
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::Quaternion<double> *>(ptr), n);
     }
 
     template <std::size_t W>
     OPTINUM_INLINE quaternion_view<double, W> view(const datapod::Quaternion *ptr, std::size_t n) noexcept {
-        return quaternion_view<double, W>(const_cast<datapod::mat::quaternion<double> *>(
-                                              reinterpret_cast<const datapod::mat::quaternion<double> *>(ptr)),
+        return quaternion_view<double, W>(const_cast<datapod::mat::Quaternion<double> *>(
+                                              reinterpret_cast<const datapod::mat::Quaternion<double> *>(ptr)),
                                           n);
     }
 
     // Auto-detect width for spatial Quaternion
     OPTINUM_INLINE auto view(datapod::Quaternion *ptr, std::size_t n) noexcept {
         constexpr std::size_t W = detail::default_width<double>();
-        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(ptr), n);
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::Quaternion<double> *>(ptr), n);
     }
 
     OPTINUM_INLINE auto view(const datapod::Quaternion *ptr, std::size_t n) noexcept {
         constexpr std::size_t W = detail::default_width<double>();
-        return quaternion_view<double, W>(const_cast<datapod::mat::quaternion<double> *>(
-                                              reinterpret_cast<const datapod::mat::quaternion<double> *>(ptr)),
+        return quaternion_view<double, W>(const_cast<datapod::mat::Quaternion<double> *>(
+                                              reinterpret_cast<const datapod::mat::Quaternion<double> *>(ptr)),
                                           n);
     }
 
     // From C-style array of spatial Quaternion
     template <std::size_t W, std::size_t N>
     OPTINUM_INLINE quaternion_view<double, W> view(datapod::Quaternion (&arr)[N]) noexcept {
-        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(arr), N);
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::Quaternion<double> *>(arr), N);
     }
 
     template <std::size_t N> OPTINUM_INLINE auto view(datapod::Quaternion (&arr)[N]) noexcept {
         constexpr std::size_t W = detail::default_width<double>();
-        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::quaternion<double> *>(arr), N);
+        return quaternion_view<double, W>(reinterpret_cast<datapod::mat::Quaternion<double> *>(arr), N);
     }
 
 } // namespace optinum::simd

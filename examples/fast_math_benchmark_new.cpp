@@ -31,7 +31,7 @@ class Timer {
 };
 
 // Generate random data
-void fill_random(datapod::mat::vector<float, NUM_ELEMENTS> &vec, float min_val, float max_val) {
+void fill_random(datapod::mat::Vector<float, NUM_ELEMENTS> &vec, float min_val, float max_val) {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(min_val, max_val);
     for (std::size_t i = 0; i < NUM_ELEMENTS; ++i) {
@@ -40,8 +40,8 @@ void fill_random(datapod::mat::vector<float, NUM_ELEMENTS> &vec, float min_val, 
 }
 
 // Scalar baseline
-double benchmark_scalar_exp(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                            datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_scalar_exp(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                            datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     Timer timer;
     timer.start();
 
@@ -56,8 +56,8 @@ double benchmark_scalar_exp(const datapod::mat::vector<float, NUM_ELEMENTS> &inp
 
 // NEW API - pack<float,W>
 template <std::size_t W>
-double benchmark_new_fast_exp(const datapod::mat::vector<float, NUM_ELEMENTS> &input,
-                              datapod::mat::vector<float, NUM_ELEMENTS> &output) {
+double benchmark_new_fast_exp(const datapod::mat::Vector<float, NUM_ELEMENTS> &input,
+                              datapod::mat::Vector<float, NUM_ELEMENTS> &output) {
     const std::size_t vec_count = NUM_ELEMENTS / W;
 
     Timer timer;
@@ -84,9 +84,9 @@ int main() {
     std::cout << "================================================================\n\n";
 
     // Datapod 0.0.8 heap-allocated vectors!
-    datapod::mat::vector<float, NUM_ELEMENTS> input;
-    datapod::mat::vector<float, NUM_ELEMENTS> output_scalar;
-    datapod::mat::vector<float, NUM_ELEMENTS> output_simd;
+    datapod::mat::Vector<float, NUM_ELEMENTS> input;
+    datapod::mat::Vector<float, NUM_ELEMENTS> output_scalar;
+    datapod::mat::Vector<float, NUM_ELEMENTS> output_simd;
 
     std::cout << "Datapod vector info:\n";
     std::cout << "  uses_heap: " << std::boolalpha << input.uses_heap << "\n";

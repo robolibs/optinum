@@ -5,11 +5,16 @@
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
+
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== SE2: Special Euclidean Group in 2D =====
     //
@@ -33,13 +38,13 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = simd::Vector<T, 3>; // [vx, vy, theta]
-        using Translation = simd::Vector<T, 2>;
-        using Point = simd::Vector<T, 2>;
-        using Params = simd::Vector<T, 4>; // [cos, sin, tx, ty]
-        using HomogeneousMatrix = simd::Matrix<T, 3, 3>;
-        using TransformMatrix = simd::Matrix<T, 2, 3>; // Compact form
-        using AdjointMatrix = simd::Matrix<T, 3, 3>;
+        using Tangent = dp::mat::Vector<T, 3>;              // [vx, vy, theta] - owning
+        using Translation = dp::mat::Vector<T, 2>;          // owning
+        using Point = dp::mat::Vector<T, 2>;                // owning
+        using Params = dp::mat::Vector<T, 4>;               // [cos, sin, tx, ty] - owning
+        using HomogeneousMatrix = dp::mat::Matrix<T, 3, 3>; // owning
+        using TransformMatrix = dp::mat::Matrix<T, 2, 3>;   // Compact form - owning
+        using AdjointMatrix = dp::mat::Matrix<T, 3, 3>;     // owning
         using Rotation = SO2<T>;
 
         // ===== CONSTANTS =====
@@ -49,7 +54,7 @@ namespace optinum::lie {
         // ===== CONSTRUCTORS =====
 
         // Default: identity transform
-        constexpr SE2() noexcept : so2_(), translation_{T(0), T(0)} {}
+        constexpr SE2() noexcept : so2_(), translation_{{T(0), T(0)}} {}
 
         // From SO2 rotation and translation
         SE2(const Rotation &rotation, const Translation &translation) noexcept
@@ -59,12 +64,12 @@ namespace optinum::lie {
         SE2(Scalar theta, const Translation &translation) noexcept : so2_(theta), translation_(translation) {}
 
         // From angle and translation components
-        SE2(Scalar theta, Scalar tx, Scalar ty) noexcept : so2_(theta), translation_{tx, ty} {}
+        SE2(Scalar theta, Scalar tx, Scalar ty) noexcept : so2_(theta), translation_{{tx, ty}} {}
 
         // From 3x3 homogeneous matrix
         explicit SE2(const HomogeneousMatrix &T_mat) noexcept {
             // Extract rotation from top-left 2x2
-            simd::Matrix<T, 2, 2> R_mat;
+            dp::mat::Matrix<T, 2, 2> R_mat;
             R_mat(0, 0) = T_mat(0, 0);
             R_mat(0, 1) = T_mat(0, 1);
             R_mat(1, 0) = T_mat(1, 0);
@@ -82,18 +87,18 @@ namespace optinum::lie {
         [[nodiscard]] static constexpr SE2 identity() noexcept { return SE2(); }
 
         // Pure rotation (no translation)
-        [[nodiscard]] static SE2 rot(Scalar theta) noexcept { return SE2(theta, Translation{T(0), T(0)}); }
+        [[nodiscard]] static SE2 rot(Scalar theta) noexcept { return SE2(theta, Translation{{T(0), T(0)}}); }
 
         // Pure translation (no rotation)
-        [[nodiscard]] static SE2 trans(Scalar tx, Scalar ty) noexcept { return SE2(T(0), Translation{tx, ty}); }
+        [[nodiscard]] static SE2 trans(Scalar tx, Scalar ty) noexcept { return SE2(T(0), Translation{{tx, ty}}); }
 
         [[nodiscard]] static SE2 trans(const Translation &t) noexcept { return SE2(T(0), t); }
 
         // Translation along X axis
-        [[nodiscard]] static SE2 trans_x(Scalar tx) noexcept { return SE2(T(0), Translation{tx, T(0)}); }
+        [[nodiscard]] static SE2 trans_x(Scalar tx) noexcept { return SE2(T(0), Translation{{tx, T(0)}}); }
 
         // Translation along Y axis
-        [[nodiscard]] static SE2 trans_y(Scalar ty) noexcept { return SE2(T(0), Translation{T(0), ty}); }
+        [[nodiscard]] static SE2 trans_y(Scalar ty) noexcept { return SE2(T(0), Translation{{T(0), ty}}); }
 
         // Exponential map: twist -> SE2
         // exp([vx, vy, theta]) with proper handling of small angles
@@ -138,19 +143,19 @@ namespace optinum::lie {
             std::uniform_real_distribution<T> angle_dist(T(0), two_pi<T>);
             std::uniform_real_distribution<T> trans_dist(-translation_range, translation_range);
 
-            return SE2(angle_dist(rng), Translation{trans_dist(rng), trans_dist(rng)});
+            return SE2(angle_dist(rng), Translation{{trans_dist(rng), trans_dist(rng)}});
         }
 
         // Fit closest SE2 to arbitrary 3x3 matrix
         [[nodiscard]] static SE2 fit_to_SE2(const HomogeneousMatrix &M) noexcept {
             // Extract and normalize rotation
-            simd::Matrix<T, 2, 2> R_mat;
+            dp::mat::Matrix<T, 2, 2> R_mat;
             R_mat(0, 0) = M(0, 0);
             R_mat(0, 1) = M(0, 1);
             R_mat(1, 0) = M(1, 0);
             R_mat(1, 1) = M(1, 1);
 
-            return SE2(Rotation::fit_to_SO2(R_mat), Translation{M(0, 2), M(1, 2)});
+            return SE2(Rotation::fit_to_SO2(R_mat), Translation{{M(0, 2), M(1, 2)}});
         }
 
         // ===== CORE OPERATIONS =====
@@ -250,7 +255,7 @@ namespace optinum::lie {
         }
 
         // Return 2x2 rotation matrix
-        [[nodiscard]] simd::Matrix<T, 2, 2> rotation_matrix() const noexcept { return so2_.matrix(); }
+        [[nodiscard]] dp::mat::Matrix<T, 2, 2> rotation_matrix() const noexcept { return so2_.matrix(); }
 
         // ===== LIE ALGEBRA =====
 
@@ -482,8 +487,8 @@ namespace optinum::lie {
         // Cast to different scalar type
         template <typename NewScalar> [[nodiscard]] SE2<NewScalar> cast() const noexcept {
             return SE2<NewScalar>(so2_.template cast<NewScalar>(),
-                                  simd::Vector<NewScalar, 2>{static_cast<NewScalar>(translation_[0]),
-                                                             static_cast<NewScalar>(translation_[1])});
+                                  dp::mat::Vector<NewScalar, 2>{{static_cast<NewScalar>(translation_[0]),
+                                                                 static_cast<NewScalar>(translation_[1])}});
         }
 
         // ===== COMPARISON =====

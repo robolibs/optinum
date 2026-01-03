@@ -1,9 +1,12 @@
 #pragma once
 
 #include <optinum/opti/core/types.hpp>
-#include <optinum/simd/vector.hpp>
+
+#include <datapod/matrix/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Base callback interface for optimization monitoring
@@ -19,7 +22,7 @@ namespace optinum::opti {
      * struct MyCallback {
      *     template <typename T, std::size_t N>
      *     bool on_iteration(const IterationInfo<T>& info,
-     *                       const simd::Vector<T, N>& x) {
+     *                       const dp::mat::Vector<T, N>& x) {
      *         std::cout << "Iter " << info.iteration
      *                   << ", obj = " << info.objective << "\n";
      *         return false; // continue optimization
@@ -33,12 +36,12 @@ namespace optinum::opti {
      */
     struct NoCallback {
         /// Called at the beginning of optimization
-        template <typename T, std::size_t N> void on_begin(const simd::Vector<T, N> &x0) const noexcept { (void)x0; }
+        template <typename T, std::size_t N> void on_begin(const dp::mat::Vector<T, N> &x0) const noexcept { (void)x0; }
 
         /// Called after each iteration
         /// @return true to stop optimization, false to continue
         template <typename T, std::size_t N>
-        bool on_iteration(const IterationInfo<T> &info, const simd::Vector<T, N> &x) const noexcept {
+        bool on_iteration(const IterationInfo<T> &info, const dp::mat::Vector<T, N> &x) const noexcept {
             (void)info;
             (void)x;
             return false; // Continue
@@ -58,13 +61,13 @@ namespace optinum::opti {
 
         explicit LogCallback(std::size_t interval = 1) : print_every(interval) {}
 
-        template <typename T, std::size_t N> void on_begin(const simd::Vector<T, N> &x0) const noexcept {
+        template <typename T, std::size_t N> void on_begin(const dp::mat::Vector<T, N> &x0) const noexcept {
             (void)x0;
             // Could print initial state
         }
 
         template <typename T, std::size_t N>
-        bool on_iteration(const IterationInfo<T> &info, const simd::Vector<T, N> &x) const noexcept {
+        bool on_iteration(const IterationInfo<T> &info, const dp::mat::Vector<T, N> &x) const noexcept {
             (void)x;
             if (info.iteration % print_every == 0) {
                 // Would print to stdout/logging system
@@ -87,10 +90,10 @@ namespace optinum::opti {
 
         explicit EarlyStoppingCallback(T threshold) : objective_threshold(threshold) {}
 
-        template <std::size_t N> void on_begin(const simd::Vector<T, N> &x0) const noexcept { (void)x0; }
+        template <std::size_t N> void on_begin(const dp::mat::Vector<T, N> &x0) const noexcept { (void)x0; }
 
         template <std::size_t N>
-        bool on_iteration(const IterationInfo<T> &info, const simd::Vector<T, N> &x) const noexcept {
+        bool on_iteration(const IterationInfo<T> &info, const dp::mat::Vector<T, N> &x) const noexcept {
             (void)x;
             // Stop if objective is good enough
             return info.objective < objective_threshold;

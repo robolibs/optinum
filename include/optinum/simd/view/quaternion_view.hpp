@@ -20,11 +20,11 @@ namespace optinum::simd {
     // =============================================================================
     // quaternion_view<T, W> - SIMD view over quaternion arrays
     //
-    // Provides transparent SIMD access to dp::mat::quaternion<T> arrays.
+    // Provides transparent SIMD access to dp::mat::Quaternion<T> arrays.
     // User works with quaternions directly; SIMD is handled internally.
     //
     // Usage:
-    //   dp::mat::quaternion<double> quats[8];
+    //   dp::mat::Quaternion<double> quats[8];
     //   auto qv = quaternion_view<double, 4>(quats, 8);
     //   auto result = qv.normalized();  // SIMD under the hood
     //   result.store(quats);            // back to quaternion array
@@ -38,7 +38,7 @@ namespace optinum::simd {
         static_assert(W > 0, "quaternion_view requires W > 0");
 
       public:
-        using value_type = dp::mat::quaternion<T>;
+        using value_type = dp::mat::Quaternion<T>;
         using real_type = T;
         using pack_type = pack<value_type, W>;
         using real_pack = pack<T, W>;
@@ -145,6 +145,19 @@ namespace optinum::simd {
             }
         }
 
+        // ===== FILL OPERATIONS =====
+
+        // Fill all elements with a value
+        void fill(const value_type &val) noexcept {
+            pack_type p(val);
+            for (std::size_t i = 0; i < num_packs(); ++i) {
+                store_pack_safe(i, p);
+            }
+        }
+
+        // Fill with identity quaternion
+        void fill_identity() noexcept { fill(value_type::identity()); }
+
         // ===== BULK OPERATIONS (return new view with results) =====
         // These operate on the entire array using SIMD
 
@@ -159,7 +172,7 @@ namespace optinum::simd {
         }
 
         // Normalize all quaternions
-        [[nodiscard]] quaternion_view normalized_to(value_type *out) const noexcept {
+        [[nodiscard]] quaternion_view normalize_to(value_type *out) const noexcept {
             quaternion_view result(out, size_);
             for (std::size_t i = 0; i < num_packs(); ++i) {
                 auto p = load_pack_safe(i);

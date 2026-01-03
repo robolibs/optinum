@@ -7,13 +7,30 @@
 // =============================================================================
 
 #include <optinum/simd/arch/arch.hpp>
+#include <optinum/simd/pack/pack.hpp>
+#if defined(OPTINUM_HAS_AVX)
 #include <optinum/simd/pack/avx.hpp>
+#endif
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> pack<T, W> log(const pack<T, W> &x) noexcept;
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE pack<T, W> log(const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::log(x.data_[i]);
+        }
+        return result;
+    }
 
     namespace detail {
         // Constants for log(x) computation
@@ -27,7 +44,9 @@ namespace optinum::simd {
     // =========================================================================
     // pack<float, 4> - SSE implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_SSE2)
 
+#if defined(OPTINUM_HAS_SSE2)
     template <> inline pack<float, 4> log(const pack<float, 4> &x) noexcept {
         using namespace detail;
 
@@ -99,10 +118,16 @@ namespace optinum::simd {
         return pack<float, 4>(vresult);
     }
 
+#endif // OPTINUM_HAS_SSE2
+
     // =========================================================================
     // pack<float, 8> - AVX implementation
     // =========================================================================
+#if defined(OPTINUM_HAS_AVX)
 
+#endif // OPTINUM_HAS_SSE2
+
+#if defined(OPTINUM_HAS_AVX)
     template <> inline pack<float, 8> log(const pack<float, 8> &x) noexcept {
         using namespace detail;
 
@@ -174,7 +199,11 @@ namespace optinum::simd {
         return pack<float, 8>(vresult);
     }
 
+#endif // OPTINUM_HAS_AVX
+
     // =========================================================================
+#endif // OPTINUM_HAS_AVX
+
     // pack<double, 2> - SSE implementation
     // =========================================================================
 #if defined(OPTINUM_HAS_SSE41)

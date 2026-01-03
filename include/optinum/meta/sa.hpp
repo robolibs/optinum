@@ -30,10 +30,13 @@
 #include <random>
 #include <vector>
 
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/backend/elementwise.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Cooling schedule types for temperature reduction
@@ -49,13 +52,13 @@ namespace optinum::meta {
      * Result of Simulated Annealing optimization
      */
     template <typename T> struct SAResult {
-        simd::Vector<T, simd::Dynamic> best_position; ///< Best solution found
-        T best_value;                                 ///< Objective value at best position
-        std::size_t iterations;                       ///< Number of iterations performed
-        std::size_t accepted_moves;                   ///< Number of accepted moves
-        std::size_t function_evaluations;             ///< Total function evaluations
-        bool converged;                               ///< Whether convergence criteria met
-        std::vector<T> history;                       ///< Best value per iteration
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        T best_value;                                       ///< Objective value at best position
+        std::size_t iterations;                             ///< Number of iterations performed
+        std::size_t accepted_moves;                         ///< Number of accepted moves
+        std::size_t function_evaluations;                   ///< Total function evaluations
+        bool converged;                                     ///< Whether convergence criteria met
+        std::vector<T> history;                             ///< Best value per iteration
     };
 
     /**
@@ -70,7 +73,7 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * simd::Vector<double, simd::Dynamic> initial{1.0, 1.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> initial{1.0, 1.0};
      * auto result = sa.optimize(objective, initial);
      * @endcode
      *
@@ -112,7 +115,7 @@ namespace optinum::meta {
          * @param initial Starting point
          * @return SAResult with best solution and convergence info
          */
-        template <typename F> SAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial) {
+        template <typename F> SAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial) {
             const std::size_t dim = initial.size();
 
             if (dim == 0) {
@@ -120,8 +123,8 @@ namespace optinum::meta {
             }
 
             // No bounds - use large range
-            simd::Vector<T, simd::Dynamic> lower(dim);
-            simd::Vector<T, simd::Dynamic> upper(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> lower(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> upper(dim);
             lower.fill(-std::numeric_limits<T>::max());
             upper.fill(std::numeric_limits<T>::max());
 
@@ -139,9 +142,9 @@ namespace optinum::meta {
          * @return SAResult with best solution and convergence info
          */
         template <typename F>
-        SAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                             const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        SAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
 
             if (dim == 0 || lower_bounds.size() != dim || upper_bounds.size() != dim) {
@@ -161,8 +164,8 @@ namespace optinum::meta {
          * @return SAResult with best solution and convergence info
          */
         template <typename F>
-        SAResult<T> optimize(F &&objective, const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                             const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        SAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
 
             if (dim == 0 || upper_bounds.size() != dim) {
@@ -170,7 +173,7 @@ namespace optinum::meta {
             }
 
             // Start from center of bounds
-            simd::Vector<T, simd::Dynamic> initial(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> initial(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 initial[d] = (lower_bounds[d] + upper_bounds[d]) / T{2};
             }
@@ -183,9 +186,9 @@ namespace optinum::meta {
          * Core optimization implementation
          */
         template <typename F>
-        SAResult<T> optimize_impl(F &&objective, const simd::Vector<T, simd::Dynamic> &initial,
-                                  const simd::Vector<T, simd::Dynamic> &lower_bounds,
-                                  const simd::Vector<T, simd::Dynamic> &upper_bounds) {
+        SAResult<T> optimize_impl(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                                  const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                                  const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
 
             // Random number generator
@@ -194,12 +197,14 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
             std::uniform_int_distribution<std::size_t> dim_dist(0, dim - 1);
 
-            // Initialize current and best solutions
-            simd::Vector<T, simd::Dynamic> current = initial;
+            // Initialize current and best solutions using SIMD copy
+            dp::mat::Vector<T, dp::mat::Dynamic> current(initial.size());
+            simd::backend::copy_runtime<T>(current.data(), initial.data(), dim);
             T current_value = objective(current);
             std::size_t total_evals = 1;
 
-            simd::Vector<T, simd::Dynamic> best = current;
+            dp::mat::Vector<T, dp::mat::Dynamic> best(dim);
+            simd::backend::copy_runtime<T>(best.data(), current.data(), dim);
             T best_value = current_value;
 
             // Temperature and step size
@@ -207,7 +212,7 @@ namespace optinum::meta {
             T step_size = config.step_size;
 
             // Compute step size based on range if bounds are finite
-            simd::Vector<T, simd::Dynamic> range(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> range(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 if (std::isfinite(upper_bounds[d]) && std::isfinite(lower_bounds[d])) {
                     range[d] = (upper_bounds[d] - lower_bounds[d]) * step_size;
@@ -238,7 +243,7 @@ namespace optinum::meta {
 
             for (; iteration < config.max_iterations; ++iteration) {
                 // Generate neighbor by perturbing one random dimension
-                simd::Vector<T, simd::Dynamic> neighbor = current;
+                dp::mat::Vector<T, dp::mat::Dynamic> neighbor = current;
                 std::size_t perturb_dim = dim_dist(rng);
 
                 // Gaussian perturbation
@@ -276,7 +281,7 @@ namespace optinum::meta {
 
                     // Update best if improved
                     if (current_value < best_value) {
-                        best = current;
+                        simd::backend::copy_runtime<T>(best.data(), current.data(), dim);
                         best_value = current_value;
                     }
                 }
@@ -287,16 +292,16 @@ namespace optinum::meta {
                 if (config.adaptive_step && total_moves % acceptance_window == 0) {
                     T acceptance_ratio = static_cast<T>(window_accepted) / static_cast<T>(acceptance_window);
 
-                    // Adjust step size to target acceptance ratio
+                    // Adjust step size to target acceptance ratio using SIMD
                     if (acceptance_ratio > config.target_acceptance + T{0.1}) {
                         // Too many acceptances - increase step size
-                        for (std::size_t d = 0; d < dim; ++d) {
-                            range[d] *= T{1.1};
-                        }
+                        simd::backend::mul_scalar_runtime<T>(range.data(), range.data(), T{1.1}, dim);
                     } else if (acceptance_ratio < config.target_acceptance - T{0.1}) {
                         // Too few acceptances - decrease step size
+                        simd::backend::mul_scalar_runtime<T>(range.data(), range.data(), T{0.9}, dim);
+                        // Clamp to minimum (scalar loop needed for max)
                         for (std::size_t d = 0; d < dim; ++d) {
-                            range[d] = std::max(range[d] * T{0.9}, config.step_size_min);
+                            range[d] = std::max(range[d], config.step_size_min);
                         }
                     }
 

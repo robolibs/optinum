@@ -36,8 +36,8 @@ void benchmark_data_sanitization() {
     constexpr size_t N = 10000;
     constexpr size_t ITERATIONS = 10000;
 
-    alignas(32) datapod::mat::vector<float, N> input;
-    alignas(32) datapod::mat::vector<float, N> output;
+    alignas(32) datapod::mat::Vector<float, N> input;
+    alignas(32) datapod::mat::Vector<float, N> output;
 
     // Simulate real ML data: mostly finite, some corrupt values
     std::mt19937 rng(42);
@@ -81,7 +81,7 @@ void benchmark_data_sanitization() {
     auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
 
     // Scalar version
-    alignas(32) datapod::mat::vector<float, N> scalar_output;
+    alignas(32) datapod::mat::Vector<float, N> scalar_output;
     start = std::chrono::high_resolution_clock::now();
     for (size_t iter = 0; iter < ITERATIONS; ++iter) {
         for (size_t i = 0; i < N; ++i) {
@@ -110,9 +110,9 @@ void benchmark_safe_division() {
     constexpr size_t N = 10000;
     constexpr size_t ITERATIONS = 10000;
 
-    alignas(32) datapod::mat::vector<double, N> numerator;
-    alignas(32) datapod::mat::vector<double, N> denominator;
-    alignas(32) datapod::mat::vector<double, N> result;
+    alignas(32) datapod::mat::Vector<double, N> numerator;
+    alignas(32) datapod::mat::Vector<double, N> denominator;
+    alignas(32) datapod::mat::Vector<double, N> result;
 
     // Simulate real data: some denominators near zero, some zero
     std::mt19937 rng(42);
@@ -164,7 +164,7 @@ void benchmark_safe_division() {
     auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
 
     // Scalar version
-    alignas(32) datapod::mat::vector<double, N> scalar_result;
+    alignas(32) datapod::mat::Vector<double, N> scalar_result;
     start = std::chrono::high_resolution_clock::now();
     int scalar_error_count = 0;
     for (size_t iter = 0; iter < ITERATIONS; ++iter) {
@@ -200,12 +200,12 @@ void benchmark_physics_error_detection() {
     constexpr size_t N_PARTICLES = 10000;
     constexpr size_t ITERATIONS = 1000;
 
-    alignas(32) datapod::mat::vector<float, N_PARTICLES> pos_x;
-    alignas(32) datapod::mat::vector<float, N_PARTICLES> pos_y;
-    alignas(32) datapod::mat::vector<float, N_PARTICLES> pos_z;
-    alignas(32) datapod::mat::vector<float, N_PARTICLES> vel_x;
-    alignas(32) datapod::mat::vector<float, N_PARTICLES> vel_y;
-    alignas(32) datapod::mat::vector<float, N_PARTICLES> vel_z;
+    alignas(32) datapod::mat::Vector<float, N_PARTICLES> pos_x;
+    alignas(32) datapod::mat::Vector<float, N_PARTICLES> pos_y;
+    alignas(32) datapod::mat::Vector<float, N_PARTICLES> pos_z;
+    alignas(32) datapod::mat::Vector<float, N_PARTICLES> vel_x;
+    alignas(32) datapod::mat::Vector<float, N_PARTICLES> vel_y;
+    alignas(32) datapod::mat::Vector<float, N_PARTICLES> vel_z;
 
     // Initialize particles
     std::mt19937 rng(42);
@@ -308,8 +308,8 @@ void benchmark_outlier_detection() {
     constexpr size_t N = 100000;
     constexpr size_t ITERATIONS = 1000;
 
-    alignas(32) datapod::mat::vector<double, N> data;
-    alignas(32) datapod::mat::vector<double, N> filtered;
+    alignas(32) datapod::mat::Vector<double, N> data;
+    alignas(32) datapod::mat::Vector<double, N> filtered;
 
     // Generate data: mostly normal, some outliers, some NaN/Inf
     std::mt19937 rng(42);
@@ -387,7 +387,7 @@ void benchmark_outlier_detection() {
     auto simd_time = std::chrono::duration<double, std::milli>(end - start).count();
 
     // Scalar version
-    alignas(32) datapod::mat::vector<double, N> scalar_filtered;
+    alignas(32) datapod::mat::Vector<double, N> scalar_filtered;
     start = std::chrono::high_resolution_clock::now();
     int scalar_excluded = 0;
     for (size_t iter = 0; iter < ITERATIONS; ++iter) {

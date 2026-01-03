@@ -2,15 +2,16 @@
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
+namespace dp = datapod;
 using namespace optinum::opti;
 
 int main() {
-    std::cout << "Testing Dynamic optimization\n";
+    std::cout << "Testing dp::mat::Dynamic optimization\n";
 
     std::size_t n = 3;
     std::cout << "Creating dynamic vector of size " << n << "\n";
 
-    Vector<double, Dynamic> x(n);
+    dp::mat::Vector<double, dp::mat::Dynamic> x(n);
     std::cout << "Vector created, size = " << x.size() << "\n";
 
     for (std::size_t i = 0; i < n; ++i) {
@@ -19,14 +20,14 @@ int main() {
     }
 
     std::cout << "Creating Sphere function\n";
-    Sphere<double, Dynamic> sphere;
+    Sphere<double, dp::mat::Dynamic> sphere;
 
     std::cout << "Evaluating sphere function\n";
     double f = sphere.evaluate(x);
     std::cout << "f(x) = " << f << "\n";
 
     std::cout << "Computing gradient\n";
-    Vector<double, Dynamic> g(n);
+    dp::mat::Vector<double, dp::mat::Dynamic> g(n);
     sphere.gradient(x, g);
     std::cout << "Gradient computed\n";
     for (std::size_t i = 0; i < n; ++i) {

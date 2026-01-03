@@ -5,10 +5,13 @@
 // Voigt notation conversion for mechanics (stress/strain tensors)
 // =============================================================================
 
+#include <datapod/matrix.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::simd {
+
+    namespace dp = ::datapod;
 
     /**
      * @brief Convert 3x3 symmetric tensor to Voigt notation (6-vector)
@@ -25,8 +28,9 @@ namespace optinum::simd {
      *
      * Used in continuum mechanics for stress/strain tensors.
      */
-    template <typename T> [[nodiscard]] constexpr Vector<T, 6> to_voigt(const Matrix<T, 3, 3> &tensor) noexcept {
-        Vector<T, 6> voigt;
+    template <typename T>
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6> to_voigt(const Matrix<T, 3, 3> &tensor) noexcept {
+        dp::mat::Vector<T, 6> voigt{};
         voigt[0] = tensor(0, 0); // σ11
         voigt[1] = tensor(1, 1); // σ22
         voigt[2] = tensor(2, 2); // σ33
@@ -36,13 +40,21 @@ namespace optinum::simd {
         return voigt;
     }
 
+    /// Overload for dp::mat::matrix input
+    template <typename T>
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6> to_voigt(const dp::mat::Matrix<T, 3, 3> &tensor) noexcept {
+        Matrix<T, 3, 3> view(tensor);
+        return to_voigt(view);
+    }
+
     /**
      * @brief Convert Voigt notation (6-vector) to 3x3 symmetric tensor
      *
      * Reconstructs symmetric tensor from Voigt vector.
      */
-    template <typename T> [[nodiscard]] constexpr Matrix<T, 3, 3> from_voigt(const Vector<T, 6> &voigt) noexcept {
-        Matrix<T, 3, 3> tensor;
+    template <typename T>
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3> from_voigt(const Vector<T, 6> &voigt) noexcept {
+        dp::mat::Matrix<T, 3, 3> tensor{};
         tensor(0, 0) = voigt[0]; // σ11
         tensor(1, 1) = voigt[1]; // σ22
         tensor(2, 2) = voigt[2]; // σ33
@@ -53,6 +65,13 @@ namespace optinum::simd {
         tensor(0, 1) = voigt[5]; // σ12
         tensor(1, 0) = voigt[5]; // Symmetric
         return tensor;
+    }
+
+    /// Overload for dp::mat::vector input
+    template <typename T>
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3> from_voigt(const dp::mat::Vector<T, 6> &voigt) noexcept {
+        Vector<T, 6> view(voigt);
+        return from_voigt(view);
     }
 
     /**
@@ -66,7 +85,8 @@ namespace optinum::simd {
      *
      * Used for elasticity matrices in FEM.
      */
-    template <typename T> [[nodiscard]] constexpr Matrix<T, 6, 6> elasticity_to_voigt(const T C[3][3][3][3]) noexcept {
+    template <typename T>
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 6, 6> elasticity_to_voigt(const T C[3][3][3][3]) noexcept {
         // Voigt index mapping
         constexpr int voigt_map[3][3] = {
             {0, 5, 4}, // (0,0)→0, (0,1)→5, (0,2)→4
@@ -74,8 +94,11 @@ namespace optinum::simd {
             {4, 3, 2}  // (2,0)→4, (2,1)→3, (2,2)→2
         };
 
-        Matrix<T, 6, 6> voigt_matrix;
-        voigt_matrix.fill(T{});
+        dp::mat::Matrix<T, 6, 6> voigt_matrix{};
+        // Initialize to zero
+        for (std::size_t i = 0; i < 36; ++i) {
+            voigt_matrix[i] = T{};
+        }
 
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
@@ -93,6 +116,40 @@ namespace optinum::simd {
     }
 
     /**
+     * @brief Convert 4th-order elasticity tensor to 6x6 Voigt matrix (reference version)
+     */
+    template <typename T>
+    [[nodiscard]] dp::mat::Matrix<T, 6, 6> elasticity_to_voigt(const T (&C)[3][3][3][3]) noexcept {
+        // Voigt index mapping
+        constexpr int voigt_map[3][3] = {
+            {0, 5, 4}, // i=0: (0,0)->0, (0,1)->5, (0,2)->4
+            {5, 1, 3}, // i=1: (1,0)->5, (1,1)->1, (1,2)->3
+            {4, 3, 2}  // i=2: (2,0)->4, (2,1)->3, (2,2)->2
+        };
+
+        dp::mat::Matrix<T, 6, 6> voigt_C{};
+        // Initialize to zero
+        for (std::size_t i = 0; i < 36; ++i) {
+            voigt_C[i] = T{};
+        }
+
+        // Direct mapping from 4th-order tensor to Voigt notation
+        for (std::size_t i = 0; i < 3; ++i) {
+            for (std::size_t j = 0; j < 3; ++j) {
+                for (std::size_t k = 0; k < 3; ++k) {
+                    for (std::size_t l = 0; l < 3; ++l) {
+                        int p = voigt_map[i][j];
+                        int q = voigt_map[k][l];
+                        voigt_C(p, q) = C[i][j][k][l];
+                    }
+                }
+            }
+        }
+
+        return voigt_C;
+    }
+
+    /**
      * @brief Convert strain tensor to Voigt notation with engineering shear strains
      *
      * For strain tensors, shear components are often doubled (engineering convention):
@@ -106,8 +163,8 @@ namespace optinum::simd {
      *                      [2*ε12]  (engineering shear strain γ12)
      */
     template <typename T>
-    [[nodiscard]] constexpr Vector<T, 6> strain_to_voigt_engineering(const Matrix<T, 3, 3> &strain) noexcept {
-        Vector<T, 6> voigt;
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6> strain_to_voigt_engineering(const Matrix<T, 3, 3> &strain) noexcept {
+        dp::mat::Vector<T, 6> voigt{};
         voigt[0] = strain(0, 0);        // ε11
         voigt[1] = strain(1, 1);        // ε22
         voigt[2] = strain(2, 2);        // ε33
@@ -117,14 +174,22 @@ namespace optinum::simd {
         return voigt;
     }
 
+    /// Overload for dp::mat::matrix input
+    template <typename T>
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6>
+    strain_to_voigt_engineering(const dp::mat::Matrix<T, 3, 3> &strain) noexcept {
+        Matrix<T, 3, 3> view(strain);
+        return strain_to_voigt_engineering(view);
+    }
+
     /**
      * @brief Convert engineering Voigt strain to strain tensor
      *
      * Converts engineering shear strains (γ) back to tensor shear components (ε).
      */
     template <typename T>
-    [[nodiscard]] constexpr Matrix<T, 3, 3> strain_from_voigt_engineering(const Vector<T, 6> &voigt) noexcept {
-        Matrix<T, 3, 3> strain;
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3> strain_from_voigt_engineering(const Vector<T, 6> &voigt) noexcept {
+        dp::mat::Matrix<T, 3, 3> strain{};
         strain(0, 0) = voigt[0];        // ε11
         strain(1, 1) = voigt[1];        // ε22
         strain(2, 2) = voigt[2];        // ε33
@@ -137,42 +202,12 @@ namespace optinum::simd {
         return strain;
     }
 
-    /**
-     * @brief Convert 4th-order elasticity tensor to 6x6 Voigt matrix
-     *
-     * The 4th-order elasticity tensor C_ijkl maps strain to stress:
-     *   σ_ij = C_ijkl * ε_kl
-     *
-     * In Voigt notation with indices p,q ∈ {1,2,3,4,5,6}:
-     *   σ_p = C_pq * ε_q
-     *
-     * Voigt mapping (Voigt notation for symmetric tensors):
-     *   11→1, 22→2, 33→3, 23→4, 13→5, 12→6
-     */
-    template <typename T> [[nodiscard]] Matrix<T, 6, 6> elasticity_to_voigt(const T (&C)[3][3][3][3]) noexcept {
-        Matrix<T, 6, 6> voigt_C = Matrix<T, 6, 6>::zeros();
-
-        // Voigt mapping pairs: (i,j) -> voigt_index
-        constexpr int voigt_map[3][3] = {
-            {0, 5, 4}, // i=0: (0,0)->0, (0,1)->5, (0,2)->4
-            {5, 1, 3}, // i=1: (1,0)->5, (1,1)->1, (1,2)->3
-            {4, 3, 2}  // i=2: (2,0)->4, (2,1)->3, (2,2)->2
-        };
-
-        // Direct mapping from 4th-order tensor to Voigt notation
-        for (size_t i = 0; i < 3; ++i) {
-            for (size_t j = 0; j < 3; ++j) {
-                for (size_t k = 0; k < 3; ++k) {
-                    for (size_t l = 0; l < 3; ++l) {
-                        int p = voigt_map[i][j];
-                        int q = voigt_map[k][l];
-                        voigt_C(p, q) = C[i][j][k][l];
-                    }
-                }
-            }
-        }
-
-        return voigt_C;
+    /// Overload for dp::mat::vector input
+    template <typename T>
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3>
+    strain_from_voigt_engineering(const dp::mat::Vector<T, 6> &voigt) noexcept {
+        Vector<T, 6> view(voigt);
+        return strain_from_voigt_engineering(view);
     }
 
 } // namespace optinum::simd

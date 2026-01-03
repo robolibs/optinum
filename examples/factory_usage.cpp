@@ -7,6 +7,7 @@
 #include <iostream>
 #include <optinum/optinum.hpp>
 
+namespace dp = datapod;
 using namespace optinum;
 
 void print_vector(const char *label, auto &v) {
@@ -36,58 +37,63 @@ int main() {
     std::cout << "=== FACTORY FUNCTIONS & UTILITY METHODS ===\n\n";
 
     // =========================================================================
-    // Part 1: Static Factories
+    // Part 1: Static Factories (now free functions returning dp::mat types)
     // =========================================================================
     std::cout << "PART 1: Static Factory Methods\n";
     std::cout << std::string(50, '-') << "\n\n";
 
     // zeros() - Create vector/matrix filled with zeros
     std::cout << "1. zeros() - Create filled with zeros\n";
-    auto v_zeros = Vector<float, 5>::zeros();
-    print_vector("   Vector<float, 5>::zeros()", v_zeros);
+    auto v_zeros = simd::zeros<float, 5>();
+    print_vector("   simd::zeros<float, 5>()", v_zeros);
 
-    auto m_zeros = Matrix<double, 2, 3>::zeros();
-    print_matrix("   Matrix<double, 2, 3>::zeros()", m_zeros);
+    auto m_zeros = simd::zeros_matrix<double, 2, 3>();
+    print_matrix("   simd::zeros_matrix<double, 2, 3>()", m_zeros);
     std::cout << "\n";
 
     // ones() - Create vector/matrix filled with ones
     std::cout << "2. ones() - Create filled with ones\n";
-    auto v_ones = Vector<int, 4>::ones();
-    print_vector("   Vector<int, 4>::ones()", v_ones);
+    auto v_ones = simd::ones<int, 4>();
+    print_vector("   simd::ones<int, 4>()", v_ones);
 
-    auto m_ones = Matrix<float, 3, 2>::ones();
-    print_matrix("   Matrix<float, 3, 2>::ones()", m_ones);
+    auto m_ones = simd::ones_matrix<float, 3, 2>();
+    print_matrix("   simd::ones_matrix<float, 3, 2>()", m_ones);
     std::cout << "\n";
 
     // arange() - Create with sequential values
     std::cout << "3. arange() - Create with sequential values\n";
 
-    auto v_arange1 = Vector<int, 6>::arange();
-    print_vector("   Vector<int, 6>::arange()", v_arange1);
+    auto v_arange1 = simd::arange<int, 6>();
+    print_vector("   simd::arange<int, 6>()", v_arange1);
 
-    auto v_arange2 = Vector<float, 5>::arange(10.0f);
-    print_vector("   Vector<float, 5>::arange(10.0f)", v_arange2);
+    auto v_arange2 = simd::arange<float, 5>(10.0f);
+    print_vector("   simd::arange<float, 5>(10.0f)", v_arange2);
 
-    auto v_arange3 = Vector<double, 4>::arange(0.0, 0.5);
-    print_vector("   Vector<double, 4>::arange(0.0, 0.5)", v_arange3);
+    auto v_arange3 = simd::arange<double, 4>(0.0, 0.5);
+    print_vector("   simd::arange<double, 4>(0.0, 0.5)", v_arange3);
 
-    auto m_arange = Matrix<int, 2, 4>::arange();
-    print_matrix("   Matrix<int, 2, 4>::arange()", m_arange);
+    // For matrix arange, we use iota on a zero-initialized matrix
+    dp::mat::Matrix<int, 2, 4> m_arange;
+    simd::Matrix<int, 2, 4>(m_arange).iota();
+    print_matrix("   Matrix<int, 2, 4> with iota()", m_arange);
     std::cout << "\n";
 
     // =========================================================================
     // Part 2: Instance Methods - fill()
+    // Using dp::mat types with simd::Vector views
     // =========================================================================
     std::cout << "PART 2: fill() - Fill existing container\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    Vector<float, 4> v;
+    dp::mat::Vector<float, 4> v_storage;
+    simd::Vector<float, 4> v(v_storage);
     v.fill(3.14f);
-    print_vector("v.fill(3.14f)", v);
+    print_vector("v.fill(3.14f)", v_storage);
 
-    Matrix<double, 2, 2> m;
+    dp::mat::Matrix<double, 2, 2> m_storage;
+    simd::Matrix<double, 2, 2> m(m_storage);
     m.fill(2.71);
-    print_matrix("m.fill(2.71)", m);
+    print_matrix("m.fill(2.71)", m_storage);
     std::cout << "\n";
 
     // =========================================================================
@@ -96,21 +102,25 @@ int main() {
     std::cout << "PART 3: iota() - Fill with sequential values\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    Vector<int, 5> v1;
+    dp::mat::Vector<int, 5> v1_storage;
+    simd::Vector<int, 5> v1(v1_storage);
     v1.iota();
-    print_vector("v.iota() - defaults to 0, 1, 2, ...", v1);
+    print_vector("v.iota() - defaults to 0, 1, 2, ...", v1_storage);
 
-    Vector<float, 4> v2;
+    dp::mat::Vector<float, 4> v2_storage;
+    simd::Vector<float, 4> v2(v2_storage);
     v2.iota(10.0f);
-    print_vector("v.iota(10.0f) - start from 10", v2);
+    print_vector("v.iota(10.0f) - start from 10", v2_storage);
 
-    Vector<double, 5> v3;
+    dp::mat::Vector<double, 5> v3_storage;
+    simd::Vector<double, 5> v3(v3_storage);
     v3.iota(0.0, 2.5);
-    print_vector("v.iota(0.0, 2.5) - step by 2.5", v3);
+    print_vector("v.iota(0.0, 2.5) - step by 2.5", v3_storage);
 
-    Matrix<int, 3, 3> m1;
+    dp::mat::Matrix<int, 3, 3> m1_storage;
+    simd::Matrix<int, 3, 3> m1(m1_storage);
     m1.iota();
-    print_matrix("m.iota() - fill matrix sequentially", m1);
+    print_matrix("m.iota() - fill matrix sequentially", m1_storage);
     std::cout << "\n";
 
     // =========================================================================
@@ -119,17 +129,19 @@ int main() {
     std::cout << "PART 4: reverse() - Reverse element order\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    Vector<int, 6> v_rev;
+    dp::mat::Vector<int, 6> v_rev_storage;
+    simd::Vector<int, 6> v_rev(v_rev_storage);
     v_rev.iota();
-    print_vector("Before reverse", v_rev);
+    print_vector("Before reverse", v_rev_storage);
     v_rev.reverse();
-    print_vector("After reverse", v_rev);
+    print_vector("After reverse", v_rev_storage);
 
-    Matrix<int, 2, 3> m_rev;
+    dp::mat::Matrix<int, 2, 3> m_rev_storage;
+    simd::Matrix<int, 2, 3> m_rev(m_rev_storage);
     m_rev.iota();
-    print_matrix("Before reverse", m_rev);
+    print_matrix("Before reverse", m_rev_storage);
     m_rev.reverse();
-    print_matrix("After reverse (linear order)", m_rev);
+    print_matrix("After reverse (linear order)", m_rev_storage);
     std::cout << "\n";
 
     // =========================================================================
@@ -138,28 +150,11 @@ int main() {
     std::cout << "PART 5: random() - Fill with random values\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    Vector<float, 8> v_rand;
-    v_rand.random();
-    print_vector("v.random() - uniform [0, 1)", v_rand);
+    auto v_rand_storage = simd::random<float, 8>();
+    print_vector("simd::random<float, 8>() - uniform [0, 1)", v_rand_storage);
 
-    Matrix<double, 3, 3> m_rand;
-    m_rand.random();
-    print_matrix("m.random() - uniform [0, 1)", m_rand);
-    std::cout << "\n";
-
-    // =========================================================================
-    // Part 6: randint() - Random integers
-    // =========================================================================
-    std::cout << "PART 6: randint() - Fill with random integers\n";
-    std::cout << std::string(50, '-') << "\n\n";
-
-    Vector<int, 10> v_randint;
-    v_randint.randint(1, 10);
-    print_vector("v.randint(1, 10) - integers in [1, 10]", v_randint);
-
-    Matrix<int, 3, 4> m_randint;
-    m_randint.randint(0, 100);
-    print_matrix("m.randint(0, 100) - integers in [0, 100]", m_randint);
+    // For matrices, we can use the algo random fill functions
+    std::cout << "   (Use simd::random_uniform_fill for matrices)\n";
     std::cout << "\n";
 
     // =========================================================================
@@ -168,13 +163,15 @@ int main() {
     std::cout << "PART 7: Method Chaining\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    Vector<float, 5> v_chain;
+    dp::mat::Vector<float, 5> v_chain_storage;
+    simd::Vector<float, 5> v_chain(v_chain_storage);
     v_chain.iota(1.0f, 2.0f).reverse();
-    print_vector("v.iota(1.0f, 2.0f).reverse()", v_chain);
+    print_vector("v.iota(1.0f, 2.0f).reverse()", v_chain_storage);
 
-    Matrix<int, 2, 3> m_chain;
+    dp::mat::Matrix<int, 2, 3> m_chain_storage;
+    simd::Matrix<int, 2, 3> m_chain(m_chain_storage);
     m_chain.fill(0).iota(100);
-    print_matrix("m.fill(0).iota(100)", m_chain);
+    print_matrix("m.fill(0).iota(100)", m_chain_storage);
     std::cout << "\n";
 
     // =========================================================================
@@ -185,19 +182,22 @@ int main() {
 
     // Create coordinate grid
     std::cout << "Example 1: Create coordinate grid\n";
-    auto x_coords = Vector<double, 5>::arange(0.0, 0.25);
+    auto x_coords = simd::arange<double, 5>(0.0, 0.25);
     print_vector("   x coordinates (0, 0.25, 0.5, ...)", x_coords);
 
     // Initialize weights for ML
     std::cout << "\nExample 2: Initialize neural network weights\n";
-    Matrix<float, 3, 4> weights;
-    weights.random();
+    auto weights_storage = simd::random<float, 12>(); // 3x4 = 12 elements
+    dp::mat::Matrix<float, 3, 4> weights_matrix;
+    for (std::size_t i = 0; i < 12; ++i) {
+        weights_matrix[i] = weights_storage[i];
+    }
     std::cout << "   Weights initialized with random values:\n";
-    print_matrix("   ", weights);
+    print_matrix("   ", weights_matrix);
 
     // Create test data
     std::cout << "\nExample 3: Create test vector\n";
-    auto test_data = Vector<int, 10>::arange(1);
+    auto test_data = simd::arange<int, 10>(1);
     print_vector("   Test indices (1, 2, 3, ...)", test_data);
 
     std::cout << "\n=== END ===\n";

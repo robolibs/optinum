@@ -18,6 +18,7 @@
 constexpr std::size_t NUM_ITERATIONS = 1000000;
 
 namespace on = optinum;
+namespace dp = datapod;
 
 // =============================================================================
 // Timing Utilities
@@ -44,7 +45,7 @@ template <std::size_t N> double benchmark_specialized_determinant() {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
 
-    on::simd::Matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N * N; ++i) {
         m.data()[i] = dist(gen);
     }
@@ -71,7 +72,7 @@ template <std::size_t N> double benchmark_lu_determinant() {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
 
-    on::simd::Matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N * N; ++i) {
         m.data()[i] = dist(gen);
     }
@@ -81,7 +82,8 @@ template <std::size_t N> double benchmark_lu_determinant() {
 
     volatile float result = 0.0f;
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
-        const auto f = on::lina::lu<float, N>(m);
+        on::simd::Matrix<float, N, N> wrapper(m);
+        const auto f = on::lina::lu<float, N>(wrapper);
         float det = static_cast<float>(f.sign);
         for (std::size_t i = 0; i < N; ++i) {
             det *= f.u(i, i);
@@ -98,7 +100,7 @@ template <std::size_t N> double benchmark_specialized_inverse() {
     std::uniform_real_distribution<float> dist(1.0f, 10.0f); // Positive to avoid singular
 
     // Create a well-conditioned matrix
-    on::simd::Matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N; ++i) {
         for (std::size_t j = 0; j < N; ++j) {
             m(i, j) = (i == j) ? 10.0f : dist(gen);
@@ -130,7 +132,7 @@ template <std::size_t N> double benchmark_lu_inverse() {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(1.0f, 10.0f);
 
-    on::simd::Matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N; ++i) {
         for (std::size_t j = 0; j < N; ++j) {
             m(i, j) = (i == j) ? 10.0f : dist(gen);
@@ -141,13 +143,15 @@ template <std::size_t N> double benchmark_lu_inverse() {
     timer.start();
 
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
-        const auto f = on::lina::lu<float, N>(m);
-        on::simd::Matrix<float, N, N> inv;
+        on::simd::Matrix<float, N, N> wrapper(m);
+        const auto f = on::lina::lu<float, N>(wrapper);
+        dp::mat::Matrix<float, N, N> inv;
         for (std::size_t col = 0; col < N; ++col) {
-            on::simd::Vector<float, N> e;
+            dp::mat::Vector<float, N> e;
             e.fill(0.0f);
             e[col] = 1.0f;
-            const auto x = on::lina::lu_solve(f, e);
+            on::simd::Vector<float, N> wrapper_e(e);
+            const auto x = on::lina::lu_solve(f, wrapper_e);
             for (std::size_t row = 0; row < N; ++row) {
                 inv(row, col) = x[row];
             }

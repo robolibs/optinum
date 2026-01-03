@@ -34,6 +34,10 @@
 // clang-format off
 #include <optinum/lie/groups/so2.hpp>
 #include <optinum/lie/groups/so3.hpp>
+#include <optinum/lie/groups/euler_angles.hpp>
+#include <optinum/lie/groups/angular_velocity.hpp>
+#include <optinum/lie/groups/twist.hpp>
+#include <optinum/lie/groups/wrench.hpp>
 #include <optinum/lie/groups/se2.hpp>
 #include <optinum/lie/groups/se3.hpp>
 
@@ -43,9 +47,15 @@
 #include <optinum/lie/groups/sim2.hpp>
 #include <optinum/lie/groups/sim3.hpp>
 
-// Batched operations (SIMD-accelerated)
+// Batched operations (SIMD-accelerated) - only available when SIMD is enabled
+#include <optinum/simd/arch/arch.hpp>
+#if OPTINUM_HAS_SIMD
+#include <optinum/lie/batch/so2_batch.hpp>
 #include <optinum/lie/batch/so3_batch.hpp>
+#include <optinum/lie/batch/rxso3_batch.hpp>
+#include <optinum/lie/batch/se2_batch.hpp>
 #include <optinum/lie/batch/se3_batch.hpp>
+#endif // OPTINUM_HAS_SIMD
 
 // Algorithms
 #include <optinum/lie/algorithms/average.hpp>

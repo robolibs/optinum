@@ -1,10 +1,11 @@
 #pragma once
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Nesterov Accelerated Gradient (NAG) update policy
@@ -44,14 +45,14 @@ namespace optinum::opti {
         explicit NesterovUpdate(double mu = 0.9) : momentum(mu) {}
 
         /**
-         * Update the iterate using Nesterov momentum (SIMD-optimized)
+         * Update the iterate using Nesterov momentum
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Learning rate α
          * @param gradient Current gradient ∇f(x)
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization of velocity on first use
@@ -67,21 +68,55 @@ namespace optinum::opti {
             const T *g_ptr = gradient.data();
             T *x_ptr = x.data();
 
-            // Nesterov update:
+            // SIMD-optimized Nesterov update
             // 1. v_new = μ * v - α * g
             // 2. x_new = x + μ * v_new - α * g
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
-                    v_ptr[i] = v_new;
-                    x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
+            using pack_t = simd::pack<double, W>;
+
+            const pack_t mu(momentum);
+            const pack_t neg_alpha(-double(step_size));
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load velocity
+                auto v_pack = pack_t::loadu(v_ptr + i);
+
+                // Load gradient (convert to double if needed)
+                pack_t g_pack;
+                if constexpr (std::is_same_v<T, double>) {
+                    g_pack = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g_pack = pack_t::loadu(g_tmp);
                 }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
-                    v_ptr[i] = v_new;
-                    x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
+
+                // v_new = momentum * v - step_size * g
+                auto v_new = pack_t::fma(mu, v_pack, neg_alpha * g_pack);
+                v_new.storeu(v_ptr + i);
+
+                // x_new = x + momentum * v_new - step_size * g
+                // = x + momentum * v_new + neg_alpha * g
+                auto update = pack_t::fma(mu, v_new, neg_alpha * g_pack);
+
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack + update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] += T(update[j]);
+                    }
                 }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
+                double v_new = momentum * v_ptr[i] - double(step_size) * double(g_ptr[i]);
+                v_ptr[i] = v_new;
+                x_ptr[i] = x_ptr[i] + T(momentum * v_new) - step_size * g_ptr[i];
             }
         }
 
@@ -94,7 +129,7 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> velocity; ///< Velocity storage (double precision)
+        dp::mat::Vector<double, dp::mat::Dynamic> velocity; ///< Velocity storage (double precision)
     };
 
 } // namespace optinum::opti

@@ -1,9 +1,11 @@
+#include <datapod/matrix.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/mppi.hpp>
 
 #include <cmath>
 
 using namespace optinum;
+namespace dp = datapod;
 
 TEST_CASE("MPPI: Simple 1D integrator") {
     // Simple 1D system: x_{t+1} = x_t + u_t * dt
@@ -18,29 +20,29 @@ TEST_CASE("MPPI: Simple 1D integrator") {
     mppi.config.dt = 0.1;
 
     // Set control bounds
-    mppi.bounds.lower = simd::Vector<double, simd::Dynamic>(1);
-    mppi.bounds.upper = simd::Vector<double, simd::Dynamic>(1);
+    mppi.bounds.lower = dp::mat::Vector<double, dp::mat::Dynamic>(1);
+    mppi.bounds.upper = dp::mat::Vector<double, dp::mat::Dynamic>(1);
     mppi.bounds.lower[0] = -10.0;
     mppi.bounds.upper[0] = 10.0;
 
     mppi.initialize();
 
     // Dynamics: simple integrator
-    auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                       const simd::Vector<double, simd::Dynamic> &control) {
-        simd::Vector<double, simd::Dynamic> next_state(state.size());
+    auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
+        dp::mat::Vector<double, dp::mat::Dynamic> next_state(state.size());
         next_state[0] = state[0] + control[0] * 0.1; // dt = 0.1
         return next_state;
     };
 
     // Cost: quadratic state cost + small control cost
-    auto cost = [](const simd::Vector<double, simd::Dynamic> &state,
-                   const simd::Vector<double, simd::Dynamic> &control) {
+    auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                   const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
         return state[0] * state[0] + 0.01 * control[0] * control[0];
     };
 
     // Initial state
-    simd::Vector<double, simd::Dynamic> state(1);
+    dp::mat::Vector<double, dp::mat::Dynamic> state(1);
     state[0] = 5.0;
 
     // Run MPPI for several steps
@@ -69,8 +71,8 @@ TEST_CASE("MPPI: 2D double integrator") {
     mppi.config.noise_sigma = 3.0;
     mppi.config.dt = 0.05;
 
-    mppi.bounds.lower = simd::Vector<double, simd::Dynamic>(1);
-    mppi.bounds.upper = simd::Vector<double, simd::Dynamic>(1);
+    mppi.bounds.lower = dp::mat::Vector<double, dp::mat::Dynamic>(1);
+    mppi.bounds.upper = dp::mat::Vector<double, dp::mat::Dynamic>(1);
     mppi.bounds.lower[0] = -5.0;
     mppi.bounds.upper[0] = 5.0;
 
@@ -78,22 +80,22 @@ TEST_CASE("MPPI: 2D double integrator") {
 
     const double dt = 0.05;
 
-    auto dynamics = [dt](const simd::Vector<double, simd::Dynamic> &state,
-                         const simd::Vector<double, simd::Dynamic> &control) {
-        simd::Vector<double, simd::Dynamic> next_state(2);
+    auto dynamics = [dt](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                         const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
+        dp::mat::Vector<double, dp::mat::Dynamic> next_state(2);
         next_state[0] = state[0] + state[1] * dt;   // pos += vel * dt
         next_state[1] = state[1] + control[0] * dt; // vel += acc * dt
         return next_state;
     };
 
-    auto cost = [](const simd::Vector<double, simd::Dynamic> &state,
-                   const simd::Vector<double, simd::Dynamic> &control) {
+    auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                   const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
         // Penalize distance from origin and velocity, plus control effort
         return 10.0 * state[0] * state[0] + 5.0 * state[1] * state[1] + 0.1 * control[0] * control[0];
     };
 
     // Initial state: position = 3, velocity = 2
-    simd::Vector<double, simd::Dynamic> state(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> state(2);
     state[0] = 3.0;
     state[1] = 2.0;
 
@@ -135,8 +137,8 @@ TEST_CASE("MPPI: Configuration options") {
         CHECK(!mppi.bounds.valid());
 
         // Set bounds
-        mppi.bounds.lower = simd::Vector<double, simd::Dynamic>(2);
-        mppi.bounds.upper = simd::Vector<double, simd::Dynamic>(2);
+        mppi.bounds.lower = dp::mat::Vector<double, dp::mat::Dynamic>(2);
+        mppi.bounds.upper = dp::mat::Vector<double, dp::mat::Dynamic>(2);
         mppi.bounds.lower[0] = -1.0;
         mppi.bounds.lower[1] = -2.0;
         mppi.bounds.upper[0] = 1.0;
@@ -153,19 +155,19 @@ TEST_CASE("MPPI: Configuration options") {
         mppi.config.track_history = true;
         mppi.initialize();
 
-        auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                           const simd::Vector<double, simd::Dynamic> &control) {
-            simd::Vector<double, simd::Dynamic> next(1);
+        auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                           const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
+            dp::mat::Vector<double, dp::mat::Dynamic> next(1);
             next[0] = state[0] + control[0] * 0.1;
             return next;
         };
 
-        auto cost = [](const simd::Vector<double, simd::Dynamic> &state,
-                       const simd::Vector<double, simd::Dynamic> &control) {
+        auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
             return state[0] * state[0] + control[0] * control[0];
         };
 
-        simd::Vector<double, simd::Dynamic> state(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> state(1);
         state[0] = 1.0;
 
         // Run several steps
@@ -186,13 +188,12 @@ TEST_CASE("MPPI: Edge cases") {
         mppi.config.control_dim = 1;
         mppi.initialize();
 
-        auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                           const simd::Vector<double, simd::Dynamic> &) { return state; };
-        auto cost = [](const simd::Vector<double, simd::Dynamic> &, const simd::Vector<double, simd::Dynamic> &) {
-            return 0.0;
-        };
+        auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                           const dp::mat::Vector<double, dp::mat::Dynamic> &) { return state; };
+        auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &) { return 0.0; };
 
-        simd::Vector<double, simd::Dynamic> state(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> state(1);
         state[0] = 0.0;
 
         auto result = mppi.step(dynamics, cost, state);
@@ -205,13 +206,12 @@ TEST_CASE("MPPI: Edge cases") {
         mppi.config.control_dim = 1;
         mppi.initialize();
 
-        auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                           const simd::Vector<double, simd::Dynamic> &) { return state; };
-        auto cost = [](const simd::Vector<double, simd::Dynamic> &, const simd::Vector<double, simd::Dynamic> &) {
-            return 0.0;
-        };
+        auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                           const dp::mat::Vector<double, dp::mat::Dynamic> &) { return state; };
+        auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &) { return 0.0; };
 
-        simd::Vector<double, simd::Dynamic> state(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> state(1);
         state[0] = 0.0;
 
         auto result = mppi.step(dynamics, cost, state);
@@ -224,17 +224,16 @@ TEST_CASE("MPPI: Edge cases") {
         mppi.config.control_dim = 1;
         mppi.initialize();
 
-        auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                           const simd::Vector<double, simd::Dynamic> &control) {
-            simd::Vector<double, simd::Dynamic> next(1);
+        auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                           const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
+            dp::mat::Vector<double, dp::mat::Dynamic> next(1);
             next[0] = state[0] + control[0];
             return next;
         };
-        auto cost = [](const simd::Vector<double, simd::Dynamic> &state, const simd::Vector<double, simd::Dynamic> &) {
-            return state[0] * state[0];
-        };
+        auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &) { return state[0] * state[0]; };
 
-        simd::Vector<double, simd::Dynamic> state(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> state(1);
         state[0] = 5.0;
 
         // Run a few steps to build up control sequence
@@ -262,19 +261,19 @@ TEST_CASE("MPPI: Multiple iterations") {
     mppi.config.noise_sigma = 2.0;
     mppi.initialize();
 
-    auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                       const simd::Vector<double, simd::Dynamic> &control) {
-        simd::Vector<double, simd::Dynamic> next(1);
+    auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
+        dp::mat::Vector<double, dp::mat::Dynamic> next(1);
         next[0] = state[0] + control[0] * 0.1;
         return next;
     };
 
-    auto cost = [](const simd::Vector<double, simd::Dynamic> &state,
-                   const simd::Vector<double, simd::Dynamic> &control) {
+    auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                   const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
         return state[0] * state[0] + 0.01 * control[0] * control[0];
     };
 
-    simd::Vector<double, simd::Dynamic> state(1);
+    dp::mat::Vector<double, dp::mat::Dynamic> state(1);
     state[0] = 3.0;
 
     // Use optimize with multiple iterations
@@ -294,18 +293,19 @@ TEST_CASE("MPPI: Float type") {
     mppi.config.dt = 0.1f;
     mppi.initialize();
 
-    auto dynamics = [](const simd::Vector<float, simd::Dynamic> &state,
-                       const simd::Vector<float, simd::Dynamic> &control) {
-        simd::Vector<float, simd::Dynamic> next(1);
+    auto dynamics = [](const dp::mat::Vector<float, dp::mat::Dynamic> &state,
+                       const dp::mat::Vector<float, dp::mat::Dynamic> &control) {
+        dp::mat::Vector<float, dp::mat::Dynamic> next(1);
         next[0] = state[0] + control[0] * 0.1f;
         return next;
     };
 
-    auto cost = [](const simd::Vector<float, simd::Dynamic> &state, const simd::Vector<float, simd::Dynamic> &control) {
+    auto cost = [](const dp::mat::Vector<float, dp::mat::Dynamic> &state,
+                   const dp::mat::Vector<float, dp::mat::Dynamic> &control) {
         return state[0] * state[0] + 0.01f * control[0] * control[0];
     };
 
-    simd::Vector<float, simd::Dynamic> state(1);
+    dp::mat::Vector<float, dp::mat::Dynamic> state(1);
     state[0] = 3.0f;
 
     auto result = mppi.step(dynamics, cost, state);
@@ -322,26 +322,27 @@ TEST_CASE("MPPI: Control bounds enforcement") {
     mppi.config.dt = 0.1;
 
     // Tight bounds
-    mppi.bounds.lower = simd::Vector<double, simd::Dynamic>(1);
-    mppi.bounds.upper = simd::Vector<double, simd::Dynamic>(1);
+    mppi.bounds.lower = dp::mat::Vector<double, dp::mat::Dynamic>(1);
+    mppi.bounds.upper = dp::mat::Vector<double, dp::mat::Dynamic>(1);
     mppi.bounds.lower[0] = -1.0;
     mppi.bounds.upper[0] = 1.0;
 
     mppi.initialize();
 
-    auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                       const simd::Vector<double, simd::Dynamic> &control) {
-        simd::Vector<double, simd::Dynamic> next(1);
+    auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
+        dp::mat::Vector<double, dp::mat::Dynamic> next(1);
         next[0] = state[0] + control[0] * 0.1;
         return next;
     };
 
     // Cost that would want very large controls
-    auto cost = [](const simd::Vector<double, simd::Dynamic> &state, const simd::Vector<double, simd::Dynamic> &) {
+    auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                   const dp::mat::Vector<double, dp::mat::Dynamic> &) {
         return 1000.0 * state[0] * state[0]; // Very high state penalty
     };
 
-    simd::Vector<double, simd::Dynamic> state(1);
+    dp::mat::Vector<double, dp::mat::Dynamic> state(1);
     state[0] = 10.0;
 
     auto result = mppi.step(dynamics, cost, state);
@@ -360,19 +361,19 @@ TEST_CASE("MPPI: Warm start behavior") {
     mppi.config.warm_start = true;
     mppi.initialize();
 
-    auto dynamics = [](const simd::Vector<double, simd::Dynamic> &state,
-                       const simd::Vector<double, simd::Dynamic> &control) {
-        simd::Vector<double, simd::Dynamic> next(1);
+    auto dynamics = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                       const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
+        dp::mat::Vector<double, dp::mat::Dynamic> next(1);
         next[0] = state[0] + control[0] * 0.1;
         return next;
     };
 
-    auto cost = [](const simd::Vector<double, simd::Dynamic> &state,
-                   const simd::Vector<double, simd::Dynamic> &control) {
+    auto cost = [](const dp::mat::Vector<double, dp::mat::Dynamic> &state,
+                   const dp::mat::Vector<double, dp::mat::Dynamic> &control) {
         return state[0] * state[0] + 0.01 * control[0] * control[0];
     };
 
-    simd::Vector<double, simd::Dynamic> state(1);
+    dp::mat::Vector<double, dp::mat::Dynamic> state(1);
     state[0] = 5.0;
 
     // Run first step

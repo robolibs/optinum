@@ -16,7 +16,7 @@ namespace on = optinum;
 // =============================================================================
 
 TEST_CASE("algo::axpy - y = alpha*x + y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) vec_t y{{10, 20, 30, 40, 50, 60, 70, 80}};
@@ -34,7 +34,7 @@ TEST_CASE("algo::axpy - y = alpha*x + y") {
 }
 
 TEST_CASE("algo::axpy - tail handling") {
-    using vec_t = datapod::mat::vector<float, 10>;
+    using vec_t = datapod::mat::Vector<float, 10>;
 
     alignas(32) vec_t x;
     alignas(32) vec_t y;
@@ -58,7 +58,7 @@ TEST_CASE("algo::axpy - tail handling") {
 // =============================================================================
 
 TEST_CASE("algo::scale - x = alpha*x") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1, 2, 3, 4, 5, 6, 7, 8}};
 
@@ -75,7 +75,7 @@ TEST_CASE("algo::scale - x = alpha*x") {
 // =============================================================================
 
 TEST_CASE("algo::add - z = x + y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) vec_t y{{10, 20, 30, 40, 50, 60, 70, 80}};
@@ -92,7 +92,7 @@ TEST_CASE("algo::add - z = x + y") {
 }
 
 TEST_CASE("algo::add - in-place x = x + y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) vec_t y{{10, 20, 30, 40, 50, 60, 70, 80}};
@@ -111,7 +111,7 @@ TEST_CASE("algo::add - in-place x = x + y") {
 // =============================================================================
 
 TEST_CASE("algo::sub - z = x - y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{10, 20, 30, 40, 50, 60, 70, 80}};
     alignas(32) vec_t y{{1, 2, 3, 4, 5, 6, 7, 8}};
@@ -128,7 +128,7 @@ TEST_CASE("algo::sub - z = x - y") {
 }
 
 TEST_CASE("algo::sub - in-place x = x - y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{10, 20, 30, 40, 50, 60, 70, 80}};
     alignas(32) vec_t y{{1, 2, 3, 4, 5, 6, 7, 8}};
@@ -147,7 +147,7 @@ TEST_CASE("algo::sub - in-place x = x - y") {
 // =============================================================================
 
 TEST_CASE("algo::mul - z = x * y (Hadamard)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) vec_t y{{2, 3, 4, 5, 6, 7, 8, 9}};
@@ -165,7 +165,7 @@ TEST_CASE("algo::mul - z = x * y (Hadamard)") {
 }
 
 TEST_CASE("algo::mul - in-place x = x * y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) vec_t y{{2, 3, 4, 5, 6, 7, 8, 9}};
@@ -184,7 +184,7 @@ TEST_CASE("algo::mul - in-place x = x * y") {
 // =============================================================================
 
 TEST_CASE("algo::div - z = x / y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{10, 20, 30, 40, 50, 60, 70, 80}};
     alignas(32) vec_t y{{2, 4, 5, 8, 10, 12, 14, 16}};
@@ -202,7 +202,7 @@ TEST_CASE("algo::div - z = x / y") {
 }
 
 TEST_CASE("algo::div - in-place x = x / y") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{10, 20, 30, 40, 50, 60, 70, 80}};
     alignas(32) vec_t y{{2, 4, 5, 8, 10, 12, 14, 16}};
@@ -221,7 +221,7 @@ TEST_CASE("algo::div - in-place x = x / y") {
 // =============================================================================
 
 TEST_CASE("algo::fill - x = alpha") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x;
 
@@ -234,7 +234,7 @@ TEST_CASE("algo::fill - x = alpha") {
 }
 
 TEST_CASE("algo::fill - tail handling") {
-    using vec_t = datapod::mat::vector<float, 10>;
+    using vec_t = datapod::mat::Vector<float, 10>;
 
     alignas(32) vec_t x;
 
@@ -251,7 +251,7 @@ TEST_CASE("algo::fill - tail handling") {
 // =============================================================================
 
 TEST_CASE("algo::copy - y = x") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) vec_t y;
@@ -267,7 +267,7 @@ TEST_CASE("algo::copy - y = x") {
 }
 
 TEST_CASE("algo::copy - tail handling") {
-    using vec_t = datapod::mat::vector<float, 10>;
+    using vec_t = datapod::mat::Vector<float, 10>;
 
     alignas(32) vec_t x;
     alignas(32) vec_t y;
@@ -291,7 +291,7 @@ TEST_CASE("algo::copy - tail handling") {
 // =============================================================================
 
 TEST_CASE("algo::combined - typical linear algebra workflow") {
-    using vec_t = datapod::mat::vector<float, 16>;
+    using vec_t = datapod::mat::Vector<float, 16>;
 
     alignas(32) vec_t x, y, z;
 

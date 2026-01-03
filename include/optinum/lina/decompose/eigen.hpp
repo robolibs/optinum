@@ -5,6 +5,7 @@
 // Symmetric eigen decomposition via Jacobi rotations (fixed-size)
 // =============================================================================
 
+#include <optinum/lina/basic/identity.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -16,8 +17,8 @@
 namespace optinum::lina {
 
     template <typename T, std::size_t N> struct EigenSym {
-        simd::Vector<T, N> values{};
-        simd::Matrix<T, N, N> vectors{}; // columns are eigenvectors
+        datapod::mat::Vector<T, N> values{};
+        datapod::mat::Matrix<T, N, N> vectors{}; // columns are eigenvectors
         std::size_t iterations = 0;
     };
 
@@ -96,8 +97,14 @@ namespace optinum::lina {
         static_assert(std::is_floating_point_v<T>, "eigen_sym() currently requires floating-point T");
 
         EigenSym<T, N> out;
-        simd::Matrix<T, N, N> A = a;
-        out.vectors = simd::identity<T, N>();
+        // Create working copy of input matrix
+        datapod::mat::Matrix<T, N, N> A_pod;
+        for (std::size_t i = 0; i < N * N; ++i)
+            A_pod[i] = a[i];
+        simd::Matrix<T, N, N> A(A_pod);
+
+        out.vectors = identity<T, N>();
+        simd::Matrix<T, N, N> vectors_view(out.vectors);
 
         for (std::size_t sweep = 0; sweep < max_sweeps; ++sweep) {
             // Find largest off-diagonal element
@@ -130,7 +137,7 @@ namespace optinum::lina {
             const T c = T{1} / std::sqrt(T{1} + t * t);
             const T s = t * c;
 
-            eigen_detail::rotate(A, out.vectors, p, q, c, s);
+            eigen_detail::rotate(A, vectors_view, p, q, c, s);
             out.iterations = sweep + 1;
         }
 

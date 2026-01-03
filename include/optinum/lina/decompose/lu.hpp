@@ -6,6 +6,7 @@
 // Uses SIMD for row elimination and forward/back substitution.
 // =============================================================================
 
+#include <datapod/matrix.hpp>
 #include <datapod/sequential/array.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
@@ -22,8 +23,8 @@ namespace optinum::lina {
     namespace dp = ::datapod;
 
     template <typename T, std::size_t N> struct LU {
-        simd::Matrix<T, N, N> l{};
-        simd::Matrix<T, N, N> u{};
+        dp::mat::Matrix<T, N, N> l{};  // owns data
+        dp::mat::Matrix<T, N, N> u{};  // owns data
         dp::Array<std::size_t, N> p{}; // row permutation (P*A = L*U)
         int sign = 1;                  // sign of the permutation
         bool singular = false;
@@ -109,7 +110,13 @@ namespace optinum::lina {
     template <typename T, std::size_t N> [[nodiscard]] constexpr LU<T, N> lu(const simd::Matrix<T, N, N> &a) noexcept {
         LU<T, N> out;
 
-        simd::Matrix<T, N, N> lu_mat = a; // in-place LU
+        // Copy input to working storage
+        dp::mat::Matrix<T, N, N> lu_storage;
+        simd::Matrix<T, N, N> lu_mat(lu_storage);
+        for (std::size_t i = 0; i < N * N; ++i) {
+            lu_storage[i] = a.data()[i];
+        }
+
         for (std::size_t i = 0; i < N; ++i)
             out.p[i] = i;
 
@@ -147,8 +154,10 @@ namespace optinum::lina {
         }
 
         // Split into L and U (even if singular, fill what we can)
-        out.l.fill(T{});
-        out.u.fill(T{});
+        simd::Matrix<T, N, N> l_view(out.l);
+        simd::Matrix<T, N, N> u_view(out.u);
+        l_view.fill(T{});
+        u_view.fill(T{});
         for (std::size_t i = 0; i < N; ++i) {
             out.l(i, i) = T{1};
             for (std::size_t j = 0; j < N; ++j) {
@@ -163,9 +172,9 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] inline simd::Vector<T, N> lu_solve(const LU<T, N> &f, const simd::Vector<T, N> &b) noexcept {
-        simd::Vector<T, N> x;
-        simd::Vector<T, N> y;
+    [[nodiscard]] inline dp::mat::Vector<T, N> lu_solve(const LU<T, N> &f, const simd::Vector<T, N> &b) noexcept {
+        dp::mat::Vector<T, N> x;
+        dp::mat::Vector<T, N> y;
 
         // Apply permutation: Pb
         for (std::size_t i = 0; i < N; ++i) {
@@ -203,9 +212,10 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr simd::Matrix<T, N, N> permutation_matrix(const dp::Array<std::size_t, N> &p) noexcept {
-        simd::Matrix<T, N, N> P;
-        P.fill(T{});
+    [[nodiscard]] constexpr dp::mat::Matrix<T, N, N> permutation_matrix(const dp::Array<std::size_t, N> &p) noexcept {
+        dp::mat::Matrix<T, N, N> P;
+        simd::Matrix<T, N, N> P_view(P);
+        P_view.fill(T{});
         for (std::size_t i = 0; i < N; ++i) {
             P(i, p[i]) = T{1};
         }

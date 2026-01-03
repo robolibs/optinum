@@ -2,10 +2,10 @@
 
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/so3.hpp>
-#include <optinum/simd/matrix.hpp>
-#include <optinum/simd/vector.hpp>
 
 #include <datapod/matrix/math/quaternion.hpp>
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
 
 #include <cmath>
 #include <random>
@@ -22,7 +22,7 @@ namespace optinum::lie {
     //   q = s * q_unit  where s = scale > 0, q_unit is unit quaternion
     //   |q|^2 = s^2
     //
-    // Storage: dp::mat::quaternion<T> (non-unit, norm = scale)
+    // Storage: dp::mat::Quaternion<T> (non-unit, norm = scale)
     // DoF: 4 (3 rotation + 1 log-scale)
     // NumParams: 4 (quaternion)
     //
@@ -39,11 +39,11 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = simd::Vector<T, 4>; // [sigma, wx, wy, wz]
-        using Quaternion = dp::mat::quaternion<T>;
-        using Point = simd::Vector<T, 3>;
-        using Matrix = simd::Matrix<T, 3, 3>;
-        using AdjointMatrix = simd::Matrix<T, 4, 4>;
+        using Tangent = dp::mat::Vector<T, 4>; // [sigma, wx, wy, wz]
+        using Quaternion = dp::mat::Quaternion<T>;
+        using Point = dp::mat::Vector<T, 3>;
+        using Matrix = dp::mat::Matrix<T, 3, 3>;
+        using AdjointMatrix = dp::mat::Matrix<T, 4, 4>;
         using Rotation = SO3<T>;
 
         // ===== CONSTANTS =====
@@ -68,7 +68,7 @@ namespace optinum::lie {
         }
 
         // From scale and axis-angle
-        RxSO3(Scalar scale, const simd::Vector<T, 3> &omega) noexcept : RxSO3(scale, Rotation::exp(omega)) {}
+        RxSO3(Scalar scale, const dp::mat::Vector<T, 3> &omega) noexcept : RxSO3(scale, Rotation::exp(omega)) {}
 
         // From quaternion (non-unit)
         explicit RxSO3(const Quaternion &q) noexcept : q_(q) {}
@@ -85,7 +85,7 @@ namespace optinum::lie {
         // exp([sigma, omega]) = exp(sigma) * q(omega)
         [[nodiscard]] static RxSO3 exp(const Tangent &tangent) noexcept {
             const T sigma = tangent[0]; // log(scale)
-            simd::Vector<T, 3> omega{tangent[1], tangent[2], tangent[3]};
+            dp::mat::Vector<T, 3> omega{tangent[1], tangent[2], tangent[3]};
             const T s = std::exp(sigma);
             return RxSO3(s, Rotation::exp(omega));
         }
@@ -94,7 +94,7 @@ namespace optinum::lie {
         [[nodiscard]] static RxSO3 scale_only(Scalar s) noexcept { return RxSO3(s, T(0), T(0), T(0)); }
 
         // From axis-angle with scale = 1
-        [[nodiscard]] static RxSO3 from_axis_angle(const simd::Vector<T, 3> &omega) noexcept {
+        [[nodiscard]] static RxSO3 from_axis_angle(const dp::mat::Vector<T, 3> &omega) noexcept {
             return RxSO3(Rotation::exp(omega));
         }
 
@@ -229,8 +229,8 @@ namespace optinum::lie {
         // Lie bracket
         [[nodiscard]] static Tangent lie_bracket(const Tangent &a, const Tangent &b) noexcept {
             // [a, b] = [0, omega_a x omega_b] (scale part commutes)
-            simd::Vector<T, 3> omega_a{a[1], a[2], a[3]};
-            simd::Vector<T, 3> omega_b{b[1], b[2], b[3]};
+            dp::mat::Vector<T, 3> omega_a{a[1], a[2], a[3]};
+            dp::mat::Vector<T, 3> omega_b{b[1], b[2], b[3]};
             return Tangent{T(0), omega_a[1] * omega_b[2] - omega_a[2] * omega_b[1],
                            omega_a[2] * omega_b[0] - omega_a[0] * omega_b[2],
                            omega_a[0] * omega_b[1] - omega_a[1] * omega_b[0]};

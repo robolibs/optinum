@@ -2,14 +2,13 @@
 
 #include <datapod/matrix/vector.hpp>
 #include <optinum/opti/opti.hpp>
-#include <optinum/simd/vector.hpp>
 
 using namespace optinum;
 using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("NAdamUpdate - Sphere function 2D") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
 
     Sphere<double, 2> sphere;
     GradientDescent<NAdamUpdate> gd;
@@ -19,7 +18,7 @@ TEST_CASE("NAdamUpdate - Sphere function 2D") {
     gd.tolerance = 1e-6;
 
     SUBCASE("Converge from (1, 1)") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -30,7 +29,7 @@ TEST_CASE("NAdamUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Converge from (5, -3)") {
-        Vec2 x(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x(dp::mat::Vector<double, 2>{5.0, -3.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -40,7 +39,7 @@ TEST_CASE("NAdamUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Already at minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x(dp::mat::Vector<double, 2>{0.0, 0.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -50,7 +49,7 @@ TEST_CASE("NAdamUpdate - Sphere function 2D") {
 }
 
 TEST_CASE("NAdamUpdate - Sphere function 3D") {
-    using Vec3 = simd::Vector<double, 3>;
+    using Vec3 = dp::mat::Vector<double, 3>;
 
     Sphere<double, 3> sphere;
     GradientDescent<NAdamUpdate> gd;
@@ -59,7 +58,7 @@ TEST_CASE("NAdamUpdate - Sphere function 3D") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    Vec3 x(dp::mat::vector<double, 3>{2.0, -1.0, 3.0});
+    Vec3 x(dp::mat::Vector<double, 3>{2.0, -1.0, 3.0});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -70,7 +69,7 @@ TEST_CASE("NAdamUpdate - Sphere function 3D") {
 }
 
 TEST_CASE("NAdamUpdate - Sphere function 10D") {
-    using Vec10 = simd::Vector<double, 10>;
+    using Vec10 = dp::mat::Vector<double, 10>;
 
     Sphere<double, 10> sphere;
     GradientDescent<NAdamUpdate> gd;
@@ -95,7 +94,7 @@ TEST_CASE("NAdamUpdate - Sphere function 10D") {
 }
 
 TEST_CASE("NAdamUpdate - Different beta values") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Default betas (0.9, 0.999)") {
@@ -104,7 +103,7 @@ TEST_CASE("NAdamUpdate - Different beta values") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -117,7 +116,7 @@ TEST_CASE("NAdamUpdate - Different beta values") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -130,7 +129,7 @@ TEST_CASE("NAdamUpdate - Different beta values") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -138,7 +137,7 @@ TEST_CASE("NAdamUpdate - Different beta values") {
 }
 
 TEST_CASE("NAdamUpdate - Different epsilon values") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Default epsilon (1e-8)") {
@@ -147,7 +146,7 @@ TEST_CASE("NAdamUpdate - Different epsilon values") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -160,7 +159,7 @@ TEST_CASE("NAdamUpdate - Different epsilon values") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -168,7 +167,7 @@ TEST_CASE("NAdamUpdate - Different epsilon values") {
 }
 
 TEST_CASE("NAdamUpdate - Float precision") {
-    using Vec2 = simd::Vector<float, 2>;
+    using Vec2 = dp::mat::Vector<float, 2>;
 
     Sphere<float, 2> sphere;
     GradientDescent<NAdamUpdate> gd;
@@ -177,7 +176,7 @@ TEST_CASE("NAdamUpdate - Float precision") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-5f;
 
-    Vec2 x(dp::mat::vector<float, 2>{1.0f, 1.0f});
+    Vec2 x(dp::mat::Vector<float, 2>{1.0f, 1.0f});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -190,7 +189,7 @@ TEST_CASE("NAdamUpdate - Custom quadratic function") {
     // Custom quadratic: f(x, y) = (x - 2)^2 + (y + 3)^2
     // Minimum at (2, -3)
     struct CustomQuadratic {
-        using tensor_type = simd::Vector<double, 2>;
+        using tensor_type = dp::mat::Vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -216,7 +215,7 @@ TEST_CASE("NAdamUpdate - Custom quadratic function") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    simd::Vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
+    dp::mat::Vector<double, 2> x(dp::mat::Vector<double, 2>{0.0, 0.0});
     auto result = gd.optimize(func, x);
 
     CHECK(result.converged);
@@ -226,7 +225,7 @@ TEST_CASE("NAdamUpdate - Custom quadratic function") {
 }
 
 TEST_CASE("NAdamUpdate - Reset behavior") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<NAdamUpdate> gd;
@@ -236,12 +235,12 @@ TEST_CASE("NAdamUpdate - Reset behavior") {
     gd.reset_policy = true;
 
     // First optimization
-    Vec2 x1(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result1 = gd.optimize(sphere, x1);
     CHECK(result1.converged);
 
     // Second optimization (should behave the same due to reset)
-    Vec2 x2(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result2 = gd.optimize(sphere, x2);
     CHECK(result2.converged);
 
@@ -250,7 +249,7 @@ TEST_CASE("NAdamUpdate - Reset behavior") {
 }
 
 TEST_CASE("NAdamUpdate - Comparison with Adam") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // NAdam
@@ -259,7 +258,7 @@ TEST_CASE("NAdamUpdate - Comparison with Adam") {
     nadam_gd.max_iterations = 1000;
     nadam_gd.tolerance = 1e-6;
 
-    Vec2 x1(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto nadam_result = nadam_gd.optimize(sphere, x1);
 
     // Adam
@@ -268,7 +267,7 @@ TEST_CASE("NAdamUpdate - Comparison with Adam") {
     adam_gd.max_iterations = 1000;
     adam_gd.tolerance = 1e-6;
 
-    Vec2 x2(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto adam_result = adam_gd.optimize(sphere, x2);
 
     // Both should converge
@@ -282,7 +281,7 @@ TEST_CASE("NAdamUpdate - Comparison with Adam") {
 }
 
 TEST_CASE("NAdamUpdate - Comparison with Nesterov") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // NAdam
@@ -291,7 +290,7 @@ TEST_CASE("NAdamUpdate - Comparison with Nesterov") {
     nadam_gd.max_iterations = 1000;
     nadam_gd.tolerance = 1e-6;
 
-    Vec2 x1(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto nadam_result = nadam_gd.optimize(sphere, x1);
 
     // Nesterov
@@ -300,7 +299,7 @@ TEST_CASE("NAdamUpdate - Comparison with Nesterov") {
     nesterov_gd.max_iterations = 1000;
     nesterov_gd.tolerance = 1e-6;
 
-    Vec2 x2(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto nesterov_result = nesterov_gd.optimize(sphere, x2);
 
     // Both should converge
@@ -309,7 +308,7 @@ TEST_CASE("NAdamUpdate - Comparison with Nesterov") {
 }
 
 TEST_CASE("NAdamUpdate - Dynamic vectors") {
-    using VecDyn = simd::Vector<double, simd::Dynamic>;
+    using VecDyn = dp::mat::Vector<double, simd::Dynamic>;
 
     // Dynamic sphere function
     struct DynamicSphere {
@@ -358,7 +357,7 @@ TEST_CASE("NAdamUpdate - Dynamic vectors") {
 }
 
 TEST_CASE("NAdamUpdate - Large learning rate stability") {
-    using Vec2 = simd::Vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // NAdam should be stable with larger learning rates due to adaptive scaling
@@ -367,7 +366,7 @@ TEST_CASE("NAdamUpdate - Large learning rate stability") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);

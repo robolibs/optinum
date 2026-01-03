@@ -5,6 +5,8 @@
 // SVD via one-sided Jacobi (fixed-size, small/medium)
 // =============================================================================
 
+#include <optinum/lina/basic/identity.hpp>
+#include <optinum/lina/basic/transpose.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/matmul.hpp>
@@ -26,9 +28,9 @@ namespace optinum::lina {
     } // namespace svd_detail
 
     template <typename T, std::size_t M, std::size_t N> struct SVD {
-        simd::Matrix<T, M, M> u{};
-        simd::Vector<T, svd_detail::min_v<M, N>> s{};
-        simd::Matrix<T, N, N> vt{};
+        datapod::mat::Matrix<T, M, M> u{};
+        datapod::mat::Vector<T, svd_detail::min_v<M, N>> s{};
+        datapod::mat::Matrix<T, N, N> vt{};
         std::size_t sweeps = 0;
     };
 
@@ -125,20 +127,25 @@ namespace optinum::lina {
 
         // Handle tall vs wide by transposing to ensure M >= N for one-sided Jacobi.
         if constexpr (M < N) {
-            const auto at = simd::transpose(a); // (N x M)
+            const auto at = transpose(a); // (N x M)
             auto svd_t = svd<T, N, M>(at, max_sweeps);
             // A = U S V^T
             // A^T = V S U^T
             SVD<T, M, N> out;
-            out.u = simd::transpose(svd_t.vt); // V
-            out.vt = simd::transpose(svd_t.u); // U^T
+            out.u = transpose(simd::Matrix<T, N, N>(svd_t.vt)); // V
+            out.vt = transpose(simd::Matrix<T, M, M>(svd_t.u)); // U^T
             out.s = svd_t.s;
             out.sweeps = svd_t.sweeps;
             return out;
         } else {
             SVD<T, M, N> out;
-            simd::Matrix<T, M, N> b = a;
-            simd::Matrix<T, N, N> v = simd::identity<T, N>();
+            // Create working copy of input matrix
+            datapod::mat::Matrix<T, M, N> b_pod;
+            for (std::size_t i = 0; i < M * N; ++i)
+                b_pod[i] = a[i];
+            simd::Matrix<T, M, N> b(b_pod);
+            auto v_pod = identity<T, N>();
+            simd::Matrix<T, N, N> v(v_pod);
 
             constexpr std::size_t K = N;
 
@@ -177,8 +184,10 @@ namespace optinum::lina {
             }
 
             // Singular values are column norms, U = B * diag(1/s)
-            simd::Matrix<T, M, M> u = simd::identity<T, M>();
-            simd::Matrix<T, N, N> vt = simd::transpose(v);
+            auto u_pod = identity<T, M>();
+            simd::Matrix<T, M, M> u(u_pod);
+            auto vt_pod = transpose(v);
+            simd::Matrix<T, N, N> vt(vt_pod);
 
             for (std::size_t j = 0; j < K; ++j) {
                 const T norm_col = std::sqrt(svd_detail::col_dot<T, M, N>(b, j, j));
@@ -225,8 +234,8 @@ namespace optinum::lina {
                 }
             }
 
-            out.u = u;
-            out.vt = vt;
+            out.u = u_pod;
+            out.vt = vt_pod;
             return out;
         }
     }

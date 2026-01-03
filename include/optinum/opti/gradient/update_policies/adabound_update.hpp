@@ -1,14 +1,14 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
-#include <limits>
 
+#include <datapod/matrix/vector.hpp>
 #include <optinum/simd/backend/backend.hpp>
-#include <optinum/simd/backend/elementwise.hpp>
-#include <optinum/simd/math/sqrt.hpp>
-#include <optinum/simd/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * AdaBound update policy
@@ -60,14 +60,14 @@ namespace optinum::opti {
             : beta1(b1), beta2(b2), epsilon(eps), final_lr(final), gamma(g) {}
 
         /**
-         * Update the iterate using AdaBound (SIMD-optimized)
+         * Update the iterate using AdaBound
          *
          * @param x Current iterate (modified in-place)
          * @param step_size Initial learning rate α
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -104,42 +104,90 @@ namespace optinum::opti {
 
             double alpha = double(step_size);
 
-            if constexpr (N == simd::Dynamic) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    double g_i = double(g_ptr[i]);
+            // SIMD-optimized AdaBound update
+            constexpr std::size_t W = simd::backend::default_pack_width<double>();
+            using pack_t = simd::pack<double, W>;
 
-                    // Update biased first moment: m = β₁ * m + (1 - β₁) * g
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+            const pack_t beta1_pack(beta1);
+            const pack_t beta2_pack(beta2);
+            const pack_t one_m_beta1(one_minus_beta1);
+            const pack_t one_m_beta2(one_minus_beta2);
+            const pack_t alpha_pack(alpha);
+            const pack_t eps(epsilon);
+            const pack_t bc1(bias_correction1);
+            const pack_t bc2(bias_correction2);
+            const pack_t lb(lower_bound);
+            const pack_t ub(upper_bound);
 
-                    // Update biased second moment: v = β₂ * v + (1 - β₂) * g²
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+            const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
 
-                    // Bias-corrected estimates
-                    double m_hat = m_ptr[i] / bias_correction1;
-                    double v_hat = v_ptr[i] / bias_correction2;
-
-                    // Compute adaptive learning rate and clip to bounds
-                    double adaptive_lr = alpha / (std::sqrt(v_hat) + epsilon);
-                    double bounded_lr = std::max(lower_bound, std::min(upper_bound, adaptive_lr));
-
-                    // Update iterate
-                    x_ptr[i] -= T(bounded_lr * m_hat);
+            // SIMD loop
+            for (std::size_t i = 0; i < main; i += W) {
+                // Load gradient (convert to double if needed)
+                pack_t g;
+                if constexpr (std::is_same_v<T, double>) {
+                    g = pack_t::loadu(g_ptr + i);
+                } else {
+                    alignas(32) double g_tmp[W];
+                    for (std::size_t j = 0; j < W; ++j)
+                        g_tmp[j] = double(g_ptr[i + j]);
+                    g = pack_t::loadu(g_tmp);
                 }
-            } else {
-                for (std::size_t i = 0; i < N; ++i) {
-                    double g_i = double(g_ptr[i]);
 
-                    m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
-                    v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                // Load moments
+                auto m_pack = pack_t::loadu(m_ptr + i);
+                auto v_pack = pack_t::loadu(v_ptr + i);
 
-                    double m_hat = m_ptr[i] / bias_correction1;
-                    double v_hat = v_ptr[i] / bias_correction2;
+                // Update first moment: m = β₁ * m + (1 - β₁) * g
+                m_pack = pack_t::fma(beta1_pack, m_pack, one_m_beta1 * g);
 
-                    double adaptive_lr = alpha / (std::sqrt(v_hat) + epsilon);
-                    double bounded_lr = std::max(lower_bound, std::min(upper_bound, adaptive_lr));
+                // Update second moment: v = β₂ * v + (1 - β₂) * g²
+                v_pack = pack_t::fma(beta2_pack, v_pack, one_m_beta2 * g * g);
 
-                    x_ptr[i] -= T(bounded_lr * m_hat);
+                // Store updated moments
+                m_pack.storeu(m_ptr + i);
+                v_pack.storeu(v_ptr + i);
+
+                // Bias-corrected estimates
+                auto m_hat = m_pack / bc1;
+                auto v_hat = v_pack / bc2;
+
+                // Compute adaptive learning rate: α / (√v̂ + ε)
+                auto adaptive_lr = alpha_pack / (v_hat.sqrt() + eps);
+
+                // Clip to bounds: max(lb, min(ub, adaptive_lr))
+                // Use scalar clipping since pack may not have min/max
+                alignas(32) double lr_vals[W];
+                adaptive_lr.storeu(lr_vals);
+                for (std::size_t j = 0; j < W; ++j) {
+                    lr_vals[j] = std::max(lower_bound, std::min(upper_bound, lr_vals[j]));
                 }
+                auto bounded_lr = pack_t::loadu(lr_vals);
+
+                // Compute update: bounded_lr * m̂
+                auto update = bounded_lr * m_hat;
+
+                // Apply update to x
+                if constexpr (std::is_same_v<T, double>) {
+                    auto x_pack = pack_t::loadu(x_ptr + i);
+                    (x_pack - update).storeu(x_ptr + i);
+                } else {
+                    for (std::size_t j = 0; j < W; ++j) {
+                        x_ptr[i + j] -= T(update[j]);
+                    }
+                }
+            }
+
+            // Scalar tail
+            for (std::size_t i = main; i < n; ++i) {
+                double g_i = double(g_ptr[i]);
+                m_ptr[i] = beta1 * m_ptr[i] + one_minus_beta1 * g_i;
+                v_ptr[i] = beta2 * v_ptr[i] + one_minus_beta2 * g_i * g_i;
+                double m_hat = m_ptr[i] / bias_correction1;
+                double v_hat = v_ptr[i] / bias_correction2;
+                double adaptive_lr = alpha / (std::sqrt(v_hat) + epsilon);
+                double bounded_lr = std::max(lower_bound, std::min(upper_bound, adaptive_lr));
+                x_ptr[i] -= T(bounded_lr * m_hat);
             }
         }
 
@@ -158,9 +206,9 @@ namespace optinum::opti {
         }
 
       private:
-        simd::Vector<double, simd::Dynamic> m; ///< First moment estimate (momentum)
-        simd::Vector<double, simd::Dynamic> v; ///< Second moment estimate (variance)
-        std::size_t iteration = 0;             ///< Iteration counter for bias correction and bounds
+        dp::mat::Vector<double, dp::mat::Dynamic> m; ///< First moment estimate (momentum)
+        dp::mat::Vector<double, dp::mat::Dynamic> v; ///< Second moment estimate (variance)
+        std::size_t iteration = 0;                   ///< Iteration counter for bias correction and bounds
     };
 
 } // namespace optinum::opti

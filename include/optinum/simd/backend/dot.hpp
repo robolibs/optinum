@@ -13,12 +13,10 @@ namespace optinum::simd::backend {
     template <typename T>
     [[nodiscard]] OPTINUM_INLINE T dot_runtime(const T *OPTINUM_RESTRICT a, const T *OPTINUM_RESTRICT b,
                                                std::size_t n) noexcept {
-        const std::size_t W = preferred_simd_lanes_runtime<T>();
+        constexpr std::size_t W = default_pack_width<T>();
         const std::size_t main = main_loop_count_runtime(n, W);
 
-        // Determine pack width at runtime based on T
-        constexpr std::size_t pack_width = std::is_same_v<T, double> ? 4 : 8;
-        using pack_t = pack<T, pack_width>;
+        using pack_t = pack<T, W>;
 
         pack_t acc(T{});
         for (std::size_t i = 0; i < main; i += W) {

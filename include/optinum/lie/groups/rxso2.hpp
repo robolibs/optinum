@@ -5,11 +5,16 @@
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
+#include <datapod/matrix/matrix.hpp>
+#include <datapod/matrix/vector.hpp>
+
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
+
+    namespace dp = ::datapod;
 
     // ===== RxSO2: Rotation + Scale in 2D =====
     //
@@ -35,11 +40,11 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = simd::Vector<T, 2>; // [sigma, theta] = [log(scale), angle]
-        using Params = simd::Vector<T, 2>;  // Complex (s*cos, s*sin)
-        using Point = simd::Vector<T, 2>;   // 2D point
-        using Matrix = simd::Matrix<T, 2, 2>;
-        using AdjointMatrix = simd::Matrix<T, 2, 2>;
+        using Tangent = dp::mat::Vector<T, 2>; // [sigma, theta] = [log(scale), angle]
+        using Params = dp::mat::Vector<T, 2>;  // Complex (s*cos, s*sin)
+        using Point = dp::mat::Vector<T, 2>;   // 2D point
+        using Matrix = dp::mat::Matrix<T, 2, 2>;
+        using AdjointMatrix = dp::mat::Matrix<T, 2, 2>;
         using Rotation = SO2<T>;
 
         // ===== CONSTANTS =====
@@ -49,7 +54,7 @@ namespace optinum::lie {
         // ===== CONSTRUCTORS =====
 
         // Default: identity (scale = 1, angle = 0)
-        constexpr RxSO2() noexcept : z_{T(1), T(0)} {}
+        constexpr RxSO2() noexcept : z_{{T(1), T(0)}} {}
 
         // From SO2 rotation (scale = 1)
         explicit RxSO2(const Rotation &R) noexcept : z_{R.real(), R.imag()} {}
@@ -84,7 +89,7 @@ namespace optinum::lie {
         template <typename RNG> [[nodiscard]] static RxSO2 sample_uniform(RNG &rng, T max_log_scale = T(1)) noexcept {
             std::uniform_real_distribution<T> angle_dist(T(0), two_pi<T>);
             std::uniform_real_distribution<T> scale_dist(-max_log_scale, max_log_scale);
-            return exp(Tangent{scale_dist(rng), angle_dist(rng)});
+            return exp(Tangent{{scale_dist(rng), angle_dist(rng)}});
         }
 
         // ===== CORE OPERATIONS =====
@@ -93,7 +98,7 @@ namespace optinum::lie {
         [[nodiscard]] Tangent log() const noexcept {
             const T s = scale();
             const T theta = std::atan2(z_[1], z_[0]);
-            return Tangent{std::log(s), theta};
+            return Tangent{{std::log(s), theta}};
         }
 
         // Inverse: z^-1 = conj(z) / |z|^2
@@ -147,7 +152,7 @@ namespace optinum::lie {
 
         // vee: 2x2 matrix -> [sigma, theta]
         [[nodiscard]] static Tangent vee(const Matrix &M) noexcept {
-            return Tangent{(M(0, 0) + M(1, 1)) / T(2), (M(1, 0) - M(0, 1)) / T(2)};
+            return Tangent{{(M(0, 0) + M(1, 1)) / T(2), (M(1, 0) - M(0, 1)) / T(2)}};
         }
 
         // Adjoint representation
@@ -163,7 +168,7 @@ namespace optinum::lie {
 
         // Lie bracket [a, b] = 0 (commutative group)
         [[nodiscard]] static Tangent lie_bracket(const Tangent & /*a*/, const Tangent & /*b*/) noexcept {
-            return Tangent{T(0), T(0)};
+            return Tangent{{T(0), T(0)}};
         }
 
         // ===== ACCESSORS =====

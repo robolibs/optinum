@@ -1,20 +1,20 @@
 #include <doctest/doctest.h>
 #include <fstream>
 #include <optinum/simd/io.hpp>
+#include <optinum/simd/simd.hpp>
 #include <sstream>
 
-using optinum::simd::Complex;
-using optinum::simd::Matrix;
-using optinum::simd::Scalar;
-using optinum::simd::Vector;
+namespace dp = datapod;
+namespace simd = optinum::simd;
 
 TEST_CASE("Print scalar") {
-    Scalar<double> s(3.14159);
+    dp::mat::Scalar<double> storage(3.14159);
+    simd::Scalar<double> s(storage);
 
     // Just make sure it doesn't crash
     std::stringstream ss;
     auto old_buf = std::cout.rdbuf(ss.rdbuf());
-    optinum::simd::print(s, 2, "pi");
+    simd::print(s, 2, "pi");
     std::cout.rdbuf(old_buf);
 
     std::string output = ss.str();
@@ -23,14 +23,15 @@ TEST_CASE("Print scalar") {
 }
 
 TEST_CASE("Print vector") {
-    Vector<float, 3> v;
+    dp::mat::Vector<float, 3> storage;
+    simd::Vector<float, 3> v(storage);
     v[0] = 1.0f;
     v[1] = 2.5f;
     v[2] = 3.75f;
 
     std::stringstream ss;
     auto old_buf = std::cout.rdbuf(ss.rdbuf());
-    optinum::simd::print(v, 2, "vec");
+    simd::print(v, 2, "vec");
     std::cout.rdbuf(old_buf);
 
     std::string output = ss.str();
@@ -40,7 +41,8 @@ TEST_CASE("Print vector") {
 }
 
 TEST_CASE("Print matrix") {
-    Matrix<double, 2, 2> m;
+    dp::mat::Matrix<double, 2, 2> storage;
+    simd::Matrix<double, 2, 2> m(storage);
     m(0, 0) = 1.0;
     m(1, 0) = 2.0;
     m(0, 1) = 3.0;
@@ -48,7 +50,7 @@ TEST_CASE("Print matrix") {
 
     std::stringstream ss;
     auto old_buf = std::cout.rdbuf(ss.rdbuf());
-    optinum::simd::print(m, 1, "mat");
+    simd::print(m, 1, "mat");
     std::cout.rdbuf(old_buf);
 
     std::string output = ss.str();
@@ -58,13 +60,14 @@ TEST_CASE("Print matrix") {
 }
 
 TEST_CASE("Print complex") {
-    Complex<double, 2> c;
+    dp::mat::Vector<dp::mat::Complex<double>, 2> storage;
+    simd::Complex<double, 2> c(storage);
     c[0] = {3.0, 4.0};
     c[1] = {-1.0, 2.5};
 
     std::stringstream ss;
     auto old_buf = std::cout.rdbuf(ss.rdbuf());
-    optinum::simd::print(c, 1, "complex");
+    simd::print(c, 1, "complex");
     std::cout.rdbuf(old_buf);
 
     std::string output = ss.str();
@@ -74,7 +77,8 @@ TEST_CASE("Print complex") {
 }
 
 TEST_CASE("Write and read vector") {
-    Vector<double, 4> v;
+    dp::mat::Vector<double, 4> storage;
+    simd::Vector<double, 4> v(storage);
     v[0] = 1.0;
     v[1] = 2.0;
     v[2] = 3.0;
@@ -83,12 +87,13 @@ TEST_CASE("Write and read vector") {
     const std::string filename = "/tmp/test_vector.txt";
 
     // Write
-    bool write_ok = optinum::simd::write(v, filename, 10);
+    bool write_ok = simd::write(v, filename, 10);
     CHECK(write_ok);
 
     // Read
-    Vector<double, 4> v2;
-    bool read_ok = optinum::simd::read(v2, filename);
+    dp::mat::Vector<double, 4> storage2;
+    simd::Vector<double, 4> v2(storage2);
+    bool read_ok = simd::read(v2, filename);
     CHECK(read_ok);
 
     // Verify
@@ -99,7 +104,8 @@ TEST_CASE("Write and read vector") {
 }
 
 TEST_CASE("Write and read matrix") {
-    Matrix<float, 2, 3> m;
+    dp::mat::Matrix<float, 2, 3> storage;
+    simd::Matrix<float, 2, 3> m(storage);
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
     m(0, 2) = 3.0f;
@@ -110,12 +116,13 @@ TEST_CASE("Write and read matrix") {
     const std::string filename = "/tmp/test_matrix.csv";
 
     // Write
-    bool write_ok = optinum::simd::write(m, filename, 10);
+    bool write_ok = simd::write(m, filename, 10);
     CHECK(write_ok);
 
     // Read
-    Matrix<float, 2, 3> m2;
-    bool read_ok = optinum::simd::read(m2, filename);
+    dp::mat::Matrix<float, 2, 3> storage2;
+    simd::Matrix<float, 2, 3> m2(storage2);
+    bool read_ok = simd::read(m2, filename);
     CHECK(read_ok);
 
     // Verify
@@ -125,7 +132,8 @@ TEST_CASE("Write and read matrix") {
 }
 
 TEST_CASE("Write complex") {
-    Complex<double, 3> c;
+    dp::mat::Vector<dp::mat::Complex<double>, 3> storage;
+    simd::Complex<double, 3> c(storage);
     c[0] = {1.0, 2.0};
     c[1] = {3.0, 4.0};
     c[2] = {5.0, 6.0};
@@ -133,7 +141,7 @@ TEST_CASE("Write complex") {
     const std::string filename = "/tmp/test_complex.csv";
 
     // Write
-    bool write_ok = optinum::simd::write(c, filename, 10);
+    bool write_ok = simd::write(c, filename, 10);
     CHECK(write_ok);
 
     // Verify file exists and has content
@@ -147,12 +155,13 @@ TEST_CASE("Write complex") {
 }
 
 TEST_CASE("Write scalar") {
-    Scalar<double> s(42.123456789);
+    dp::mat::Scalar<double> storage(42.123456789);
+    simd::Scalar<double> s(storage);
 
     const std::string filename = "/tmp/test_scalar.txt";
 
     // Write
-    bool write_ok = optinum::simd::write(s, filename, 8);
+    bool write_ok = simd::write(s, filename, 8);
     CHECK(write_ok);
 
     // Verify

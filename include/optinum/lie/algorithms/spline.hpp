@@ -20,6 +20,7 @@
 // - Lee & Shin (2002) "General Construction of Time-Domain Filters for SO(3)"
 
 #include <optinum/lie/core/constants.hpp>
+#include <optinum/simd/datapods.hpp>
 #include <optinum/simd/vector.hpp>
 
 #include <cmath>
@@ -28,6 +29,12 @@
 #include <vector>
 
 namespace optinum::lie {
+
+    // Bring in operators for dp::mat::vector from simd namespace
+    using optinum::simd::operator+=;
+    using optinum::simd::operator-=;
+    using optinum::simd::operator*=;
+    using optinum::simd::operator/=;
 
     // ===== GEODESIC INTERPOLATION =====
 

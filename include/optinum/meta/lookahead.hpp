@@ -31,9 +31,13 @@
 
 #include <cstddef>
 
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix.hpp>
+#include <optinum/simd/backend/backend.hpp>
+#include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
+
+    namespace dp = ::datapod;
 
     /**
      * Lookahead optimizer wrapper
@@ -54,8 +58,8 @@ namespace optinum::meta {
      * gd.step_size = 0.001;
      *
      * // Or use standalone
-     * simd::Vector<double, 3> x{1.0, 2.0, 3.0};
-     * simd::Vector<double, 3> grad{0.1, 0.2, 0.3};
+     * dp::mat::Vector<double, 3> x{1.0, 2.0, 3.0};
+     * dp::mat::Vector<double, 3> grad{0.1, 0.2, 0.3};
      * lookahead_adam.update(x, 0.001, grad);
      * @endcode
      *
@@ -97,7 +101,7 @@ namespace optinum::meta {
          * @param gradient Current gradient
          */
         template <typename T, std::size_t N>
-        void update(simd::Vector<T, N> &x, T step_size, const simd::Vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization of slow weights
@@ -121,9 +125,50 @@ namespace optinum::meta {
                 T *x_ptr = x.data();
                 double *slow_ptr = slow_weights_.data();
 
-                // Update slow weights: phi = phi + alpha * (theta - phi)
-                // Then reset fast weights: theta = phi
-                for (std::size_t i = 0; i < n; ++i) {
+                // SIMD-accelerated slow weight update and reset
+                // slow = slow + alpha * (fast - slow) = (1-alpha)*slow + alpha*fast
+                constexpr std::size_t W = simd::backend::default_pack_width<double>();
+                using pack_t = simd::pack<double, W>;
+
+                const pack_t alpha_pack(config.alpha);
+                const pack_t one_minus_alpha(1.0 - config.alpha);
+
+                const std::size_t main = simd::backend::main_loop_count_runtime(n, W);
+
+                // SIMD loop
+                for (std::size_t i = 0; i < main; i += W) {
+                    // Load fast weights (convert to double if needed)
+                    pack_t fast;
+                    if constexpr (std::is_same_v<T, double>) {
+                        fast = pack_t::loadu(x_ptr + i);
+                    } else {
+                        alignas(32) double fast_tmp[W];
+                        for (std::size_t j = 0; j < W; ++j)
+                            fast_tmp[j] = static_cast<double>(x_ptr[i + j]);
+                        fast = pack_t::loadu(fast_tmp);
+                    }
+
+                    // Load slow weights
+                    auto slow = pack_t::loadu(slow_ptr + i);
+
+                    // Interpolate: slow = (1-alpha)*slow + alpha*fast
+                    slow = pack_t::fma(one_minus_alpha, slow, alpha_pack * fast);
+
+                    // Store updated slow weights
+                    slow.storeu(slow_ptr + i);
+
+                    // Reset fast weights to slow weights
+                    if constexpr (std::is_same_v<T, double>) {
+                        slow.storeu(x_ptr + i);
+                    } else {
+                        for (std::size_t j = 0; j < W; ++j) {
+                            x_ptr[i + j] = static_cast<T>(slow[j]);
+                        }
+                    }
+                }
+
+                // Scalar tail
+                for (std::size_t i = main; i < n; ++i) {
                     double fast_i = static_cast<double>(x_ptr[i]);
                     double slow_i = slow_ptr[i];
 
@@ -166,15 +211,15 @@ namespace optinum::meta {
         std::size_t step_count() const noexcept { return step_count_; }
 
         /// Get reference to slow weights (for inspection)
-        const simd::Vector<double, simd::Dynamic> &slow_weights() const noexcept { return slow_weights_; }
+        const dp::mat::Vector<double, dp::mat::Dynamic> &slow_weights() const noexcept { return slow_weights_; }
 
         /// Get reference to base policy
         BasePolicy &get_base() noexcept { return base; }
         const BasePolicy &get_base() const noexcept { return base; }
 
       private:
-        simd::Vector<double, simd::Dynamic> slow_weights_; ///< Slow weights (phi)
-        std::size_t step_count_ = 0;                       ///< Steps since last slow weight update
+        dp::mat::Vector<double, dp::mat::Dynamic> slow_weights_; ///< Slow weights (phi)
+        std::size_t step_count_ = 0;                             ///< Steps since last slow weight update
     };
 
     // Convenience type aliases

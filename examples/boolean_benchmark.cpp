@@ -23,8 +23,8 @@ int main() {
     constexpr size_t N = 1024;
     constexpr size_t ITERATIONS = 100000;
 
-    alignas(32) datapod::mat::vector<float, N> input_f;
-    alignas(32) datapod::mat::vector<double, N> input_d;
+    alignas(32) datapod::mat::Vector<float, N> input_f;
+    alignas(32) datapod::mat::Vector<double, N> input_d;
 
     std::cout << "Boolean Functions SIMD Benchmark\n";
     std::cout << "Array size: " << N << " elements\n";

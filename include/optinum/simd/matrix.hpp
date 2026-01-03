@@ -10,15 +10,22 @@
 #include <optinum/simd/backend/transpose.hpp>
 #include <optinum/simd/debug.hpp>
 #include <optinum/simd/vector.hpp>
-#include <random>
+
+#include <type_traits>
+#include <variant>
 
 namespace optinum::simd {
 
     namespace dp = ::datapod;
 
-    // Matrix: 2D array with SIMD-accelerated operations
+    // Matrix: Non-owning 2D view over arrays with SIMD-accelerated operations
+    //
+    // This is a lightweight view type that wraps existing data (datapod::mat::matrix
+    // or raw T* pointers). It does NOT own any data - the underlying storage must
+    // outlive the view.
+    //
     // Template parameters R, C can be:
-    //   - Fixed size: Matrix<double, 3, 4>  (compile-time size)
+    //   - Fixed size: Matrix<double, 3, 3>  (compile-time size)
     //   - Dynamic size: Matrix<double, Dynamic, Dynamic> (runtime size)
     template <typename T, std::size_t R, std::size_t C> class Matrix {
         static_assert(R > 0 || R == Dynamic, "Matrix rows must be > 0 or Dynamic");
@@ -27,7 +34,7 @@ namespace optinum::simd {
 
       public:
         using value_type = T;
-        using pod_type = dp::mat::matrix<T, R, C>;
+        using pod_type = dp::mat::Matrix<T, R, C>;
         using size_type = std::size_t;
         using reference = T &;
         using const_reference = const T &;
@@ -40,49 +47,101 @@ namespace optinum::simd {
         static constexpr size_type cols_extent = C;
         static constexpr size_type extent = R * C;
 
-        // Default constructor
+      private:
+        // Pointer to data (null for invalid/default view)
+        T *ptr_ = nullptr;
+        // For Dynamic matrices, store the dimensions
+        [[no_unique_address]] std::conditional_t<R == Dynamic, size_type, std::monostate> rows_{};
+        [[no_unique_address]] std::conditional_t<C == Dynamic, size_type, std::monostate> cols_{};
+
+      public:
+        // Default constructor - creates null view
         constexpr Matrix() noexcept = default;
 
-        // Runtime size constructor (only for Dynamic)
+        // Constructor from raw pointer (for fixed-size matrices)
+        template <std::size_t RR = R, std::size_t CC = C, typename = std::enable_if_t<RR != Dynamic && CC != Dynamic>>
+        constexpr explicit Matrix(T *ptr) noexcept : ptr_(ptr) {}
+
+        // Constructor from raw pointer + dimensions (for dynamic-size matrices)
         template <std::size_t RR = R, std::size_t CC = C, typename = std::enable_if_t<RR == Dynamic && CC == Dynamic>>
-        explicit Matrix(size_type rows, size_type cols) : pod_(rows, cols) {}
+        constexpr Matrix(T *ptr, size_type rows, size_type cols) noexcept : ptr_(ptr), rows_(rows), cols_(cols) {}
 
-        // POD constructors
-        constexpr explicit Matrix(const pod_type &pod) noexcept : pod_(pod) {}
-        constexpr explicit Matrix(pod_type &&pod) noexcept : pod_(static_cast<pod_type &&>(pod)) {}
+        // Constructor from non-const pod_type reference (creates view over pod's data)
+        constexpr Matrix(pod_type &pod) noexcept : ptr_(pod.data()) {
+            if constexpr (R == Dynamic) {
+                rows_ = pod.rows();
+            }
+            if constexpr (C == Dynamic) {
+                cols_ = pod.cols();
+            }
+        }
 
-        constexpr pod_type &pod() noexcept { return pod_; }
-        constexpr const pod_type &pod() const noexcept { return pod_; }
+        // Constructor from const pod_type reference
+        // Note: Creates mutable view; user must ensure const-correctness
+        constexpr Matrix(const pod_type &pod) noexcept : ptr_(const_cast<T *>(pod.data())) {
+            if constexpr (R == Dynamic) {
+                rows_ = pod.rows();
+            }
+            if constexpr (C == Dynamic) {
+                cols_ = pod.cols();
+            }
+        }
 
-        constexpr pointer data() noexcept { return pod_.data(); }
-        constexpr const_pointer data() const noexcept { return pod_.data(); }
+        // Copy constructor - copies the view (shallow copy)
+        constexpr Matrix(const Matrix &other) noexcept = default;
 
-        // 2D indexing (row, col)
+        // Move constructor
+        constexpr Matrix(Matrix &&other) noexcept = default;
+
+        // Copy assignment - copies the view (shallow copy)
+        constexpr Matrix &operator=(const Matrix &other) noexcept = default;
+
+        // Move assignment
+        constexpr Matrix &operator=(Matrix &&other) noexcept = default;
+
+        // Check if view is valid (non-null)
+        constexpr bool valid() const noexcept { return ptr_ != nullptr; }
+        constexpr explicit operator bool() const noexcept { return valid(); }
+
+        // Access to underlying pointer
+        constexpr pointer data() noexcept { return ptr_; }
+        constexpr const_pointer data() const noexcept { return ptr_; }
+
+        // Element access (column-major order: row + col * rows)
         constexpr reference operator()(size_type row, size_type col) noexcept {
-            OPTINUM_ASSERT_BOUNDS_2D(row, col, R, C);
-            return pod_(row, col);
+            OPTINUM_ASSERT_BOUNDS_2D(row, col, rows(), cols());
+            return ptr_[row + col * rows()];
         }
         constexpr const_reference operator()(size_type row, size_type col) const noexcept {
-            OPTINUM_ASSERT_BOUNDS_2D(row, col, R, C);
-            return pod_(row, col);
+            OPTINUM_ASSERT_BOUNDS_2D(row, col, rows(), cols());
+            return ptr_[row + col * rows()];
         }
 
-        constexpr reference at(size_type row, size_type col) { return pod_.at(row, col); }
-        constexpr const_reference at(size_type row, size_type col) const { return pod_.at(row, col); }
+        constexpr reference at(size_type row, size_type col) {
+            if (row >= rows() || col >= cols())
+                throw std::out_of_range("Matrix::at");
+            return ptr_[row + col * rows()];
+        }
+        constexpr const_reference at(size_type row, size_type col) const {
+            if (row >= rows() || col >= cols())
+                throw std::out_of_range("Matrix::at");
+            return ptr_[row + col * rows()];
+        }
 
-        // 1D indexing (linear)
+        // Linear element access
         constexpr reference operator[](size_type i) noexcept {
-            OPTINUM_ASSERT_BOUNDS(i, R * C);
-            return pod_[i];
+            OPTINUM_ASSERT_BOUNDS(i, size());
+            return ptr_[i];
         }
         constexpr const_reference operator[](size_type i) const noexcept {
-            OPTINUM_ASSERT_BOUNDS(i, R * C);
-            return pod_[i];
+            OPTINUM_ASSERT_BOUNDS(i, size());
+            return ptr_[i];
         }
 
+        // Dimensions
         constexpr size_type rows() const noexcept {
             if constexpr (R == Dynamic) {
-                return pod_.rows();
+                return rows_;
             } else {
                 return R;
             }
@@ -90,327 +149,368 @@ namespace optinum::simd {
 
         constexpr size_type cols() const noexcept {
             if constexpr (C == Dynamic) {
-                return pod_.cols();
+                return cols_;
             } else {
                 return C;
             }
         }
-        static constexpr size_type size() noexcept { return R * C; }
-        static constexpr bool empty() noexcept { return false; }
 
-        constexpr iterator begin() noexcept { return pod_.begin(); }
-        constexpr const_iterator begin() const noexcept { return pod_.begin(); }
-        constexpr const_iterator cbegin() const noexcept { return pod_.cbegin(); }
+        constexpr size_type size() const noexcept { return rows() * cols(); }
 
-        constexpr iterator end() noexcept { return pod_.end(); }
-        constexpr const_iterator end() const noexcept { return pod_.end(); }
-        constexpr const_iterator cend() const noexcept { return pod_.cend(); }
-
-        constexpr Matrix &fill(const T &value) noexcept {
-            if (std::is_constant_evaluated()) {
-                pod_.fill(value);
+        constexpr bool empty() const noexcept {
+            if constexpr (R == Dynamic && C == Dynamic) {
+                return rows_ == 0 || cols_ == 0;
+            } else if constexpr (R == Dynamic) {
+                return rows_ == 0;
+            } else if constexpr (C == Dynamic) {
+                return cols_ == 0;
             } else {
-                // For Dynamic size, use runtime size instead of compile-time R*C
+                return false;
+            }
+        }
+
+        // Iterators
+        constexpr iterator begin() noexcept { return ptr_; }
+        constexpr const_iterator begin() const noexcept { return ptr_; }
+        constexpr const_iterator cbegin() const noexcept { return ptr_; }
+        constexpr iterator end() noexcept { return ptr_ + size(); }
+        constexpr const_iterator end() const noexcept { return ptr_ + size(); }
+        constexpr const_iterator cend() const noexcept { return ptr_ + size(); }
+
+        // In-place fill (modifies underlying data)
+        constexpr Matrix &fill(const T &value) noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] = value;
+            } else {
                 if constexpr (R == Dynamic || C == Dynamic) {
-                    backend::fill_runtime<T>(data(), rows() * cols(), value);
+                    backend::fill_runtime<T>(ptr_, n, value);
                 } else {
-                    backend::fill<T, R * C>(data(), value);
+                    backend::fill<T, R * C>(ptr_, value);
                 }
             }
             return *this;
         }
 
-        // Fill with sequential values (row-major order): 0, 1, 2, ...
+        // Fill with sequential values: 0, 1, 2, ...
         constexpr Matrix &iota() noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < R * C; ++i) {
-                    pod_[i] = static_cast<T>(i);
-                }
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] = static_cast<T>(i);
             } else {
-                backend::iota<T, R * C>(data(), T{0}, T{1});
+                backend::iota<T, R * C>(ptr_, T{0}, T{1});
             }
             return *this;
         }
 
         // Fill with sequential values starting from 'start'
         constexpr Matrix &iota(T start) noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < R * C; ++i) {
-                    pod_[i] = start + static_cast<T>(i);
-                }
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] = start + static_cast<T>(i);
             } else {
-                backend::iota<T, R * C>(data(), start, T{1});
+                backend::iota<T, R * C>(ptr_, start, T{1});
             }
             return *this;
         }
 
         // Fill with sequential values with custom start and step
         constexpr Matrix &iota(T start, T step) noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < R * C; ++i) {
-                    pod_[i] = start + static_cast<T>(i) * step;
-                }
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] = start + static_cast<T>(i) * step;
             } else {
-                backend::iota<T, R * C>(data(), start, step);
+                backend::iota<T, R * C>(ptr_, start, step);
             }
             return *this;
         }
 
-        // Reverse elements in-place (linear order)
+        // Reverse elements in-place
         constexpr Matrix &reverse() noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < (R * C) / 2; ++i) {
-                    std::swap(pod_[i], pod_[R * C - 1 - i]);
-                }
+                for (size_type i = 0; i < n / 2; ++i)
+                    std::swap(ptr_[i], ptr_[n - 1 - i]);
             } else {
-                backend::reverse<T, R * C>(data());
+                backend::reverse<T, R * C>(ptr_);
             }
             return *this;
         }
 
-        // Flatten matrix to vector (row-major order)
-        constexpr Vector<T, R * C> flatten() const noexcept {
-            Vector<T, R * C> result;
-            for (size_type i = 0; i < R * C; ++i) {
-                result[i] = pod_[i];
-            }
-            return result;
-        }
-
-        // Static factory: create matrix filled with zeros
-        static constexpr Matrix zeros() noexcept {
-            Matrix m;
-            m.fill(T{0});
-            return m;
-        }
-
-        // Static factory: create matrix filled with ones
-        static constexpr Matrix ones() noexcept {
-            Matrix m;
-            m.fill(T{1});
-            return m;
-        }
-
-        // Static factory: create matrix with sequential values
-        static constexpr Matrix arange() noexcept {
-            Matrix m;
-            m.iota();
-            return m;
-        }
-
-        // Static factory: create matrix with sequential values from start
-        static constexpr Matrix arange(T start) noexcept {
-            Matrix m;
-            m.iota(start);
-            return m;
-        }
-
-        // Static factory: create matrix with sequential values with custom start and step
-        static constexpr Matrix arange(T start, T step) noexcept {
-            Matrix m;
-            m.iota(start, step);
-            return m;
-        }
-
-        // Fill with uniform random values in [0, 1) for floating point, [0, max) for integers
-        Matrix &random() {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-
-            if constexpr (std::is_floating_point_v<T>) {
-                std::uniform_real_distribution<T> dis(T{0}, T{1});
-                for (size_type i = 0; i < R * C; ++i) {
-                    pod_[i] = dis(gen);
-                }
-            } else {
-                std::uniform_int_distribution<T> dis(T{0}, std::numeric_limits<T>::max());
-                for (size_type i = 0; i < R * C; ++i) {
-                    pod_[i] = dis(gen);
-                }
-            }
-            return *this;
-        }
-
-        // Fill with random integers in [low, high]
-        template <typename U = T> std::enable_if_t<std::is_integral_v<U>, Matrix &> randint(T low, T high) {
-            static std::random_device rd;
-            static std::mt19937 gen(rd());
-            std::uniform_int_distribution<T> dis(low, high);
-
-            for (size_type i = 0; i < R * C; ++i) {
-                pod_[i] = dis(gen);
-            }
-            return *this;
-        }
-
-        // Identity (square matrices only)
+        // Set to identity matrix (square matrices only)
         template <std::size_t R_ = R, std::size_t C_ = C>
-        constexpr std::enable_if_t<R_ == C_, Matrix &> set_identity() noexcept {
+        constexpr std::enable_if_t<R_ == C_ && R_ != Dynamic, Matrix &> set_identity() noexcept {
             fill(T{});
             for (size_type i = 0; i < rows(); ++i)
                 (*this)(i, i) = T{1};
             return *this;
         }
 
-        // Compound assignment (element-wise)
+        // Compound assignment operators (modify in-place)
         constexpr Matrix &operator+=(const Matrix &rhs) noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < R * C; ++i)
-                    pod_[i] += rhs.pod_[i];
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] += rhs.ptr_[i];
             } else {
-                backend::add<T, R * C>(data(), data(), rhs.data());
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::add_runtime<T>(ptr_, ptr_, rhs.ptr_, n);
+                } else {
+                    backend::add<T, R * C>(ptr_, ptr_, rhs.ptr_);
+                }
             }
             return *this;
         }
 
         constexpr Matrix &operator-=(const Matrix &rhs) noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < R * C; ++i)
-                    pod_[i] -= rhs.pod_[i];
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] -= rhs.ptr_[i];
             } else {
-                backend::sub<T, R * C>(data(), data(), rhs.data());
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::sub_runtime<T>(ptr_, ptr_, rhs.ptr_, n);
+                } else {
+                    backend::sub<T, R * C>(ptr_, ptr_, rhs.ptr_);
+                }
             }
             return *this;
         }
 
         constexpr Matrix &operator*=(T scalar) noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < R * C; ++i)
-                    pod_[i] *= scalar;
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] *= scalar;
             } else {
-                backend::mul_scalar<T, R * C>(data(), data(), scalar);
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::mul_scalar_runtime<T>(ptr_, ptr_, scalar, n);
+                } else {
+                    backend::mul_scalar<T, R * C>(ptr_, ptr_, scalar);
+                }
             }
             return *this;
         }
 
         constexpr Matrix &operator/=(T scalar) noexcept {
+            const size_type n = size();
             if (std::is_constant_evaluated()) {
-                for (size_type i = 0; i < R * C; ++i)
-                    pod_[i] /= scalar;
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] /= scalar;
             } else {
-                backend::div_scalar<T, R * C>(data(), data(), scalar);
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::div_scalar_runtime<T>(ptr_, ptr_, scalar, n);
+                } else {
+                    backend::div_scalar<T, R * C>(ptr_, ptr_, scalar);
+                }
             }
             return *this;
         }
 
-        // Unary
-        constexpr Matrix operator-() const noexcept {
-            Matrix result;
-            for (size_type i = 0; i < R * C; ++i)
-                result.pod_[i] = -pod_[i];
-            return result;
+        constexpr Matrix &operator*=(const Matrix &rhs) noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] *= rhs.ptr_[i];
+            } else {
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::mul_runtime<T>(ptr_, ptr_, rhs.ptr_, n);
+                } else {
+                    backend::mul<T, R * C>(ptr_, ptr_, rhs.ptr_);
+                }
+            }
+            return *this;
         }
 
-        constexpr Matrix operator+() const noexcept { return *this; }
-
-        // Resize (only for Dynamic matrices)
-        template <std::size_t RR = R, std::size_t CC = C, typename = std::enable_if_t<RR == Dynamic && CC == Dynamic>>
-        void resize(size_type new_rows, size_type new_cols) {
-            pod_.resize(new_rows, new_cols);
+        constexpr Matrix &operator/=(const Matrix &rhs) noexcept {
+            const size_type n = size();
+            if (std::is_constant_evaluated()) {
+                for (size_type i = 0; i < n; ++i)
+                    ptr_[i] /= rhs.ptr_[i];
+            } else {
+                if constexpr (R == Dynamic || C == Dynamic) {
+                    backend::div_runtime<T>(ptr_, ptr_, rhs.ptr_, n);
+                } else {
+                    backend::div<T, R * C>(ptr_, ptr_, rhs.ptr_);
+                }
+            }
+            return *this;
         }
 
-      private:
-        pod_type pod_{};
+        // Unary negation - writes negated values to output pointer
+        constexpr void negate_to(T *out) const noexcept {
+            const size_type n = size();
+            for (size_type i = 0; i < n; ++i)
+                out[i] = -ptr_[i];
+        }
     };
 
-    // Element-wise binary ops
+    // =============================================================================
+    // Free functions that write to output pointers (non-allocating)
+    // =============================================================================
+
+    // Binary ops (element-wise) - write results to output pointer
     template <typename T, std::size_t R, std::size_t C>
-    constexpr Matrix<T, R, C> operator+(const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
-        Matrix<T, R, C> result;
+    constexpr void add(T *out, const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
         if (std::is_constant_evaluated()) {
-            for (std::size_t i = 0; i < R * C; ++i)
-                result[i] = lhs[i] + rhs[i];
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] + rhs[i];
         } else {
-            backend::add<T, R * C>(result.data(), lhs.data(), rhs.data());
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::add_runtime<T>(out, lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::add<T, R * C>(out, lhs.data(), rhs.data());
+            }
         }
-        return result;
     }
 
     template <typename T, std::size_t R, std::size_t C>
-    constexpr Matrix<T, R, C> operator-(const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
-        Matrix<T, R, C> result;
+    constexpr void sub(T *out, const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
         if (std::is_constant_evaluated()) {
-            for (std::size_t i = 0; i < R * C; ++i)
-                result[i] = lhs[i] - rhs[i];
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] - rhs[i];
         } else {
-            backend::sub<T, R * C>(result.data(), lhs.data(), rhs.data());
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::sub_runtime<T>(out, lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::sub<T, R * C>(out, lhs.data(), rhs.data());
+            }
         }
-        return result;
     }
 
-    // Scalar ops
     template <typename T, std::size_t R, std::size_t C>
-    constexpr Matrix<T, R, C> operator*(const Matrix<T, R, C> &lhs, T scalar) noexcept {
-        Matrix<T, R, C> result;
+    constexpr void mul(T *out, const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
         if (std::is_constant_evaluated()) {
-            for (std::size_t i = 0; i < R * C; ++i)
-                result[i] = lhs[i] * scalar;
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] * rhs[i];
         } else {
-            backend::mul_scalar<T, R * C>(result.data(), lhs.data(), scalar);
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::mul_runtime<T>(out, lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::mul<T, R * C>(out, lhs.data(), rhs.data());
+            }
         }
-        return result;
     }
 
     template <typename T, std::size_t R, std::size_t C>
-    constexpr Matrix<T, R, C> operator*(T scalar, const Matrix<T, R, C> &rhs) noexcept {
-        return rhs * scalar;
-    }
-
-    template <typename T, std::size_t R, std::size_t C>
-    constexpr Matrix<T, R, C> operator/(const Matrix<T, R, C> &lhs, T scalar) noexcept {
-        Matrix<T, R, C> result;
+    constexpr void div(T *out, const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
         if (std::is_constant_evaluated()) {
-            for (std::size_t i = 0; i < R * C; ++i)
-                result[i] = lhs[i] / scalar;
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] / rhs[i];
         } else {
-            backend::div_scalar<T, R * C>(result.data(), lhs.data(), scalar);
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::div_runtime<T>(out, lhs.data(), rhs.data(), lhs.size());
+            } else {
+                backend::div<T, R * C>(out, lhs.data(), rhs.data());
+            }
         }
-        return result;
     }
 
-    // Matrix multiplication: (R x K) * (K x C) -> (R x C)
+    // Scalar ops - write results to output pointer
+    template <typename T, std::size_t R, std::size_t C>
+    constexpr void mul_scalar(T *out, const Matrix<T, R, C> &lhs, T scalar) noexcept {
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] * scalar;
+        } else {
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::mul_scalar_runtime<T>(out, lhs.data(), scalar, lhs.size());
+            } else {
+                backend::mul_scalar<T, R * C>(out, lhs.data(), scalar);
+            }
+        }
+    }
+
+    template <typename T, std::size_t R, std::size_t C>
+    constexpr void div_scalar(T *out, const Matrix<T, R, C> &lhs, T scalar) noexcept {
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < lhs.size(); ++i)
+                out[i] = lhs[i] / scalar;
+        } else {
+            if constexpr (R == Dynamic || C == Dynamic) {
+                backend::div_scalar_runtime<T>(out, lhs.data(), scalar, lhs.size());
+            } else {
+                backend::div_scalar<T, R * C>(out, lhs.data(), scalar);
+            }
+        }
+    }
+
+    // Matrix multiplication - write result to output pointer
     template <typename T, std::size_t R, std::size_t K, std::size_t C>
-    constexpr Matrix<T, R, C> operator*(const Matrix<T, R, K> &lhs, const Matrix<T, K, C> &rhs) noexcept {
-        Matrix<T, R, C> result;
+    constexpr void matmul_to(T *out, const Matrix<T, R, K> &lhs, const Matrix<T, K, C> &rhs) noexcept {
+        static_assert(R != Dynamic && K != Dynamic && C != Dynamic, "matmul_to() requires fixed-size matrices");
         if (std::is_constant_evaluated()) {
-            result.fill(T{});
-            for (std::size_t i = 0; i < R; ++i) {
-                for (std::size_t j = 0; j < C; ++j) {
-                    for (std::size_t k = 0; k < K; ++k) {
-                        result(i, j) += lhs(i, k) * rhs(k, j);
+            // Initialize output to zero
+            for (std::size_t i = 0; i < R * C; ++i)
+                out[i] = T{0};
+            // Column-major: out(i,j) = sum_k lhs(i,k) * rhs(k,j)
+            for (std::size_t j = 0; j < C; ++j) {
+                for (std::size_t k = 0; k < K; ++k) {
+                    for (std::size_t i = 0; i < R; ++i) {
+                        out[i + j * R] += lhs(i, k) * rhs(k, j);
                     }
                 }
             }
         } else {
-            backend::matmul<T, R, K, C>(result.data(), lhs.data(), rhs.data());
+            backend::matmul<T, R, K, C>(out, lhs.data(), rhs.data());
         }
-        return result;
     }
 
-    // Matrix-vector multiplication: (R x C) * Vector<C> -> Vector<R>
+    // Matrix-vector multiplication - write result to output pointer
     template <typename T, std::size_t R, std::size_t C>
-    constexpr Vector<T, R> operator*(const Matrix<T, R, C> &mat, const Vector<T, C> &vec) noexcept {
-        Vector<T, R> result;
+    constexpr void matvec_to(T *out, const Matrix<T, R, C> &mat, const Vector<T, C> &vec) noexcept {
+        static_assert(R != Dynamic && C != Dynamic, "matvec_to() requires fixed-size matrix");
         if (std::is_constant_evaluated()) {
-            result.fill(T{});
             for (std::size_t i = 0; i < R; ++i) {
+                out[i] = T{0};
                 for (std::size_t j = 0; j < C; ++j) {
-                    result[i] += mat(i, j) * vec[j];
+                    out[i] += mat(i, j) * vec[j];
                 }
             }
         } else {
-            backend::matvec<T, R, C>(result.data(), mat.data(), vec.data());
+            backend::matvec<T, R, C>(out, mat.data(), vec.data());
         }
-        return result;
     }
 
+    // Transpose - write result to output pointer
+    template <typename T, std::size_t R, std::size_t C>
+    constexpr void transpose_to(T *out, const Matrix<T, R, C> &mat) noexcept {
+        static_assert(R != Dynamic && C != Dynamic, "transpose_to() requires fixed-size matrix");
+        if (std::is_constant_evaluated()) {
+            for (std::size_t i = 0; i < R; ++i) {
+                for (std::size_t j = 0; j < C; ++j) {
+                    // Source: column-major, out is C x R
+                    out[j + i * C] = mat(i, j);
+                }
+            }
+        } else {
+            backend::transpose<T, R, C>(out, mat.data());
+        }
+    }
+
+    // Flatten matrix to vector - write result to output pointer
+    template <typename T, std::size_t R, std::size_t C>
+    constexpr void flatten_to(T *out, const Matrix<T, R, C> &mat) noexcept {
+        const std::size_t n = mat.size();
+        for (std::size_t i = 0; i < n; ++i)
+            out[i] = mat[i];
+    }
+
+    // =============================================================================
     // Comparisons
+    // =============================================================================
+
     template <typename T, std::size_t R, std::size_t C>
     constexpr bool operator==(const Matrix<T, R, C> &lhs, const Matrix<T, R, C> &rhs) noexcept {
-        for (std::size_t i = 0; i < R * C; ++i) {
+        if (lhs.rows() != rhs.rows() || lhs.cols() != rhs.cols())
+            return false;
+        for (std::size_t i = 0; i < lhs.size(); ++i)
             if (lhs[i] != rhs[i])
                 return false;
-        }
         return true;
     }
 
@@ -419,96 +519,93 @@ namespace optinum::simd {
         return !(lhs == rhs);
     }
 
-    // Transpose
-    template <typename T, std::size_t R, std::size_t C>
-    constexpr Matrix<T, C, R> transpose(const Matrix<T, R, C> &mat) noexcept {
-        Matrix<T, C, R> result;
-        if (std::is_constant_evaluated()) {
-            for (std::size_t i = 0; i < R; ++i) {
-                for (std::size_t j = 0; j < C; ++j) {
-                    result(j, i) = mat(i, j);
-                }
-            }
-        } else {
-            backend::transpose<T, R, C>(result.data(), mat.data());
-        }
-        return result;
-    }
+    // =============================================================================
+    // Common operations (return scalars, no allocation needed)
+    // =============================================================================
 
-    // Trace (square matrices only) - SIMD optimized for N > 4
-    template <typename T, std::size_t N> T trace(const Matrix<T, N, N> &mat) noexcept {
-        if constexpr (N == 1) {
-            // Trivial case: 1x1 matrix
-            return mat(0, 0);
-        } else if constexpr (N <= 4) {
-            // For small matrices, scalar loop is efficient
-            T result{};
+    // Trace (square matrices only)
+    template <typename T, std::size_t N> [[nodiscard]] constexpr T trace(const Matrix<T, N, N> &mat) noexcept {
+        static_assert(N != Dynamic, "trace() requires fixed-size matrix");
+        if (std::is_constant_evaluated()) {
+            T r{};
             for (std::size_t i = 0; i < N; ++i)
-                result += mat(i, i);
-            return result;
+                r += mat(i, i);
+            return r;
         } else {
-            // For larger matrices, extract diagonal to contiguous array and use SIMD reduction
-            alignas(32) T diag[N];
-            for (std::size_t i = 0; i < N; ++i) {
-                diag[i] = mat(i, i);
+            if constexpr (N <= 4) {
+                T r{};
+                for (std::size_t i = 0; i < N; ++i)
+                    r += mat(i, i);
+                return r;
+            } else {
+                alignas(32) T diag[N];
+                for (std::size_t i = 0; i < N; ++i)
+                    diag[i] = mat(i, i);
+                return backend::reduce_sum<T, N>(diag);
             }
-            // Use SIMD backend to sum the diagonal elements
-            return backend::reduce_sum<T, N>(diag);
         }
     }
 
     // Frobenius norm
-    template <typename T, std::size_t R, std::size_t C> T frobenius_norm(const Matrix<T, R, C> &mat) noexcept {
+    template <typename T, std::size_t R, std::size_t C>
+    [[nodiscard]] T frobenius_norm(const Matrix<T, R, C> &mat) noexcept {
+        static_assert(R != Dynamic && C != Dynamic, "frobenius_norm() requires fixed-size matrix");
         return std::sqrt(backend::dot<T, R * C>(mat.data(), mat.data()));
     }
 
-    // Identity matrix factory
-    template <typename T, std::size_t N> constexpr Matrix<T, N, N> identity() noexcept {
-        Matrix<T, N, N> result;
-        result.fill(T{});
-        for (std::size_t i = 0; i < N; ++i)
-            result(i, i) = T{1};
-        return result;
+    // Sum of all elements
+    template <typename T, std::size_t R, std::size_t C>
+    [[nodiscard]] constexpr T sum(const Matrix<T, R, C> &m) noexcept {
+        if (std::is_constant_evaluated()) {
+            T result{};
+            for (std::size_t i = 0; i < m.size(); ++i)
+                result += m[i];
+            return result;
+        }
+        if constexpr (R == Dynamic || C == Dynamic) {
+            return backend::reduce_sum_runtime<T>(m.data(), m.size());
+        } else {
+            return backend::reduce_sum<T, R * C>(m.data());
+        }
     }
 
     // =============================================================================
-    // I/O - Stream output operator (column-major display)
+    // I/O - Stream output operator
     // =============================================================================
 
     template <typename T, std::size_t R, std::size_t C>
     std::ostream &operator<<(std::ostream &os, const Matrix<T, R, C> &m) {
         os << "[";
-        for (std::size_t c = 0; c < C; ++c) {
+        for (std::size_t c = 0; c < m.cols(); ++c) {
             if (c > 0)
                 os << " ";
             os << "[";
-            for (std::size_t r = 0; r < R; ++r) {
+            for (std::size_t r = 0; r < m.rows(); ++r) {
                 os << m(r, c);
-                if (r < R - 1)
+                if (r < m.rows() - 1)
                     os << ", ";
             }
             os << "]";
-            if (c < C - 1)
+            if (c < m.cols() - 1)
                 os << "\n";
         }
-        os << "]";
-        return os;
+        return os << "]";
     }
 
     // =============================================================================
-    // Type conversion - cast<U>()
+    // Type conversion - cast_to() - writes to output pointer
     // =============================================================================
 
     template <typename U, typename T, std::size_t R, std::size_t C>
-    Matrix<U, R, C> cast(const Matrix<T, R, C> &m) noexcept {
-        Matrix<U, R, C> result;
-        for (std::size_t i = 0; i < R * C; ++i) {
-            result[i] = static_cast<U>(m[i]);
-        }
-        return result;
+    void cast_to(U *out, const Matrix<T, R, C> &m) noexcept {
+        for (std::size_t i = 0; i < m.size(); ++i)
+            out[i] = static_cast<U>(m[i]);
     }
 
+    // =============================================================================
     // Type aliases
+    // =============================================================================
+
     template <typename T> using Matrix2x2 = Matrix<T, 2, 2>;
     template <typename T> using Matrix3x3 = Matrix<T, 3, 3>;
     template <typename T> using Matrix4x4 = Matrix<T, 4, 4>;
@@ -522,5 +619,10 @@ namespace optinum::simd {
     using Matrix4x4d = Matrix<double, 4, 4>;
     using Matrix6x6f = Matrix<float, 6, 6>;
     using Matrix6x6d = Matrix<double, 6, 6>;
+
+    // Dynamic matrix aliases
+    template <typename T> using MatrixX = Matrix<T, Dynamic, Dynamic>;
+    using MatrixXf = Matrix<float, Dynamic, Dynamic>;
+    using MatrixXd = Matrix<double, Dynamic, Dynamic>;
 
 } // namespace optinum::simd

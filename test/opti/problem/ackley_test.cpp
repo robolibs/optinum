@@ -6,11 +6,11 @@
 
 using optinum::opti::Ackley;
 using optinum::simd::Dynamic;
-using optinum::simd::Vector;
+namespace dp = datapod;
 
 TEST_CASE("Ackley evaluate") {
     Ackley<double, 2> ackley;
-    Vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
 
     SUBCASE("at global minimum (0, 0)") {
         x[0] = 0.0;
@@ -40,8 +40,8 @@ TEST_CASE("Ackley evaluate") {
 
 TEST_CASE("Ackley gradient") {
     Ackley<double, 2> ackley;
-    Vector<double, 2> x;
-    Vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     SUBCASE("at global minimum (0, 0)") {
         x[0] = 0.0;
@@ -63,8 +63,8 @@ TEST_CASE("Ackley gradient") {
 
 TEST_CASE("Ackley evaluate_with_gradient") {
     Ackley<double, 2> ackley;
-    Vector<double, 2> x;
-    Vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     x[0] = 0.0;
     x[1] = 0.0;
@@ -79,7 +79,7 @@ TEST_CASE("Ackley evaluate_with_gradient") {
 TEST_CASE("Ackley higher dimensions") {
     SUBCASE("3D at minimum") {
         Ackley<double, 3> ackley;
-        Vector<double, 3> x;
+        dp::mat::Vector<double, 3> x;
         x[0] = 0.0;
         x[1] = 0.0;
         x[2] = 0.0;
@@ -88,7 +88,7 @@ TEST_CASE("Ackley higher dimensions") {
 
     SUBCASE("5D at minimum") {
         Ackley<double, 5> ackley;
-        Vector<double, 5> x;
+        dp::mat::Vector<double, 5> x;
         for (std::size_t i = 0; i < 5; ++i)
             x[i] = 0.0;
         CHECK(ackley.evaluate(x) == doctest::Approx(0.0).epsilon(1e-10));
@@ -96,7 +96,7 @@ TEST_CASE("Ackley higher dimensions") {
 
     SUBCASE("10D at minimum") {
         Ackley<double, 10> ackley;
-        Vector<double, 10> x;
+        dp::mat::Vector<double, 10> x;
         for (std::size_t i = 0; i < 10; ++i)
             x[i] = 0.0;
         CHECK(ackley.evaluate(x) == doctest::Approx(0.0).epsilon(1e-10));
@@ -105,8 +105,8 @@ TEST_CASE("Ackley higher dimensions") {
 
 TEST_CASE("Ackley dynamic size") {
     Ackley<double, Dynamic> ackley;
-    Vector<double, Dynamic> x(5);
-    Vector<double, Dynamic> g(5);
+    dp::mat::Vector<double, Dynamic> x(5);
+    dp::mat::Vector<double, Dynamic> g(5);
 
     // At minimum
     for (std::size_t i = 0; i < 5; ++i)
@@ -122,7 +122,7 @@ TEST_CASE("Ackley dynamic size") {
 
 TEST_CASE("Ackley float precision") {
     Ackley<float, 2> ackley;
-    Vector<float, 2> x;
+    dp::mat::Vector<float, 2> x;
 
     x[0] = 0.0f;
     x[1] = 0.0f;
@@ -141,8 +141,8 @@ TEST_CASE("Ackley minimum_location") {
 TEST_CASE("Ackley gradient numerical check") {
     // Verify gradient using finite differences
     Ackley<double, 2> ackley;
-    Vector<double, 2> x;
-    Vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     x[0] = 0.5;
     x[1] = -0.3;
@@ -150,8 +150,8 @@ TEST_CASE("Ackley gradient numerical check") {
 
     double eps = 1e-7;
     for (std::size_t i = 0; i < 2; ++i) {
-        Vector<double, 2> x_plus = x;
-        Vector<double, 2> x_minus = x;
+        dp::mat::Vector<double, 2> x_plus = x;
+        dp::mat::Vector<double, 2> x_minus = x;
         x_plus[i] += eps;
         x_minus[i] -= eps;
 
@@ -163,7 +163,7 @@ TEST_CASE("Ackley gradient numerical check") {
 TEST_CASE("Ackley symmetry") {
     // Ackley function is symmetric around the origin
     Ackley<double, 2> ackley;
-    Vector<double, 2> x1, x2;
+    dp::mat::Vector<double, 2> x1, x2;
 
     x1[0] = 1.5;
     x1[1] = 2.0;
@@ -177,7 +177,7 @@ TEST_CASE("Ackley symmetry") {
 TEST_CASE("Ackley flat outer region") {
     // Ackley has a nearly flat outer region
     Ackley<double, 2> ackley;
-    Vector<double, 2> x1, x2;
+    dp::mat::Vector<double, 2> x1, x2;
 
     // Far from origin, function value should be similar
     x1[0] = 20.0;
@@ -195,8 +195,8 @@ TEST_CASE("Ackley flat outer region") {
 
 TEST_CASE("Ackley 1D special case") {
     Ackley<double, 1> ackley;
-    Vector<double, 1> x;
-    Vector<double, 1> g;
+    dp::mat::Vector<double, 1> x;
+    dp::mat::Vector<double, 1> g;
 
     x[0] = 0.0;
     double f = ackley.evaluate_with_gradient(x, g);
@@ -208,8 +208,8 @@ TEST_CASE("Ackley 1D special case") {
 TEST_CASE("Ackley consistency") {
     // evaluate_with_gradient should give same results as separate calls
     Ackley<double, 3> ackley;
-    Vector<double, 3> x;
-    Vector<double, 3> g1, g2;
+    dp::mat::Vector<double, 3> x;
+    dp::mat::Vector<double, 3> g1, g2;
 
     x[0] = 1.2;
     x[1] = -0.8;

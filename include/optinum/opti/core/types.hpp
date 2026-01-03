@@ -3,9 +3,11 @@
 #include <cstddef>
 #include <string>
 
-#include <optinum/simd/vector.hpp>
+#include <datapod/matrix/vector.hpp>
 
 namespace optinum::opti {
+
+    namespace dp = ::datapod;
 
     /**
      * Result of an optimization procedure
@@ -14,7 +16,7 @@ namespace optinum::opti {
      * convergence status, and termination reason.
      */
     template <typename T, std::size_t N> struct OptimizationResult {
-        using vector_type = simd::Vector<T, N>;
+        using vector_type = dp::mat::Vector<T, N>;
 
         vector_type x;                  ///< Final solution vector
         T final_cost;                   ///< Final objective function value

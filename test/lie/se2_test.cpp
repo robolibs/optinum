@@ -8,13 +8,14 @@
 
 using namespace optinum::lie;
 using namespace optinum;
+namespace dp = ::datapod;
 
 // ===== HELPER FUNCTIONS =====
 
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
 
 template <typename T, std::size_t N>
-bool vec_approx_equal(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b, T tol = T(1e-10)) {
+bool vec_approx_equal(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b, T tol = T(1e-10)) {
     for (std::size_t i = 0; i < N; ++i) {
         if (std::abs(a[i] - b[i]) >= tol)
             return false;
@@ -58,7 +59,7 @@ TEST_CASE("SE2 construction from angle and translation") {
 
 TEST_CASE("SE2 construction from SO2 and translation") {
     SO2d R(0.5);
-    simd::Vector<double, 2> t{1.0, 2.0};
+    dp::mat::Vector<double, 2> t{{1.0, 2.0}};
 
     SE2d T(R, t);
     CHECK(approx_equal(T.angle(), 0.5, 1e-10));
@@ -68,7 +69,7 @@ TEST_CASE("SE2 construction from SO2 and translation") {
 
 TEST_CASE("SE2 construction from homogeneous matrix") {
     const double theta = 0.5;
-    simd::Matrix<double, 3, 3> T_mat;
+    dp::mat::Matrix<double, 3, 3> T_mat;
 
     T_mat(0, 0) = std::cos(theta);
     T_mat(0, 1) = -std::sin(theta);
@@ -135,7 +136,7 @@ TEST_CASE("SE2 exp and log are inverses") {
     }
 
     SUBCASE("log(exp(twist)) = twist for small twists") {
-        simd::Vector<double, 3> twist{0.5, -0.3, 0.2};
+        dp::mat::Vector<double, 3> twist{{0.5, -0.3, 0.2}};
         auto T = SE2d::exp(twist);
         auto twist2 = T.log();
         CHECK(vec_approx_equal(twist, twist2, 1e-10));
@@ -144,13 +145,13 @@ TEST_CASE("SE2 exp and log are inverses") {
 
 TEST_CASE("SE2 exp of specific twists") {
     SUBCASE("exp(0) = identity") {
-        simd::Vector<double, 3> twist{0.0, 0.0, 0.0};
+        dp::mat::Vector<double, 3> twist{{0.0, 0.0, 0.0}};
         auto T = SE2d::exp(twist);
         CHECK(T.is_identity(1e-10));
     }
 
     SUBCASE("exp with zero rotation = pure translation") {
-        simd::Vector<double, 3> twist{1.0, 2.0, 0.0};
+        dp::mat::Vector<double, 3> twist{{1.0, 2.0, 0.0}};
         auto T = SE2d::exp(twist);
         CHECK(approx_equal(T.angle(), 0.0, 1e-10));
         CHECK(approx_equal(T.x(), 1.0, 1e-10));
@@ -158,7 +159,7 @@ TEST_CASE("SE2 exp of specific twists") {
     }
 
     SUBCASE("exp with zero translation = pure rotation") {
-        simd::Vector<double, 3> twist{0.0, 0.0, 0.5};
+        dp::mat::Vector<double, 3> twist{{0.0, 0.0, 0.5}};
         auto T = SE2d::exp(twist);
         CHECK(approx_equal(T.angle(), 0.5, 1e-10));
         // Translation should be 0 since v = [0, 0]
@@ -169,7 +170,7 @@ TEST_CASE("SE2 exp of specific twists") {
 
 TEST_CASE("SE2 exp small angle approximation") {
     // Very small angle should use Taylor expansion
-    simd::Vector<double, 3> twist{1.0, 2.0, 1e-12};
+    dp::mat::Vector<double, 3> twist{{1.0, 2.0, 1e-12}};
     auto T = SE2d::exp(twist);
 
     // For very small theta, translation should be approximately [vx, vy]
@@ -257,14 +258,14 @@ TEST_CASE("SE2 composition") {
 
 TEST_CASE("SE2 transforms points correctly") {
     SUBCASE("identity doesn't change point") {
-        simd::Vector<double, 2> p{1.0, 2.0};
+        dp::mat::Vector<double, 2> p{{1.0, 2.0}};
         auto p2 = SE2d::identity() * p;
         CHECK(approx_equal(p2[0], 1.0));
         CHECK(approx_equal(p2[1], 2.0));
     }
 
     SUBCASE("pure rotation rotates point") {
-        simd::Vector<double, 2> p{1.0, 0.0};
+        dp::mat::Vector<double, 2> p{{1.0, 0.0}};
         auto T = SE2d::rot(std::numbers::pi / 2);
         auto p2 = T * p;
         CHECK(approx_equal(p2[0], 0.0, 1e-10));
@@ -272,7 +273,7 @@ TEST_CASE("SE2 transforms points correctly") {
     }
 
     SUBCASE("pure translation translates point") {
-        simd::Vector<double, 2> p{1.0, 2.0};
+        dp::mat::Vector<double, 2> p{{1.0, 2.0}};
         auto T = SE2d::trans(3.0, 4.0);
         auto p2 = T * p;
         CHECK(approx_equal(p2[0], 4.0, 1e-10));
@@ -280,7 +281,7 @@ TEST_CASE("SE2 transforms points correctly") {
     }
 
     SUBCASE("rotation then translation") {
-        simd::Vector<double, 2> p{1.0, 0.0};
+        dp::mat::Vector<double, 2> p{{1.0, 0.0}};
         SE2d T(std::numbers::pi / 2, 0.0, 1.0); // Rotate 90 deg, translate y by 1
         auto p2 = T * p;
         // After rotation: (0, 1), then translation: (0, 2)
@@ -334,14 +335,14 @@ TEST_CASE("SE2 matrix representations") {
 
 TEST_CASE("SE2 hat and vee") {
     SUBCASE("vee(hat(twist)) = twist") {
-        simd::Vector<double, 3> twist{1.0, 2.0, 0.5};
+        dp::mat::Vector<double, 3> twist{{1.0, 2.0, 0.5}};
         auto Omega = SE2d::hat(twist);
         auto twist2 = SE2d::vee(Omega);
         CHECK(vec_approx_equal(twist, twist2, 1e-10));
     }
 
     SUBCASE("hat produces correct structure") {
-        simd::Vector<double, 3> twist{1.0, 2.0, 0.5};
+        dp::mat::Vector<double, 3> twist{{1.0, 2.0, 0.5}};
         auto Omega = SE2d::hat(twist);
 
         // [[0, -theta, vx], [theta, 0, vy], [0, 0, 0]]
@@ -384,8 +385,8 @@ TEST_CASE("SE2 Adjoint") {
 }
 
 TEST_CASE("SE2 Lie bracket") {
-    simd::Vector<double, 3> a{1.0, 2.0, 0.3};
-    simd::Vector<double, 3> b{3.0, 4.0, 0.5};
+    dp::mat::Vector<double, 3> a{{1.0, 2.0, 0.3}};
+    dp::mat::Vector<double, 3> b{{3.0, 4.0, 0.5}};
 
     auto c = SE2d::lie_bracket(a, b);
 
@@ -402,7 +403,7 @@ TEST_CASE("SE2 Lie bracket") {
 
 TEST_CASE("SE2 left Jacobian") {
     SUBCASE("identity for zero twist") {
-        simd::Vector<double, 3> twist{0.0, 0.0, 0.0};
+        dp::mat::Vector<double, 3> twist{{0.0, 0.0, 0.0}};
         auto J = SE2d::left_jacobian(twist);
 
         // Should be approximately identity
@@ -412,12 +413,12 @@ TEST_CASE("SE2 left Jacobian") {
     }
 
     SUBCASE("J * J_inv = I") {
-        simd::Vector<double, 3> twist{1.0, 2.0, 0.5};
+        dp::mat::Vector<double, 3> twist{{1.0, 2.0, 0.5}};
         auto J = SE2d::left_jacobian(twist);
         auto J_inv = SE2d::left_jacobian_inverse(twist);
 
         // Compute J * J_inv manually
-        simd::Matrix<double, 3, 3> I;
+        dp::mat::Matrix<double, 3, 3> I;
         for (int i = 0; i < 3; ++i) {
             for (int j = 0; j < 3; ++j) {
                 double sum = 0;
@@ -508,7 +509,7 @@ TEST_CASE("SE2 cast to different scalar type") {
 
 TEST_CASE("SE2 edge cases") {
     SUBCASE("very small rotations") {
-        simd::Vector<double, 3> twist{1.0, 2.0, 1e-15};
+        dp::mat::Vector<double, 3> twist{{1.0, 2.0, 1e-15}};
         auto T = SE2d::exp(twist);
         auto twist2 = T.log();
         CHECK(vec_approx_equal(twist, twist2, 1e-10));

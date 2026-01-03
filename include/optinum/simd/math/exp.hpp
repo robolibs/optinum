@@ -7,13 +7,32 @@
 // =============================================================================
 
 #include <optinum/simd/arch/arch.hpp>
-#include <optinum/simd/pack/avx.hpp>
+#include <optinum/simd/pack/pack.hpp>
+
+#if defined(OPTINUM_HAS_SSE2)
 #include <optinum/simd/pack/sse.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_AVX)
+#include <optinum/simd/pack/avx.hpp>
+#endif
+
+#if defined(OPTINUM_HAS_NEON)
+#include <optinum/simd/pack/neon.hpp>
+#endif
 
 namespace optinum::simd {
 
-    // Forward declaration
-    template <typename T, std::size_t W> pack<T, W> exp(const pack<T, W> &x) noexcept;
+    // =========================================================================
+    // Generic scalar fallback - works for any pack<T, W>
+    // =========================================================================
+    template <typename T, std::size_t W> OPTINUM_INLINE pack<T, W> exp(const pack<T, W> &x) noexcept {
+        pack<T, W> result;
+        for (std::size_t i = 0; i < W; ++i) {
+            result.data_[i] = std::exp(x.data_[i]);
+        }
+        return result;
+    }
 
     namespace detail {
         // Constants for exp(x) computation
@@ -45,7 +64,6 @@ namespace optinum::simd {
 // SSE Implementation for float (W=4)
 // =============================================================================
 #if defined(OPTINUM_HAS_SSE41)
-
     template <> inline pack<float, 4> exp(const pack<float, 4> &x) noexcept {
         using namespace detail;
 
@@ -86,14 +104,12 @@ namespace optinum::simd {
 
         return pack<float, 4>(_mm_mul_ps(vpoly, vscale));
     }
-
 #endif // OPTINUM_HAS_SSE41
 
 // =============================================================================
 // AVX Implementation for float (W=8)
 // =============================================================================
 #if defined(OPTINUM_HAS_AVX)
-
     template <> inline pack<float, 8> exp(const pack<float, 8> &x) noexcept {
         using namespace detail;
 
@@ -135,14 +151,12 @@ namespace optinum::simd {
 
         return pack<float, 8>(_mm256_mul_ps(vpoly, vscale));
     }
-
 #endif // OPTINUM_HAS_AVX
 
 // =============================================================================
 // SSE Implementation for double (W=2)
 // =============================================================================
 #if defined(OPTINUM_HAS_SSE41)
-
     template <> inline pack<double, 2> exp(const pack<double, 2> &x) noexcept {
         using namespace detail;
 
@@ -188,14 +202,12 @@ namespace optinum::simd {
 
         return pack<double, 2>(_mm_mul_pd(vpoly, vscale));
     }
-
 #endif // OPTINUM_HAS_SSE41
 
 // =============================================================================
 // AVX Implementation for double (W=4)
 // =============================================================================
 #if defined(OPTINUM_HAS_AVX)
-
     template <> inline pack<double, 4> exp(const pack<double, 4> &x) noexcept {
         using namespace detail;
 
@@ -244,7 +256,6 @@ namespace optinum::simd {
 
         return pack<double, 4>(_mm256_mul_pd(vpoly, vscale));
     }
-
 #endif // OPTINUM_HAS_AVX
 
 } // namespace optinum::simd

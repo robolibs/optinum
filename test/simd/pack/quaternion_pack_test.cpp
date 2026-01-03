@@ -7,7 +7,7 @@ using optinum::simd::pack;
 namespace dp = datapod;
 
 TEST_CASE("Quaternion pack construction") {
-    using quat_t = dp::mat::quaternion<float>;
+    using quat_t = dp::mat::Quaternion<float>;
     using qpack = pack<quat_t, 4>;
 
     // Zero initialization
@@ -39,7 +39,7 @@ TEST_CASE("Quaternion pack construction") {
 }
 
 TEST_CASE("Quaternion pack arithmetic - addition and subtraction") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // Create two quaternion packs
@@ -79,7 +79,7 @@ TEST_CASE("Quaternion pack arithmetic - addition and subtraction") {
 }
 
 TEST_CASE("Quaternion pack Hamilton product") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // Test quaternion multiplication (Hamilton product)
@@ -113,7 +113,7 @@ TEST_CASE("Quaternion pack Hamilton product") {
 }
 
 TEST_CASE("Quaternion pack conjugate and norm") {
-    using quat_t = dp::mat::quaternion<float>;
+    using quat_t = dp::mat::Quaternion<float>;
     using qpack = pack<quat_t, 4>;
 
     pack<float, 4> w, x, y, z;
@@ -164,7 +164,7 @@ TEST_CASE("Quaternion pack conjugate and norm") {
 }
 
 TEST_CASE("Quaternion pack inverse and normalized") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // (3, 4, 0, 0) - norm = 5
@@ -207,7 +207,7 @@ TEST_CASE("Quaternion pack inverse and normalized") {
 }
 
 TEST_CASE("Quaternion pack interleaved load/store") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 4>;
 
     quat_t data[4] = {{1.0, 0.0, 0.0, 0.0},     // identity
@@ -235,7 +235,7 @@ TEST_CASE("Quaternion pack interleaved load/store") {
 }
 
 TEST_CASE("Quaternion pack split load/store") {
-    using quat_t = dp::mat::quaternion<float>;
+    using quat_t = dp::mat::Quaternion<float>;
     using qpack = pack<quat_t, 4>;
 
     float ws[4] = {1.0f, 0.707f, 0.5f, 0.0f};
@@ -258,7 +258,7 @@ TEST_CASE("Quaternion pack split load/store") {
 }
 
 TEST_CASE("Quaternion pack rotation") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // Create 90 degree rotation about Z axis
@@ -281,7 +281,7 @@ TEST_CASE("Quaternion pack rotation") {
 }
 
 TEST_CASE("Quaternion pack dot product") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // Two identical quaternions have dot product = norm^2
@@ -303,7 +303,7 @@ TEST_CASE("Quaternion pack dot product") {
 }
 
 TEST_CASE("Quaternion pack interpolation") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // Interpolate between identity and 90-deg Z rotation
@@ -326,7 +326,7 @@ TEST_CASE("Quaternion pack interpolation") {
 }
 
 TEST_CASE("Quaternion pack scalar multiplication") {
-    using quat_t = dp::mat::quaternion<float>;
+    using quat_t = dp::mat::Quaternion<float>;
     using qpack = pack<quat_t, 4>;
 
     pack<float, 4> w(1.0f), x(2.0f), y(3.0f), z(4.0f);
@@ -345,7 +345,7 @@ TEST_CASE("Quaternion pack scalar multiplication") {
 }
 
 TEST_CASE("Quaternion pack horizontal sum") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 4>;
 
     pack<double, 4> w, x, y, z;
@@ -378,7 +378,7 @@ TEST_CASE("Quaternion pack horizontal sum") {
 // ===== NEW OPERATIONS TESTS =====
 
 TEST_CASE("Quaternion pack from_axis_angle") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 4>;
 
     // Create 90 degree rotations about different axes
@@ -423,7 +423,7 @@ TEST_CASE("Quaternion pack from_axis_angle") {
 }
 
 TEST_CASE("Quaternion pack from_euler and to_euler") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 4>;
 
     // Create quaternions from Euler angles
@@ -463,7 +463,7 @@ TEST_CASE("Quaternion pack from_euler and to_euler") {
 }
 
 TEST_CASE("Quaternion pack to_rotation_matrix") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // Identity quaternion -> identity matrix
@@ -494,7 +494,7 @@ TEST_CASE("Quaternion pack to_rotation_matrix") {
 }
 
 TEST_CASE("Quaternion pack slerp") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // SLERP between identity and 90-deg Z rotation
@@ -521,7 +521,7 @@ TEST_CASE("Quaternion pack slerp") {
 }
 
 TEST_CASE("Quaternion pack exp and log") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // exp(log(q)) should equal q for unit quaternions
@@ -541,7 +541,7 @@ TEST_CASE("Quaternion pack exp and log") {
 }
 
 TEST_CASE("Quaternion pack power") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     // q^0 = identity
@@ -565,7 +565,7 @@ TEST_CASE("Quaternion pack power") {
 }
 
 TEST_CASE("Quaternion pack difference and angular_difference") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     auto id = qpack::identity();
@@ -589,7 +589,7 @@ TEST_CASE("Quaternion pack difference and angular_difference") {
 }
 
 TEST_CASE("Quaternion pack geodesic_distance") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
     using qpack = pack<quat_t, 2>;
 
     auto id = qpack::identity();

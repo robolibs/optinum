@@ -3,14 +3,15 @@
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
+namespace dp = datapod;
 using namespace optinum::opti;
 
-TEST_CASE("Dynamic Optimization - Sphere function") {
+TEST_CASE("dp::mat::Dynamic Optimization - Sphere function") {
     SUBCASE("Runtime size N=5") {
         std::size_t n = 5;
-        Sphere<double, Dynamic> sphere;
+        Sphere<double, dp::mat::Dynamic> sphere;
 
-        Vector<double, Dynamic> x(n);
+        dp::mat::Vector<double, dp::mat::Dynamic> x(n);
         for (std::size_t i = 0; i < n; ++i) {
             x[i] = static_cast<double>(i) + 1.0; // [1, 2, 3, 4, 5]
         }
@@ -32,9 +33,9 @@ TEST_CASE("Dynamic Optimization - Sphere function") {
 
     SUBCASE("Runtime size N=10") {
         std::size_t n = 10;
-        Sphere<double, Dynamic> sphere;
+        Sphere<double, dp::mat::Dynamic> sphere;
 
-        Vector<double, Dynamic> x(n, 2.0); // Initialize all to 2.0
+        dp::mat::Vector<double, dp::mat::Dynamic> x(n, 2.0); // Initialize all to 2.0
 
         Adam adam;
         adam.step_size = 0.1;
@@ -52,12 +53,12 @@ TEST_CASE("Dynamic Optimization - Sphere function") {
     }
 }
 
-TEST_CASE("Dynamic vs Fixed-size optimization - Same results") {
+TEST_CASE("dp::mat::Dynamic vs Fixed-size optimization - Same results") {
     constexpr std::size_t N = 5;
 
     // Fixed-size optimization
     Sphere<double, N> sphere_fixed;
-    Vector<double, N> x_fixed;
+    dp::mat::Vector<double, N> x_fixed;
     for (std::size_t i = 0; i < N; ++i) {
         x_fixed[i] = static_cast<double>(i) + 1.0;
     }
@@ -68,9 +69,9 @@ TEST_CASE("Dynamic vs Fixed-size optimization - Same results") {
     adam_fixed.tolerance = 1e-6;
     auto result_fixed = adam_fixed.optimize(sphere_fixed, x_fixed);
 
-    // Dynamic-size optimization
-    Sphere<double, Dynamic> sphere_dynamic;
-    Vector<double, Dynamic> x_dynamic(N);
+    // dp::mat::Dynamic-size optimization
+    Sphere<double, dp::mat::Dynamic> sphere_dynamic;
+    dp::mat::Vector<double, dp::mat::Dynamic> x_dynamic(N);
     for (std::size_t i = 0; i < N; ++i) {
         x_dynamic[i] = static_cast<double>(i) + 1.0;
     }
@@ -94,12 +95,12 @@ TEST_CASE("Dynamic vs Fixed-size optimization - Same results") {
     }
 }
 
-TEST_CASE("All optimizers work with Dynamic") {
+TEST_CASE("All optimizers work with dp::mat::Dynamic") {
     std::size_t n = 3;
-    Sphere<double, Dynamic> sphere;
+    Sphere<double, dp::mat::Dynamic> sphere;
 
     SUBCASE("Vanilla GD") {
-        Vector<double, Dynamic> x(n, 5.0);
+        dp::mat::Vector<double, dp::mat::Dynamic> x(n, 5.0);
 
         GradientDescent<> gd;
         gd.step_size = 0.1;
@@ -110,7 +111,7 @@ TEST_CASE("All optimizers work with Dynamic") {
     }
 
     SUBCASE("Momentum") {
-        Vector<double, Dynamic> x(n, 5.0);
+        dp::mat::Vector<double, dp::mat::Dynamic> x(n, 5.0);
 
         Momentum momentum;
         momentum.step_size = 0.1;
@@ -121,7 +122,7 @@ TEST_CASE("All optimizers work with Dynamic") {
     }
 
     SUBCASE("RMSprop") {
-        Vector<double, Dynamic> x(n, 5.0);
+        dp::mat::Vector<double, dp::mat::Dynamic> x(n, 5.0);
 
         RMSprop rmsprop;
         rmsprop.step_size = 0.1;
@@ -132,7 +133,7 @@ TEST_CASE("All optimizers work with Dynamic") {
     }
 
     SUBCASE("Adam") {
-        Vector<double, Dynamic> x(n, 5.0);
+        dp::mat::Vector<double, dp::mat::Dynamic> x(n, 5.0);
 
         Adam adam;
         adam.step_size = 0.1;
