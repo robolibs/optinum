@@ -50,7 +50,7 @@ TEST_CASE("debug - Configuration queries") {
 TEST_CASE("debug - Vector bounds checking") {
     using namespace on::simd;
 
-    dp::mat::vector<float, 4> v_storage;
+    dp::mat::Vector<float, 4> v_storage;
     Vector<float, 4> v(v_storage);
     v.fill(1.0f);
 
@@ -84,7 +84,7 @@ TEST_CASE("debug - Vector bounds checking") {
 TEST_CASE("debug - Matrix bounds checking") {
     using namespace on::simd;
 
-    dp::mat::matrix<float, 3, 3> m_storage;
+    dp::mat::Matrix<float, 3, 3> m_storage;
     Matrix<float, 3, 3> m(m_storage);
     m.fill(2.0f);
 
@@ -183,7 +183,7 @@ TEST_CASE("debug - Integration with SIMD operations") {
     using namespace on::simd;
 
     SUBCASE("Vector operations with matching sizes") {
-        dp::mat::vector<float, 4> v1_storage, v2_storage, v3_storage, v4_storage, v5_storage, v6_storage;
+        dp::mat::Vector<float, 4> v1_storage, v2_storage, v3_storage, v4_storage, v5_storage, v6_storage;
         Vector<float, 4> v1(v1_storage), v2(v2_storage);
         Vector<float, 4> v3(v3_storage), v4(v4_storage), v5(v5_storage), v6(v6_storage);
         v1.fill(1.0f);
@@ -202,7 +202,7 @@ TEST_CASE("debug - Integration with SIMD operations") {
     }
 
     SUBCASE("Matrix operations with matching dimensions") {
-        dp::mat::matrix<float, 3, 3> m1_storage, m2_storage, m3_storage, m4_storage;
+        dp::mat::Matrix<float, 3, 3> m1_storage, m2_storage, m3_storage, m4_storage;
         Matrix<float, 3, 3> m1(m1_storage), m2(m2_storage);
         Matrix<float, 3, 3> m3(m3_storage), m4(m4_storage);
         m1.fill(1.0f);
@@ -217,9 +217,9 @@ TEST_CASE("debug - Integration with SIMD operations") {
     }
 
     SUBCASE("Matrix multiplication with compatible dimensions") {
-        dp::mat::matrix<float, 2, 3> m1_storage;
-        dp::mat::matrix<float, 3, 4> m2_storage;
-        dp::mat::matrix<float, 2, 4> m3_storage;
+        dp::mat::Matrix<float, 2, 3> m1_storage;
+        dp::mat::Matrix<float, 3, 4> m2_storage;
+        dp::mat::Matrix<float, 2, 4> m3_storage;
         Matrix<float, 2, 3> m1(m1_storage);
         Matrix<float, 3, 4> m2(m2_storage);
         Matrix<float, 2, 4> m3(m3_storage);
@@ -232,9 +232,9 @@ TEST_CASE("debug - Integration with SIMD operations") {
     }
 
     SUBCASE("Matrix-vector multiplication with compatible dimensions") {
-        dp::mat::matrix<float, 3, 4> m_storage;
-        dp::mat::vector<float, 4> v_storage;
-        dp::mat::vector<float, 3> result_storage;
+        dp::mat::Matrix<float, 3, 4> m_storage;
+        dp::mat::Vector<float, 4> v_storage;
+        dp::mat::Vector<float, 3> result_storage;
         Matrix<float, 3, 4> m(m_storage);
         Vector<float, 4> v(v_storage);
         Vector<float, 3> result(result_storage);
@@ -255,7 +255,7 @@ TEST_CASE("debug - Performance characteristics") {
     using namespace on::simd;
 
     SUBCASE("No overhead when disabled") {
-        dp::mat::vector<float, 100> v_storage;
+        dp::mat::Vector<float, 100> v_storage;
         Vector<float, 100> v(v_storage);
         v.iota();
 
@@ -269,7 +269,7 @@ TEST_CASE("debug - Performance characteristics") {
     }
 
     SUBCASE("Matrix access pattern") {
-        dp::mat::matrix<float, 10, 10> m_storage;
+        dp::mat::Matrix<float, 10, 10> m_storage;
         Matrix<float, 10, 10> m(m_storage);
         m.iota();
 
@@ -297,7 +297,7 @@ TEST_CASE("debug - Usage examples") {
         // before including optinum headers, or set it in your build system:
         // -DOPTINUM_ENABLE_RUNTIME_CHECKS
 
-        dp::mat::vector<float, 4> v_storage;
+        dp::mat::Vector<float, 4> v_storage;
         Vector<float, 4> v(v_storage);
         v.fill(1.0f);
 

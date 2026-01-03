@@ -10,13 +10,13 @@
 // For lower-level SIMD views, use view/quaternion_view.hpp
 //
 // Usage:
-//   dp::mat::vector<dp::mat::quaternion<double>, 8> storage;
+//   dp::mat::Vector<dp::mat::Quaternion<double>, 8> storage;
 //   Quaternion<double, 8> rotations(storage);
-//   rotations[0] = dp::mat::quaternion<double>::from_axis_angle(0, 0, 1, M_PI/4);
+//   rotations[0] = dp::mat::Quaternion<double>::from_axis_angle(0, 0, 1, M_PI/4);
 //   rotations.normalize_inplace();  // SIMD under the hood
 //
 // Or from raw pointer:
-//   dp::mat::quaternion<double>* ptr = ...;
+//   dp::mat::Quaternion<double>* ptr = ...;
 //   Quaternion<double, 8> view(ptr, 8);
 // =============================================================================
 
@@ -36,7 +36,7 @@ namespace optinum::simd {
      * @brief Non-owning view over quaternion arrays with transparent SIMD operations
      *
      * Provides a view over N quaternions. Operations use SIMD internally
-     * via quaternion_view. User works with dp::mat::quaternion<T> directly.
+     * via quaternion_view. User works with dp::mat::Quaternion<T> directly.
      *
      * Use cases:
      *   - Batch rotation operations
@@ -49,8 +49,8 @@ namespace optinum::simd {
         static_assert(std::is_floating_point_v<T>, "Quaternion<T, N> requires floating-point type");
 
       public:
-        using value_type = dp::mat::quaternion<T>;
-        using pod_type = dp::mat::vector<value_type, N>;
+        using value_type = dp::mat::Quaternion<T>;
+        using pod_type = dp::mat::Vector<value_type, N>;
         using real_type = T;
         using view_type = quaternion_view<T, detail::default_width<T>()>;
         using size_type = std::size_t;

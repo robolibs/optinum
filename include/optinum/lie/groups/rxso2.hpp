@@ -40,11 +40,11 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = dp::mat::vector<T, 2>; // [sigma, theta] = [log(scale), angle]
-        using Params = dp::mat::vector<T, 2>;  // Complex (s*cos, s*sin)
-        using Point = dp::mat::vector<T, 2>;   // 2D point
-        using Matrix = dp::mat::matrix<T, 2, 2>;
-        using AdjointMatrix = dp::mat::matrix<T, 2, 2>;
+        using Tangent = dp::mat::Vector<T, 2>; // [sigma, theta] = [log(scale), angle]
+        using Params = dp::mat::Vector<T, 2>;  // Complex (s*cos, s*sin)
+        using Point = dp::mat::Vector<T, 2>;   // 2D point
+        using Matrix = dp::mat::Matrix<T, 2, 2>;
+        using AdjointMatrix = dp::mat::Matrix<T, 2, 2>;
         using Rotation = SO2<T>;
 
         // ===== CONSTANTS =====

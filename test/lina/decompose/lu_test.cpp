@@ -9,7 +9,7 @@ using optinum::simd::Vector;
 namespace dp = datapod;
 
 TEST_CASE("lina::lu reconstructs P*A = L*U") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 0.0;
     a(1, 0) = 1.0;
     a(2, 0) = 2.0;
@@ -35,13 +35,13 @@ TEST_CASE("lina::lu reconstructs P*A = L*U") {
 }
 
 TEST_CASE("lina::lu_solve solves Ax=b") {
-    dp::mat::matrix<double, 2, 2> a;
+    dp::mat::Matrix<double, 2, 2> a;
     a(0, 0) = 4.0;
     a(1, 0) = 2.0;
     a(0, 1) = 1.0;
     a(1, 1) = 3.0;
 
-    dp::mat::vector<double, 2> b;
+    dp::mat::Vector<double, 2> b;
     b[0] = 1.0;
     b[1] = 2.0;
 

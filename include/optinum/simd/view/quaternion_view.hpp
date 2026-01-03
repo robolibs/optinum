@@ -20,11 +20,11 @@ namespace optinum::simd {
     // =============================================================================
     // quaternion_view<T, W> - SIMD view over quaternion arrays
     //
-    // Provides transparent SIMD access to dp::mat::quaternion<T> arrays.
+    // Provides transparent SIMD access to dp::mat::Quaternion<T> arrays.
     // User works with quaternions directly; SIMD is handled internally.
     //
     // Usage:
-    //   dp::mat::quaternion<double> quats[8];
+    //   dp::mat::Quaternion<double> quats[8];
     //   auto qv = quaternion_view<double, 4>(quats, 8);
     //   auto result = qv.normalized();  // SIMD under the hood
     //   result.store(quats);            // back to quaternion array
@@ -38,7 +38,7 @@ namespace optinum::simd {
         static_assert(W > 0, "quaternion_view requires W > 0");
 
       public:
-        using value_type = dp::mat::quaternion<T>;
+        using value_type = dp::mat::Quaternion<T>;
         using real_type = T;
         using pack_type = pack<value_type, W>;
         using real_pack = pack<T, W>;

@@ -23,8 +23,8 @@ namespace optinum::lina {
     namespace dp = ::datapod;
 
     template <typename T, std::size_t N> struct LU {
-        dp::mat::matrix<T, N, N> l{};  // owns data
-        dp::mat::matrix<T, N, N> u{};  // owns data
+        dp::mat::Matrix<T, N, N> l{};  // owns data
+        dp::mat::Matrix<T, N, N> u{};  // owns data
         dp::Array<std::size_t, N> p{}; // row permutation (P*A = L*U)
         int sign = 1;                  // sign of the permutation
         bool singular = false;
@@ -111,7 +111,7 @@ namespace optinum::lina {
         LU<T, N> out;
 
         // Copy input to working storage
-        dp::mat::matrix<T, N, N> lu_storage;
+        dp::mat::Matrix<T, N, N> lu_storage;
         simd::Matrix<T, N, N> lu_mat(lu_storage);
         for (std::size_t i = 0; i < N * N; ++i) {
             lu_storage[i] = a.data()[i];
@@ -172,9 +172,9 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] inline dp::mat::vector<T, N> lu_solve(const LU<T, N> &f, const simd::Vector<T, N> &b) noexcept {
-        dp::mat::vector<T, N> x;
-        dp::mat::vector<T, N> y;
+    [[nodiscard]] inline dp::mat::Vector<T, N> lu_solve(const LU<T, N> &f, const simd::Vector<T, N> &b) noexcept {
+        dp::mat::Vector<T, N> x;
+        dp::mat::Vector<T, N> y;
 
         // Apply permutation: Pb
         for (std::size_t i = 0; i < N; ++i) {
@@ -212,8 +212,8 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr dp::mat::matrix<T, N, N> permutation_matrix(const dp::Array<std::size_t, N> &p) noexcept {
-        dp::mat::matrix<T, N, N> P;
+    [[nodiscard]] constexpr dp::mat::Matrix<T, N, N> permutation_matrix(const dp::Array<std::size_t, N> &p) noexcept {
+        dp::mat::Matrix<T, N, N> P;
         simd::Matrix<T, N, N> P_view(P);
         P_view.fill(T{});
         for (std::size_t i = 0; i < N; ++i) {

@@ -327,7 +327,7 @@ TEST_CASE("diagonal_view - Integration with Matrix") {
     using namespace on::simd;
 
     // Create backing storage and view
-    datapod::mat::matrix<float, 4, 4> m_storage;
+    datapod::mat::Matrix<float, 4, 4> m_storage;
     on::simd::Matrix<float, 4, 4> m(m_storage);
     for (std::size_t i = 0; i < 4; ++i) {
         for (std::size_t j = 0; j < 4; ++j) {

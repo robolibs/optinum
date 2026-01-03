@@ -15,7 +15,7 @@ namespace on = optinum;
 // =============================================================================
 
 TEST_CASE("bridge - scalar<T> to scalar_view<T,W>") {
-    using scalar_t = datapod::mat::scalar<float>;
+    using scalar_t = datapod::mat::Scalar<float>;
     using view_t = on::simd::scalar_view<float, 4>;
 
     scalar_t s{42.0f};
@@ -49,7 +49,7 @@ TEST_CASE("bridge - scalar<T> to scalar_view<T,W>") {
 // =============================================================================
 
 TEST_CASE("bridge - vector<T,N> to vector_view<T,W>") {
-    using vector_t = datapod::mat::vector<float, 8>;
+    using vector_t = datapod::mat::Vector<float, 8>;
     using view_t = on::simd::vector_view<float, 4>;
 
     alignas(32) vector_t v{{1, 2, 3, 4, 5, 6, 7, 8}};
@@ -98,7 +98,7 @@ TEST_CASE("bridge - vector<T,N> to vector_view<T,W>") {
 // =============================================================================
 
 TEST_CASE("bridge - matrix<T,R,C> to matrix_view<T,W>") {
-    using matrix_t = datapod::mat::matrix<float, 4, 3>;
+    using matrix_t = datapod::mat::Matrix<float, 4, 3>;
     using view_t = on::simd::matrix_view<float, 4>;
 
     // 4x3 matrix, column-major storage
@@ -163,7 +163,7 @@ TEST_CASE("bridge - matrix<T,R,C> to matrix_view<T,W>") {
 // =============================================================================
 
 TEST_CASE("bridge - tensor<T,Dims...> to tensor_view<T,W,Rank>") {
-    using tensor_t = datapod::mat::tensor<float, 2, 3, 4>;
+    using tensor_t = datapod::mat::Tensor<float, 2, 3, 4>;
     using view_t = on::simd::tensor_view<float, 4, 3>;
 
     // 2x3x4 tensor, column-major storage
@@ -236,8 +236,8 @@ TEST_CASE("bridge - tensor<T,Dims...> to tensor_view<T,W,Rank>") {
 // =============================================================================
 
 TEST_CASE("bridge - Mixed types and operations") {
-    using vec_t = datapod::mat::vector<float, 8>;
-    using mat_t = datapod::mat::matrix<float, 4, 2>;
+    using vec_t = datapod::mat::Vector<float, 8>;
+    using mat_t = datapod::mat::Matrix<float, 4, 2>;
 
     alignas(32) vec_t v{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) mat_t m;
@@ -262,8 +262,8 @@ TEST_CASE("bridge - Mixed types and operations") {
 }
 
 TEST_CASE("bridge - Width auto-detection") {
-    using vec_f32 = datapod::mat::vector<float, 8>;
-    using vec_f64 = datapod::mat::vector<double, 4>;
+    using vec_f32 = datapod::mat::Vector<float, 8>;
+    using vec_f64 = datapod::mat::Vector<double, 4>;
 
     alignas(32) vec_f32 vf{{1, 2, 3, 4, 5, 6, 7, 8}};
     alignas(32) vec_f64 vd{{1.0, 2.0, 3.0, 4.0}};

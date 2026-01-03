@@ -45,7 +45,7 @@ template <std::size_t N> double benchmark_specialized_determinant() {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
 
-    dp::mat::matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N * N; ++i) {
         m.data()[i] = dist(gen);
     }
@@ -72,7 +72,7 @@ template <std::size_t N> double benchmark_lu_determinant() {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(-10.0f, 10.0f);
 
-    dp::mat::matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N * N; ++i) {
         m.data()[i] = dist(gen);
     }
@@ -100,7 +100,7 @@ template <std::size_t N> double benchmark_specialized_inverse() {
     std::uniform_real_distribution<float> dist(1.0f, 10.0f); // Positive to avoid singular
 
     // Create a well-conditioned matrix
-    dp::mat::matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N; ++i) {
         for (std::size_t j = 0; j < N; ++j) {
             m(i, j) = (i == j) ? 10.0f : dist(gen);
@@ -132,7 +132,7 @@ template <std::size_t N> double benchmark_lu_inverse() {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dist(1.0f, 10.0f);
 
-    dp::mat::matrix<float, N, N> m;
+    dp::mat::Matrix<float, N, N> m;
     for (std::size_t i = 0; i < N; ++i) {
         for (std::size_t j = 0; j < N; ++j) {
             m(i, j) = (i == j) ? 10.0f : dist(gen);
@@ -145,9 +145,9 @@ template <std::size_t N> double benchmark_lu_inverse() {
     for (std::size_t iter = 0; iter < NUM_ITERATIONS; ++iter) {
         on::simd::Matrix<float, N, N> wrapper(m);
         const auto f = on::lina::lu<float, N>(wrapper);
-        dp::mat::matrix<float, N, N> inv;
+        dp::mat::Matrix<float, N, N> inv;
         for (std::size_t col = 0; col < N; ++col) {
-            dp::mat::vector<float, N> e;
+            dp::mat::Vector<float, N> e;
             e.fill(0.0f);
             e[col] = 1.0f;
             on::simd::Vector<float, N> wrapper_e(e);

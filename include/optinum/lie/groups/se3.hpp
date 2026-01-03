@@ -38,13 +38,13 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = dp::mat::vector<T, 6>;              // [vx, vy, vz, wx, wy, wz] - owning
-        using Translation = dp::mat::vector<T, 3>;          // owning
-        using Point = dp::mat::vector<T, 3>;                // owning
-        using Params = dp::mat::vector<T, 7>;               // [qw, qx, qy, qz, tx, ty, tz] - owning
-        using HomogeneousMatrix = dp::mat::matrix<T, 4, 4>; // owning
-        using TransformMatrix = dp::mat::matrix<T, 3, 4>;   // Compact form - owning
-        using AdjointMatrix = dp::mat::matrix<T, 6, 6>;     // owning
+        using Tangent = dp::mat::Vector<T, 6>;              // [vx, vy, vz, wx, wy, wz] - owning
+        using Translation = dp::mat::Vector<T, 3>;          // owning
+        using Point = dp::mat::Vector<T, 3>;                // owning
+        using Params = dp::mat::Vector<T, 7>;               // [qw, qx, qy, qz, tx, ty, tz] - owning
+        using HomogeneousMatrix = dp::mat::Matrix<T, 4, 4>; // owning
+        using TransformMatrix = dp::mat::Matrix<T, 3, 4>;   // Compact form - owning
+        using AdjointMatrix = dp::mat::Matrix<T, 6, 6>;     // owning
         using Rotation = SO3<T>;
 
         // ===== CONSTANTS =====
@@ -65,13 +65,13 @@ namespace optinum::lie {
             : so3_(q), translation_(translation) {}
 
         // From rotation matrix and translation
-        SE3(const dp::mat::matrix<T, 3, 3> &R, const Translation &translation) noexcept
+        SE3(const dp::mat::Matrix<T, 3, 3> &R, const Translation &translation) noexcept
             : so3_(R), translation_(translation) {}
 
         // From 4x4 homogeneous matrix
         explicit SE3(const HomogeneousMatrix &T_mat) noexcept {
             // Extract rotation from top-left 3x3
-            dp::mat::matrix<T, 3, 3> R_mat;
+            dp::mat::Matrix<T, 3, 3> R_mat;
             for (int i = 0; i < 3; ++i) {
                 for (int j = 0; j < 3; ++j) {
                     R_mat(i, j) = T_mat(i, j);
@@ -126,8 +126,8 @@ namespace optinum::lie {
         // twist = [v, omega] where v is translational, omega is rotational
         [[nodiscard]] static SE3 exp(const Tangent &twist) noexcept {
             // Extract translational and rotational parts
-            dp::mat::vector<T, 3> v{twist[0], twist[1], twist[2]};
-            dp::mat::vector<T, 3> omega{twist[3], twist[4], twist[5]};
+            dp::mat::Vector<T, 3> v{twist[0], twist[1], twist[2]};
+            dp::mat::Vector<T, 3> omega{twist[3], twist[4], twist[5]};
 
             // Rotation: R = exp(omega)
             Rotation R = Rotation::exp(omega);
@@ -182,7 +182,7 @@ namespace optinum::lie {
         // Fit closest SE3 to arbitrary 4x4 matrix
         [[nodiscard]] static SE3 fit_to_SE3(const HomogeneousMatrix &M) noexcept {
             // Extract rotation and fit
-            dp::mat::matrix<T, 3, 3> R_mat;
+            dp::mat::Matrix<T, 3, 3> R_mat;
             for (int i = 0; i < 3; ++i) {
                 for (int j = 0; j < 3; ++j) {
                     R_mat(i, j) = M(i, j);
@@ -313,7 +313,7 @@ namespace optinum::lie {
         }
 
         // Return 3x3 rotation matrix
-        [[nodiscard]] dp::mat::matrix<T, 3, 3> rotation_matrix() const noexcept { return so3_.matrix(); }
+        [[nodiscard]] dp::mat::Matrix<T, 3, 3> rotation_matrix() const noexcept { return so3_.matrix(); }
 
         // ===== LIE ALGEBRA =====
 
@@ -380,7 +380,7 @@ namespace optinum::lie {
             // Top-right 3x3: hat(t) * R
             // hat(t) = [[0, -tz, ty], [tz, 0, -tx], [-ty, tx, 0]]
             const T tx = translation_[0], ty = translation_[1], tz = translation_[2];
-            dp::mat::matrix<T, 3, 3> hat_t;
+            dp::mat::Matrix<T, 3, 3> hat_t;
             hat_t(0, 0) = T(0);
             hat_t(0, 1) = -tz;
             hat_t(0, 2) = ty;
@@ -458,7 +458,7 @@ namespace optinum::lie {
 
         // Left Jacobian (6x6)
         [[nodiscard]] static AdjointMatrix left_jacobian(const Tangent &twist) noexcept {
-            dp::mat::vector<T, 3> omega{twist[3], twist[4], twist[5]};
+            dp::mat::Vector<T, 3> omega{twist[3], twist[4], twist[5]};
             const T theta_sq = omega[0] * omega[0] + omega[1] * omega[1] + omega[2] * omega[2];
 
             // Get SO3 left Jacobian
@@ -502,13 +502,13 @@ namespace optinum::lie {
             const T a3 = (T(1) - a1) / theta_sq;
             const T a4 = (a1 - T(2) * a2) / theta_sq;
 
-            dp::mat::vector<T, 3> v{twist[0], twist[1], twist[2]};
+            dp::mat::Vector<T, 3> v{twist[0], twist[1], twist[2]};
 
             // Compute Q matrix (complex formula involving v, omega, and their products)
-            dp::mat::matrix<T, 3, 3> Q;
+            dp::mat::Matrix<T, 3, 3> Q;
 
             // hat(v)
-            dp::mat::matrix<T, 3, 3> hat_v;
+            dp::mat::Matrix<T, 3, 3> hat_v;
             hat_v(0, 0) = T(0);
             hat_v(0, 1) = -v[2];
             hat_v(0, 2) = v[1];
@@ -520,7 +520,7 @@ namespace optinum::lie {
             hat_v(2, 2) = T(0);
 
             // hat(omega)
-            dp::mat::matrix<T, 3, 3> hat_w;
+            dp::mat::Matrix<T, 3, 3> hat_w;
             hat_w(0, 0) = T(0);
             hat_w(0, 1) = -omega[2];
             hat_w(0, 2) = omega[1];
@@ -558,7 +558,7 @@ namespace optinum::lie {
 
         // Inverse of left Jacobian
         [[nodiscard]] static AdjointMatrix left_jacobian_inverse(const Tangent &twist) noexcept {
-            dp::mat::vector<T, 3> omega{twist[3], twist[4], twist[5]};
+            dp::mat::Vector<T, 3> omega{twist[3], twist[4], twist[5]};
 
             // Get SO3 left Jacobian inverse
             auto J_so3_inv = Rotation::left_jacobian_inverse(omega);
@@ -570,10 +570,10 @@ namespace optinum::lie {
 
             const T theta_sq = omega[0] * omega[0] + omega[1] * omega[1] + omega[2] * omega[2];
 
-            dp::mat::vector<T, 3> v{twist[0], twist[1], twist[2]};
+            dp::mat::Vector<T, 3> v{twist[0], twist[1], twist[2]};
 
             // Q_inv ≈ -0.5 * hat(v) for small angles
-            dp::mat::matrix<T, 3, 3> Q_inv;
+            dp::mat::Matrix<T, 3, 3> Q_inv;
             Q_inv(0, 0) = T(0);
             Q_inv(0, 1) = v[2] * T(0.5);
             Q_inv(0, 2) = -v[1] * T(0.5);
@@ -585,7 +585,7 @@ namespace optinum::lie {
             Q_inv(2, 2) = T(0);
 
             // Compute -J_so3^-1 * Q * J_so3^-1 (simplified to Q_inv for now)
-            dp::mat::matrix<T, 3, 3> top_right;
+            dp::mat::Matrix<T, 3, 3> top_right;
             for (int i = 0; i < 3; ++i) {
                 for (int j = 0; j < 3; ++j) {
                     top_right(i, j) = Q_inv(i, j);
@@ -650,7 +650,7 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] SE3<NewScalar> cast() const noexcept {
             return SE3<NewScalar>(so3_.template cast<NewScalar>(),
-                                  dp::mat::vector<NewScalar, 3>{{static_cast<NewScalar>(translation_[0]),
+                                  dp::mat::Vector<NewScalar, 3>{{static_cast<NewScalar>(translation_[0]),
                                                                  static_cast<NewScalar>(translation_[1]),
                                                                  static_cast<NewScalar>(translation_[2])}});
         }

@@ -11,8 +11,8 @@ using namespace optinum::opti;
 namespace dp = datapod;
 
 // Helper to negate a vector (dp::mat::vector doesn't have unary minus)
-template <typename T, std::size_t N> dp::mat::vector<T, N> negate(const dp::mat::vector<T, N> &v) {
-    dp::mat::vector<T, N> result;
+template <typename T, std::size_t N> dp::mat::Vector<T, N> negate(const dp::mat::Vector<T, N> &v) {
+    dp::mat::Vector<T, N> result;
     if constexpr (N == dp::mat::Dynamic) {
         result.resize(v.size());
     }
@@ -32,7 +32,7 @@ template <typename T, std::size_t N> dp::mat::vector<T, N> negate(const dp::mat:
  * Minimum at origin, gradient = x
  */
 template <typename T, std::size_t N> struct QuadraticFunction {
-    using vector_type = dp::mat::vector<T, N>;
+    using vector_type = dp::mat::Vector<T, N>;
 
     T evaluate(const vector_type &x) const {
         T sum = T(0);
@@ -60,7 +60,7 @@ template <typename T, std::size_t N> struct QuadraticFunction {
  * Minimum at (1, 1), challenging for optimization
  */
 struct RosenbrockFunction {
-    using vector_type = dp::mat::vector<double, 2>;
+    using vector_type = dp::mat::Vector<double, 2>;
 
     double evaluate(const vector_type &x) const {
         double a = 1.0 - x[0];
@@ -85,7 +85,7 @@ struct RosenbrockFunction {
  * @brief Shifted quadratic: f(x) = 0.5 * (x - shift)^T * (x - shift)
  */
 template <typename T, std::size_t N> struct ShiftedQuadratic {
-    using vector_type = dp::mat::vector<T, N>;
+    using vector_type = dp::mat::Vector<T, N>;
     vector_type shift;
 
     ShiftedQuadratic() {
@@ -122,12 +122,12 @@ template <typename T, std::size_t N> struct ShiftedQuadratic {
 // =============================================================================
 
 TEST_CASE("ArmijoLineSearch - Basic functionality") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     ArmijoLineSearch<double> ls;
 
     SUBCASE("Descent direction from (1, 1)") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         Vec2 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
 
@@ -143,7 +143,7 @@ TEST_CASE("ArmijoLineSearch - Basic functionality") {
     }
 
     SUBCASE("Descent direction from (5, -3)") {
-        Vec2 x(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x(dp::mat::Vector<double, 2>{5.0, -3.0});
         Vec2 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
         Vec2 direction = negate(grad);
@@ -156,7 +156,7 @@ TEST_CASE("ArmijoLineSearch - Basic functionality") {
     }
 
     SUBCASE("Non-descent direction should fail") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         Vec2 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
 
@@ -170,12 +170,12 @@ TEST_CASE("ArmijoLineSearch - Basic functionality") {
     }
 
     SUBCASE("At minimum, any direction is non-descent") {
-        Vec2 x(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x(dp::mat::Vector<double, 2>{0.0, 0.0});
         Vec2 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
 
         // Gradient is zero at minimum
-        Vec2 direction(dp::mat::vector<double, 2>{1.0, 0.0});
+        Vec2 direction(dp::mat::Vector<double, 2>{1.0, 0.0});
 
         // grad^T * direction = 0, so not a descent direction
         auto result = ls.search(func, x, direction, f0, grad);
@@ -185,10 +185,10 @@ TEST_CASE("ArmijoLineSearch - Basic functionality") {
 }
 
 TEST_CASE("ArmijoLineSearch - Parameter sensitivity") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
 
-    Vec2 x(dp::mat::vector<double, 2>{2.0, 2.0});
+    Vec2 x(dp::mat::Vector<double, 2>{2.0, 2.0});
     Vec2 grad;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -239,11 +239,11 @@ TEST_CASE("ArmijoLineSearch - Parameter sensitivity") {
 
 TEST_CASE("ArmijoLineSearch - Higher dimensions") {
     SUBCASE("3D quadratic") {
-        using Vec3 = dp::mat::vector<double, 3>;
+        using Vec3 = dp::mat::Vector<double, 3>;
         QuadraticFunction<double, 3> func;
         ArmijoLineSearch<double> ls;
 
-        Vec3 x(dp::mat::vector<double, 3>{1.0, 2.0, 3.0});
+        Vec3 x(dp::mat::Vector<double, 3>{1.0, 2.0, 3.0});
         Vec3 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
         Vec3 direction = negate(grad);
@@ -255,7 +255,7 @@ TEST_CASE("ArmijoLineSearch - Higher dimensions") {
     }
 
     SUBCASE("10D quadratic") {
-        using Vec10 = dp::mat::vector<double, 10>;
+        using Vec10 = dp::mat::Vector<double, 10>;
         QuadraticFunction<double, 10> func;
         ArmijoLineSearch<double> ls;
 
@@ -276,11 +276,11 @@ TEST_CASE("ArmijoLineSearch - Higher dimensions") {
 }
 
 TEST_CASE("ArmijoLineSearch - Float precision") {
-    using Vec2 = dp::mat::vector<float, 2>;
+    using Vec2 = dp::mat::Vector<float, 2>;
     QuadraticFunction<float, 2> func;
     ArmijoLineSearch<float> ls;
 
-    Vec2 x(dp::mat::vector<float, 2>{1.0f, 1.0f});
+    Vec2 x(dp::mat::Vector<float, 2>{1.0f, 1.0f});
     Vec2 grad;
     float f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -292,11 +292,11 @@ TEST_CASE("ArmijoLineSearch - Float precision") {
 }
 
 TEST_CASE("ArmijoLineSearch - search_with_gradient") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     ArmijoLineSearch<double> ls;
 
-    Vec2 x(dp::mat::vector<double, 2>{2.0, 2.0});
+    Vec2 x(dp::mat::Vector<double, 2>{2.0, 2.0});
     Vec2 grad;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -315,12 +315,12 @@ TEST_CASE("ArmijoLineSearch - search_with_gradient") {
 // =============================================================================
 
 TEST_CASE("WolfeLineSearch - Basic functionality") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     WolfeLineSearch<double> ls;
 
     SUBCASE("Descent direction from (1, 1)") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         Vec2 grad, grad_new;
         double f0 = func.evaluate_with_gradient(x, grad);
         Vec2 direction = negate(grad);
@@ -333,7 +333,7 @@ TEST_CASE("WolfeLineSearch - Basic functionality") {
     }
 
     SUBCASE("Descent direction from (5, -3)") {
-        Vec2 x(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x(dp::mat::Vector<double, 2>{5.0, -3.0});
         Vec2 grad, grad_new;
         double f0 = func.evaluate_with_gradient(x, grad);
         Vec2 direction = negate(grad);
@@ -345,7 +345,7 @@ TEST_CASE("WolfeLineSearch - Basic functionality") {
     }
 
     SUBCASE("Non-descent direction should fail") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         Vec2 grad, grad_new;
         double f0 = func.evaluate_with_gradient(x, grad);
         Vec2 direction = grad; // Ascent direction
@@ -357,11 +357,11 @@ TEST_CASE("WolfeLineSearch - Basic functionality") {
 }
 
 TEST_CASE("WolfeLineSearch - Strong Wolfe conditions") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     WolfeLineSearch<double> ls;
 
-    Vec2 x(dp::mat::vector<double, 2>{3.0, 4.0});
+    Vec2 x(dp::mat::Vector<double, 2>{3.0, 4.0});
     Vec2 grad, grad_new;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -380,10 +380,10 @@ TEST_CASE("WolfeLineSearch - Strong Wolfe conditions") {
 }
 
 TEST_CASE("WolfeLineSearch - Parameter variations") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
 
-    Vec2 x(dp::mat::vector<double, 2>{2.0, 2.0});
+    Vec2 x(dp::mat::Vector<double, 2>{2.0, 2.0});
     Vec2 grad, grad_new;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -402,7 +402,7 @@ TEST_CASE("WolfeLineSearch - Parameter variations") {
 }
 
 TEST_CASE("WolfeLineSearch - Higher dimensions") {
-    using Vec5 = dp::mat::vector<double, 5>;
+    using Vec5 = dp::mat::Vector<double, 5>;
     QuadraticFunction<double, 5> func;
     WolfeLineSearch<double> ls;
 
@@ -426,11 +426,11 @@ TEST_CASE("WolfeLineSearch - Higher dimensions") {
 // =============================================================================
 
 TEST_CASE("WeakWolfeLineSearch - Basic functionality") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     WeakWolfeLineSearch<double> ls;
 
-    Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
     Vec2 grad, grad_new;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -442,11 +442,11 @@ TEST_CASE("WeakWolfeLineSearch - Basic functionality") {
 }
 
 TEST_CASE("WeakWolfeLineSearch - Weak curvature condition") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     WeakWolfeLineSearch<double> ls;
 
-    Vec2 x(dp::mat::vector<double, 2>{3.0, 4.0});
+    Vec2 x(dp::mat::Vector<double, 2>{3.0, 4.0});
     Vec2 grad, grad_new;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -466,11 +466,11 @@ TEST_CASE("WeakWolfeLineSearch - Weak curvature condition") {
 // =============================================================================
 
 TEST_CASE("GoldsteinLineSearch - Basic functionality") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     GoldsteinLineSearch<double> ls;
 
-    Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
     Vec2 grad;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -482,12 +482,12 @@ TEST_CASE("GoldsteinLineSearch - Basic functionality") {
 }
 
 TEST_CASE("GoldsteinLineSearch - Goldstein conditions") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     GoldsteinLineSearch<double> ls;
     ls.c = 0.25;
 
-    Vec2 x(dp::mat::vector<double, 2>{3.0, 4.0});
+    Vec2 x(dp::mat::Vector<double, 2>{3.0, 4.0});
     Vec2 grad;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -511,10 +511,10 @@ TEST_CASE("GoldsteinLineSearch - Goldstein conditions") {
 // =============================================================================
 
 TEST_CASE("Line search on Rosenbrock function") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     RosenbrockFunction func;
 
-    Vec2 x(dp::mat::vector<double, 2>{-1.0, 1.0});
+    Vec2 x(dp::mat::Vector<double, 2>{-1.0, 1.0});
     Vec2 grad, grad_new;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -549,7 +549,7 @@ TEST_CASE("Line search on Rosenbrock function") {
 // =============================================================================
 
 TEST_CASE("ArmijoLineSearch - Dynamic vectors") {
-    using VecDyn = dp::mat::vector<double, dp::mat::Dynamic>;
+    using VecDyn = dp::mat::Vector<double, dp::mat::Dynamic>;
     QuadraticFunction<double, dp::mat::Dynamic> func;
     ArmijoLineSearch<double> ls;
 
@@ -573,7 +573,7 @@ TEST_CASE("ArmijoLineSearch - Dynamic vectors") {
 }
 
 TEST_CASE("WolfeLineSearch - Dynamic vectors") {
-    using VecDyn = dp::mat::vector<double, dp::mat::Dynamic>;
+    using VecDyn = dp::mat::Vector<double, dp::mat::Dynamic>;
     QuadraticFunction<double, dp::mat::Dynamic> func;
     WolfeLineSearch<double> ls;
 
@@ -601,13 +601,13 @@ TEST_CASE("WolfeLineSearch - Dynamic vectors") {
 // =============================================================================
 
 TEST_CASE("Line search edge cases") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
 
     SUBCASE("Very small gradient") {
         ArmijoLineSearch<double> ls;
 
-        Vec2 x(dp::mat::vector<double, 2>{1e-10, 1e-10});
+        Vec2 x(dp::mat::Vector<double, 2>{1e-10, 1e-10});
         Vec2 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
         Vec2 direction = negate(grad);
@@ -625,7 +625,7 @@ TEST_CASE("Line search edge cases") {
         ArmijoLineSearch<double> ls;
         ls.alpha_init = 0.01; // Start with smaller step for large values
 
-        Vec2 x(dp::mat::vector<double, 2>{1000.0, 1000.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1000.0, 1000.0});
         Vec2 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
         Vec2 direction = negate(grad);
@@ -639,10 +639,10 @@ TEST_CASE("Line search edge cases") {
     SUBCASE("Zero direction") {
         ArmijoLineSearch<double> ls;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         Vec2 grad;
         double f0 = func.evaluate_with_gradient(x, grad);
-        Vec2 direction(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 direction(dp::mat::Vector<double, 2>{0.0, 0.0});
 
         auto result = ls.search(func, x, direction, f0, grad);
 
@@ -656,10 +656,10 @@ TEST_CASE("Line search edge cases") {
 // =============================================================================
 
 TEST_CASE("Compare line search methods") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
 
-    Vec2 x(dp::mat::vector<double, 2>{3.0, 4.0});
+    Vec2 x(dp::mat::Vector<double, 2>{3.0, 4.0});
     Vec2 grad, grad_new;
     double f0 = func.evaluate_with_gradient(x, grad);
     Vec2 direction = negate(grad);
@@ -692,11 +692,11 @@ TEST_CASE("Compare line search methods") {
 // =============================================================================
 
 TEST_CASE("Line search with Sphere function") {
-    using Vec3 = dp::mat::vector<double, 3>;
+    using Vec3 = dp::mat::Vector<double, 3>;
     Sphere<double, 3> sphere;
     ArmijoLineSearch<double> ls;
 
-    Vec3 x(dp::mat::vector<double, 3>{2.0, -1.0, 3.0});
+    Vec3 x(dp::mat::Vector<double, 3>{2.0, -1.0, 3.0});
     Vec3 grad;
     double f0 = sphere.evaluate_with_gradient(x, grad);
     Vec3 direction = negate(grad);

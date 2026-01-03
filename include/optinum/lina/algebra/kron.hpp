@@ -28,13 +28,13 @@ namespace optinum::lina {
      * @return Kronecker product (MP x NQ)
      */
     template <typename T, std::size_t M, std::size_t N, std::size_t P, std::size_t Q>
-    [[nodiscard]] datapod::mat::matrix<T, M * P, N * Q> kron(const simd::Matrix<T, M, N> &a,
+    [[nodiscard]] datapod::mat::Matrix<T, M * P, N * Q> kron(const simd::Matrix<T, M, N> &a,
                                                              const simd::Matrix<T, P, Q> &b) noexcept {
-        datapod::mat::matrix<T, M * P, N * Q> result;
+        datapod::mat::Matrix<T, M * P, N * Q> result;
         result.fill(T{});
 
         // Temporary buffer for scaled B (a_ij * B)
-        datapod::mat::matrix<T, P, Q> scaled_b_pod;
+        datapod::mat::Matrix<T, P, Q> scaled_b_pod;
         simd::Matrix<T, P, Q> scaled_b(scaled_b_pod);
 
         // For each element of A

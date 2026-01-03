@@ -18,8 +18,8 @@
 namespace optinum::lina {
 
     template <typename T, std::size_t M, std::size_t N> struct QR {
-        datapod::mat::matrix<T, M, M> q{};
-        datapod::mat::matrix<T, M, N> r{};
+        datapod::mat::Matrix<T, M, M> q{};
+        datapod::mat::Matrix<T, M, N> r{};
     };
 
     namespace qr_detail {

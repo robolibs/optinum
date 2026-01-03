@@ -14,7 +14,7 @@ namespace optinum::simd {
     namespace dp = ::datapod;
 
     // Tensor: N-dimensional fixed-size non-owning view (rank >= 3) with SIMD-accelerated operations
-    // Non-owning view over datapod::mat::tensor<T, Dims...> or raw T* data
+    // Non-owning view over datapod::mat::Tensor<T, Dims...> or raw T* data
     template <typename T, std::size_t... Dims> class Tensor {
         static_assert(sizeof...(Dims) >= 3, "Tensor requires at least 3 dimensions (use Vector for 1D, Matrix for 2D)");
         static_assert(((Dims > 0) && ...), "All tensor dimensions must be > 0");
@@ -22,7 +22,7 @@ namespace optinum::simd {
 
       public:
         using value_type = T;
-        using pod_type = dp::mat::tensor<T, Dims...>;
+        using pod_type = dp::mat::Tensor<T, Dims...>;
         using size_type = std::size_t;
         using reference = T &;
         using const_reference = const T &;

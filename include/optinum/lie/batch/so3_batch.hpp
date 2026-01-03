@@ -47,10 +47,10 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Quaternion = dp::mat::quaternion<T>;
-        using Tangent = dp::mat::vector<T, 3>;
-        using Point = dp::mat::vector<T, 3>;
-        using RotationMatrix = dp::mat::matrix<T, 3, 3>;
+        using Quaternion = dp::mat::Quaternion<T>;
+        using Tangent = dp::mat::Vector<T, 3>;
+        using Point = dp::mat::Vector<T, 3>;
+        using RotationMatrix = dp::mat::Matrix<T, 3, 3>;
         using Element = SO3<T>;
 
         // SIMD width selection (auto-detect based on architecture)

@@ -11,23 +11,23 @@ namespace dp = datapod;
 
 TEST_CASE("DARE: Simple 2x2 stable system") {
     // Simple stable discrete-time system
-    dp::mat::matrix<double, 2, 2> A;
+    dp::mat::Matrix<double, 2, 2> A;
     A(0, 0) = 0.9;
     A(0, 1) = 0.1;
     A(1, 0) = 0.0;
     A(1, 1) = 0.8;
 
-    dp::mat::matrix<double, 2, 1> B;
+    dp::mat::Matrix<double, 2, 1> B;
     B(0, 0) = 0.0;
     B(1, 0) = 1.0;
 
-    dp::mat::matrix<double, 2, 2> Q;
+    dp::mat::Matrix<double, 2, 2> Q;
     Q(0, 0) = 1.0;
     Q(0, 1) = 0.0;
     Q(1, 0) = 0.0;
     Q(1, 1) = 1.0;
 
-    dp::mat::matrix<double, 1, 1> R;
+    dp::mat::Matrix<double, 1, 1> R;
     R(0, 0) = 1.0;
 
     auto P =
@@ -49,7 +49,7 @@ TEST_CASE("DARE: Simple 2x2 stable system") {
     auto BT_P = lina::matmul(BT, P);
     auto BT_P_B = lina::matmul(BT_P, B);
 
-    dp::mat::matrix<double, 1, 1> R_plus_BT_P_B = R;
+    dp::mat::Matrix<double, 1, 1> R_plus_BT_P_B = R;
     R_plus_BT_P_B(0, 0) += BT_P_B(0, 0);
     auto inv_term = lina::inverse(Matrix<double, 1, 1>(R_plus_BT_P_B));
 
@@ -57,7 +57,7 @@ TEST_CASE("DARE: Simple 2x2 stable system") {
     auto AT_P_B = lina::matmul(AT_P, B);
     auto correction = lina::matmul(lina::matmul(AT_P_B, inv_term), BT_P_A);
 
-    dp::mat::matrix<double, 2, 2> P_expected;
+    dp::mat::Matrix<double, 2, 2> P_expected;
     for (std::size_t i = 0; i < 2; ++i) {
         for (std::size_t j = 0; j < 2; ++j) {
             P_expected(i, j) = AT_P_A(i, j) - correction(i, j) + Q(i, j);
@@ -77,7 +77,7 @@ TEST_CASE("DARE: 4x4 LQR problem (drivekit-style)") {
     double dt = 0.1; // Time step
     double v = 10.0; // Velocity (m/s)
 
-    dp::mat::matrix<double, 4, 4> A;
+    dp::mat::Matrix<double, 4, 4> A;
     // Simplified continuous-time dynamics discretized
     A(0, 0) = 1.0;
     A(0, 1) = dt;
@@ -96,14 +96,14 @@ TEST_CASE("DARE: 4x4 LQR problem (drivekit-style)") {
     A(3, 2) = 0.0;
     A(3, 3) = 0.95;
 
-    dp::mat::matrix<double, 4, 1> B;
+    dp::mat::Matrix<double, 4, 1> B;
     // Simplified control influence
     B(0, 0) = 0.0;
     B(1, 0) = dt * 0.5;
     B(2, 0) = 0.0;
     B(3, 0) = dt * 1.0;
 
-    dp::mat::matrix<double, 4, 4> Q;
+    dp::mat::Matrix<double, 4, 4> Q;
     // State cost (penalize lateral and heading errors)
     Q(0, 0) = 10.0;
     Q(0, 1) = 0.0;
@@ -122,7 +122,7 @@ TEST_CASE("DARE: 4x4 LQR problem (drivekit-style)") {
     Q(3, 2) = 0.0;
     Q(3, 3) = 0.5;
 
-    dp::mat::matrix<double, 1, 1> R;
+    dp::mat::Matrix<double, 1, 1> R;
     R(0, 0) = 1.0; // Control cost
 
     auto P = lina::dare(Matrix<double, 4, 4>(A), Matrix<double, 4, 1>(B), Matrix<double, 4, 4>(Q),
@@ -159,7 +159,7 @@ TEST_CASE("DARE: 4x4 LQR problem (drivekit-style)") {
 }
 
 TEST_CASE("DARE: Identity system (A=I, B=I, Q=I, R=I)") {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     A(0, 0) = 1.0;
     A(0, 1) = 0.0;
     A(0, 2) = 0.0;
@@ -170,7 +170,7 @@ TEST_CASE("DARE: Identity system (A=I, B=I, Q=I, R=I)") {
     A(2, 1) = 0.0;
     A(2, 2) = 1.0;
 
-    dp::mat::matrix<double, 3, 3> B;
+    dp::mat::Matrix<double, 3, 3> B;
     B(0, 0) = 1.0;
     B(0, 1) = 0.0;
     B(0, 2) = 0.0;
@@ -181,7 +181,7 @@ TEST_CASE("DARE: Identity system (A=I, B=I, Q=I, R=I)") {
     B(2, 1) = 0.0;
     B(2, 2) = 1.0;
 
-    dp::mat::matrix<double, 3, 3> Q;
+    dp::mat::Matrix<double, 3, 3> Q;
     Q(0, 0) = 1.0;
     Q(0, 1) = 0.0;
     Q(0, 2) = 0.0;
@@ -192,7 +192,7 @@ TEST_CASE("DARE: Identity system (A=I, B=I, Q=I, R=I)") {
     Q(2, 1) = 0.0;
     Q(2, 2) = 1.0;
 
-    dp::mat::matrix<double, 3, 3> R;
+    dp::mat::Matrix<double, 3, 3> R;
     R(0, 0) = 1.0;
     R(0, 1) = 0.0;
     R(0, 2) = 0.0;
@@ -218,23 +218,23 @@ TEST_CASE("DARE: Identity system (A=I, B=I, Q=I, R=I)") {
 }
 
 TEST_CASE("DARE: LQR gain computation") {
-    dp::mat::matrix<double, 2, 2> A;
+    dp::mat::Matrix<double, 2, 2> A;
     A(0, 0) = 0.9;
     A(0, 1) = 0.1;
     A(1, 0) = 0.0;
     A(1, 1) = 0.8;
 
-    dp::mat::matrix<double, 2, 1> B;
+    dp::mat::Matrix<double, 2, 1> B;
     B(0, 0) = 0.0;
     B(1, 0) = 1.0;
 
-    dp::mat::matrix<double, 2, 2> Q;
+    dp::mat::Matrix<double, 2, 2> Q;
     Q(0, 0) = 1.0;
     Q(0, 1) = 0.0;
     Q(1, 0) = 0.0;
     Q(1, 1) = 1.0;
 
-    dp::mat::matrix<double, 1, 1> R;
+    dp::mat::Matrix<double, 1, 1> R;
     R(0, 0) = 1.0;
 
     auto P =
@@ -253,7 +253,7 @@ TEST_CASE("DARE: LQR gain computation") {
     auto BT_P = lina::matmul(BT, P);
     auto BT_P_B = lina::matmul(BT_P, B);
 
-    dp::mat::matrix<double, 1, 1> R_plus_BT_P_B = R;
+    dp::mat::Matrix<double, 1, 1> R_plus_BT_P_B = R;
     R_plus_BT_P_B(0, 0) += BT_P_B(0, 0);
     auto inv_term = lina::inverse(Matrix<double, 1, 1>(R_plus_BT_P_B));
 
@@ -266,23 +266,23 @@ TEST_CASE("DARE: LQR gain computation") {
 
 TEST_CASE("DARE: Convergence with maximum iterations") {
     // Test that algorithm respects max_iterations parameter
-    dp::mat::matrix<double, 2, 2> A;
+    dp::mat::Matrix<double, 2, 2> A;
     A(0, 0) = 0.95;
     A(0, 1) = 0.05;
     A(1, 0) = 0.05;
     A(1, 1) = 0.95;
 
-    dp::mat::matrix<double, 2, 1> B;
+    dp::mat::Matrix<double, 2, 1> B;
     B(0, 0) = 0.1;
     B(1, 0) = 0.1;
 
-    dp::mat::matrix<double, 2, 2> Q;
+    dp::mat::Matrix<double, 2, 2> Q;
     Q(0, 0) = 1.0;
     Q(0, 1) = 0.0;
     Q(1, 0) = 0.0;
     Q(1, 1) = 1.0;
 
-    dp::mat::matrix<double, 1, 1> R;
+    dp::mat::Matrix<double, 1, 1> R;
     R(0, 0) = 1.0;
 
     // With very low tolerance and few iterations, should either converge or return error
@@ -307,7 +307,7 @@ TEST_CASE("DARE: Convergence with maximum iterations") {
 
 TEST_CASE("DARE: Multiple control inputs (M > 1)") {
     // Test with 2 control inputs
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     A(0, 0) = 0.9;
     A(0, 1) = 0.1;
     A(0, 2) = 0.0;
@@ -318,7 +318,7 @@ TEST_CASE("DARE: Multiple control inputs (M > 1)") {
     A(2, 1) = 0.0;
     A(2, 2) = 0.95;
 
-    dp::mat::matrix<double, 3, 2> B;
+    dp::mat::Matrix<double, 3, 2> B;
     B(0, 0) = 1.0;
     B(0, 1) = 0.0;
     B(1, 0) = 0.0;
@@ -326,7 +326,7 @@ TEST_CASE("DARE: Multiple control inputs (M > 1)") {
     B(2, 0) = 0.5;
     B(2, 1) = 0.5;
 
-    dp::mat::matrix<double, 3, 3> Q;
+    dp::mat::Matrix<double, 3, 3> Q;
     Q(0, 0) = 1.0;
     Q(0, 1) = 0.0;
     Q(0, 2) = 0.0;
@@ -337,7 +337,7 @@ TEST_CASE("DARE: Multiple control inputs (M > 1)") {
     Q(2, 1) = 0.0;
     Q(2, 2) = 1.5;
 
-    dp::mat::matrix<double, 2, 2> R;
+    dp::mat::Matrix<double, 2, 2> R;
     R(0, 0) = 1.0;
     R(0, 1) = 0.0;
     R(1, 0) = 0.0;

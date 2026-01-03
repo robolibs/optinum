@@ -43,7 +43,7 @@ namespace optinum::meta {
      * Result of PSO optimization
      */
     template <typename T> struct PSOResult {
-        dp::mat::vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
         T best_value;                                       ///< Objective value at best position
         std::size_t iterations;                             ///< Number of iterations performed
         bool converged;                                     ///< Whether convergence criteria met
@@ -61,8 +61,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * dp::mat::vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
-     * dp::mat::vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = pso.optimize(objective, lower, upper);
      * @endcode
@@ -104,8 +104,8 @@ namespace optinum::meta {
          * @return PSOResult with best solution and convergence info
          */
         template <typename F>
-        PSOResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                              const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        PSOResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
             const std::size_t n_particles = config.population_size;
 
@@ -126,24 +126,24 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
             // Compute velocity limits based on range
-            dp::mat::vector<T, dp::mat::Dynamic> velocity_max(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> velocity_max(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 velocity_max[d] = config.velocity_clamp * (upper_bounds[d] - lower_bounds[d]);
             }
 
             // Initialize particles: positions, velocities, personal bests
             // Using std::vector of simd::Vector for population (each particle is a vector)
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> positions(n_particles);
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> velocities(n_particles);
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> pbest_positions(n_particles);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> positions(n_particles);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> velocities(n_particles);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> pbest_positions(n_particles);
             std::vector<T> pbest_values(n_particles);
             std::vector<T> current_values(n_particles);
 
             // Initialize each particle
             for (std::size_t i = 0; i < n_particles; ++i) {
-                positions[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
-                velocities[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
-                pbest_positions[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
+                positions[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
+                velocities[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
+                pbest_positions[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
 
                 for (std::size_t d = 0; d < dim; ++d) {
                     // Random position within bounds
@@ -172,7 +172,7 @@ namespace optinum::meta {
                     gbest_idx = i;
                 }
             }
-            dp::mat::vector<T, dp::mat::Dynamic> gbest_position = pbest_positions[gbest_idx];
+            dp::mat::Vector<T, dp::mat::Dynamic> gbest_position = pbest_positions[gbest_idx];
 
             // History tracking
             std::vector<T> history;
@@ -185,10 +185,10 @@ namespace optinum::meta {
             std::size_t horizon_idx = 0;
 
             // Pre-allocate temporary vectors for SIMD operations
-            dp::mat::vector<T, dp::mat::Dynamic> r1_vec(dim);
-            dp::mat::vector<T, dp::mat::Dynamic> r2_vec(dim);
-            dp::mat::vector<T, dp::mat::Dynamic> temp1(dim);
-            dp::mat::vector<T, dp::mat::Dynamic> temp2(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> r1_vec(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> r2_vec(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> temp1(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> temp2(dim);
 
             // Main optimization loop
             std::size_t iteration = 0;
@@ -288,9 +288,9 @@ namespace optinum::meta {
          * @return PSOResult with best solution and convergence info
          */
         template <typename F>
-        PSOResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
-                              const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                              const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        PSOResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                              const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             // Use initial point as one of the particles by seeding the RNG
             // For now, just delegate to the bounds-only version
             // The initial point could be used to bias the initial population

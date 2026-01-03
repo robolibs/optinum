@@ -43,10 +43,10 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Quaternion = dp::mat::quaternion<T>;
-        using Translation = dp::mat::vector<T, 3>;
-        using Tangent = dp::mat::vector<T, 6>; // [vx, vy, vz, wx, wy, wz]
-        using Point = dp::mat::vector<T, 3>;
+        using Quaternion = dp::mat::Quaternion<T>;
+        using Translation = dp::mat::Vector<T, 3>;
+        using Tangent = dp::mat::Vector<T, 6>; // [vx, vy, vz, wx, wy, wz]
+        using Point = dp::mat::Vector<T, 3>;
         using Element = SE3<T>;
         using Rotation = SO3<T>;
         using RotationBatch = SO3Batch<T, N>;

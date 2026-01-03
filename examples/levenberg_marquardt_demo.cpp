@@ -32,8 +32,8 @@ void example_robustness_comparison() {
     std::vector<DataPoint> data = {{0.0, 3.02}, {0.5, 2.56}, {1.0, 2.21}, {1.5, 1.92}, {2.0, 1.74}, {2.5, 1.55},
                                    {3.0, 1.45}, {3.5, 1.32}, {4.0, 1.27}, {4.5, 1.20}, {5.0, 1.16}};
 
-    auto residual = [&data](const dp::mat::vector<double, 3> &params) {
-        dp::mat::vector<double, dp::mat::Dynamic> r;
+    auto residual = [&data](const dp::mat::Vector<double, 3> &params) {
+        dp::mat::Vector<double, dp::mat::Dynamic> r;
         r.resize(data.size());
         double a = params[0], b = params[1], c = params[2];
         for (size_t i = 0; i < data.size(); ++i) {
@@ -42,7 +42,7 @@ void example_robustness_comparison() {
         return r;
     };
 
-    dp::mat::vector<double, 3> x0;
+    dp::mat::Vector<double, 3> x0;
     x0[0] = 100.0;
     x0[1] = -50.0;
     x0[2] = 1000.0;
@@ -101,15 +101,15 @@ void example_ill_conditioned() {
     std::cout << "  b ~ 0.01  (small)\n\n";
 
     // Residual with mixed scales
-    auto residual = [](const dp::mat::vector<double, 2> &x) {
-        dp::mat::vector<double, 3> r;
+    auto residual = [](const dp::mat::Vector<double, 2> &x) {
+        dp::mat::Vector<double, 3> r;
         r[0] = 1000.0 - x[0];                         // Target: x[0] = 1000
         r[1] = 100.0 * (0.01 - x[1]);                 // Target: x[1] = 0.01 (scaled up)
         r[2] = (x[0] / 1000.0) * (x[1] / 0.01) - 1.0; // Coupling term
         return r;
     };
 
-    dp::mat::vector<double, 2> x0;
+    dp::mat::Vector<double, 2> x0;
     x0[0] = 500.0;
     x0[1] = 0.005;
     std::cout << "Initial guess: [" << x0[0] << ", " << x0[1] << "]\n\n";
@@ -159,8 +159,8 @@ void example_bundle_adjustment() {
     };
 
     // Residual: reprojection error
-    auto residual = [&observations](const dp::mat::vector<double, 3> &point) {
-        dp::mat::vector<double, dp::mat::Dynamic> r;
+    auto residual = [&observations](const dp::mat::Vector<double, 3> &point) {
+        dp::mat::Vector<double, dp::mat::Dynamic> r;
         r.resize(observations.size() * 2);
 
         double x = point[0];
@@ -177,7 +177,7 @@ void example_bundle_adjustment() {
     };
 
     // Initial guess (rough depth estimate)
-    dp::mat::vector<double, 3> x0;
+    dp::mat::Vector<double, 3> x0;
     x0[0] = 1.0;
     x0[1] = 2.0;
     x0[2] = 4.5;
@@ -216,14 +216,14 @@ void example_lambda_adaptation() {
     std::cout << "  ↓ Decrease lambda when step is good (more Gauss-Newton)\n\n";
 
     // Simple quadratic
-    auto residual = [](const dp::mat::vector<double, 2> &x) {
-        dp::mat::vector<double, 2> r;
+    auto residual = [](const dp::mat::Vector<double, 2> &x) {
+        dp::mat::Vector<double, 2> r;
         r[0] = x[0] - 3.0;
         r[1] = x[1] + 2.0;
         return r;
     };
 
-    dp::mat::vector<double, 2> x0;
+    dp::mat::Vector<double, 2> x0;
     x0[0] = 10.0;
     x0[1] = 10.0;
 

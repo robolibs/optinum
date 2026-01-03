@@ -15,12 +15,12 @@ TEST_CASE("SWATS: Basic functionality") {
     swats.config.beta2 = 0.999;
     swats.config.min_adam_steps = 10;
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
-    dp::mat::vector<double, 3> grad;
+    dp::mat::Vector<double, 3> grad;
     grad[0] = 0.1;
     grad[1] = 0.2;
     grad[2] = 0.3;
@@ -43,11 +43,11 @@ TEST_CASE("SWATS: Adam phase behavior") {
     swats.config.beta2 = 0.999;
     swats.config.min_adam_steps = 100; // High threshold to stay in Adam
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 5.0;
     x[1] = -3.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 1.0;
     grad[1] = -0.5;
 
@@ -71,12 +71,12 @@ TEST_CASE("SWATS: Switching behavior") {
     swats.config.min_adam_steps = 10;
     swats.config.switch_threshold = 1.0; // High threshold to trigger switch easily
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 1.0;
 
     // Use constant gradient to make learning rate stabilize quickly
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 0.1;
     grad[1] = 0.1;
 
@@ -100,11 +100,11 @@ TEST_CASE("SWATS: SGD phase after switch") {
     swats.config.min_adam_steps = 5;
     swats.config.switch_threshold = 10.0; // Very high to switch quickly
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 10.0;
     x[1] = 10.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 1.0;
     grad[1] = 1.0;
 
@@ -137,11 +137,11 @@ TEST_CASE("SWATS: Reset functionality") {
     swats.config.min_adam_steps = 5;
     swats.config.switch_threshold = 10.0;
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 0.1;
     grad[1] = 0.2;
 
@@ -201,7 +201,7 @@ TEST_CASE("SWATS: With GradientDescent optimizer") {
 
     opti::Sphere<double, 2> sphere;
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 5.0;
     x[1] = -3.0;
 
@@ -221,8 +221,8 @@ TEST_CASE("SWATS: Higher dimensional optimization") {
 
     constexpr std::size_t dim = 10;
 
-    dp::mat::vector<double, dim> x;
-    dp::mat::vector<double, dim> grad;
+    dp::mat::Vector<double, dim> x;
+    dp::mat::Vector<double, dim> grad;
 
     // Compute initial norm squared
     double initial_norm_sq = 0.0;
@@ -255,8 +255,8 @@ TEST_CASE("SWATS: Dynamic vector support") {
     meta::SWATS<double> swats;
     swats.config.min_adam_steps = 10;
 
-    dp::mat::vector<double, dp::mat::Dynamic> x(5);
-    dp::mat::vector<double, dp::mat::Dynamic> grad(5);
+    dp::mat::Vector<double, dp::mat::Dynamic> x(5);
+    dp::mat::Vector<double, dp::mat::Dynamic> grad(5);
 
     for (std::size_t i = 0; i < 5; ++i) {
         x[i] = static_cast<double>(i + 1);
@@ -278,11 +278,11 @@ TEST_CASE("SWATS: Float type support") {
     swats.config.epsilon = 1e-7f;
     swats.config.min_adam_steps = 10;
 
-    dp::mat::vector<float, 2> x;
+    dp::mat::Vector<float, 2> x;
     x[0] = 5.0f;
     x[1] = -3.0f;
 
-    dp::mat::vector<float, 2> grad;
+    dp::mat::Vector<float, 2> grad;
     grad[0] = 0.5f;
     grad[1] = -0.3f;
 
@@ -302,11 +302,11 @@ TEST_CASE("SWATS: Min adam steps respected") {
     swats.config.min_adam_steps = 50;
     swats.config.switch_threshold = 1000.0; // Very high to ensure switch would happen
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 1.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 0.1;
     grad[1] = 0.1;
 
@@ -325,11 +325,11 @@ TEST_CASE("SWATS: Learned learning rate is reasonable") {
     swats.config.min_adam_steps = 10;
     swats.config.switch_threshold = 10.0; // High to trigger switch
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 1.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 0.1;
     grad[1] = 0.1;
 

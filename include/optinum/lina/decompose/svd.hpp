@@ -28,9 +28,9 @@ namespace optinum::lina {
     } // namespace svd_detail
 
     template <typename T, std::size_t M, std::size_t N> struct SVD {
-        datapod::mat::matrix<T, M, M> u{};
-        datapod::mat::vector<T, svd_detail::min_v<M, N>> s{};
-        datapod::mat::matrix<T, N, N> vt{};
+        datapod::mat::Matrix<T, M, M> u{};
+        datapod::mat::Vector<T, svd_detail::min_v<M, N>> s{};
+        datapod::mat::Matrix<T, N, N> vt{};
         std::size_t sweeps = 0;
     };
 
@@ -140,7 +140,7 @@ namespace optinum::lina {
         } else {
             SVD<T, M, N> out;
             // Create working copy of input matrix
-            datapod::mat::matrix<T, M, N> b_pod;
+            datapod::mat::Matrix<T, M, N> b_pod;
             for (std::size_t i = 0; i < M * N; ++i)
                 b_pod[i] = a[i];
             simd::Matrix<T, M, N> b(b_pod);

@@ -25,7 +25,7 @@ constexpr std::size_t BENCH_ITERS = 100000;
 // Helper to measure iterations per second
 template <typename OptimizerType, std::size_t N> double bench_optimizer(OptimizerType &optimizer, std::size_t iters) {
     Sphere<double, N> sphere;
-    dp::mat::vector<double, N> x;
+    dp::mat::Vector<double, N> x;
 
     // Initialize to non-zero values
     for (std::size_t i = 0; i < N; ++i) {

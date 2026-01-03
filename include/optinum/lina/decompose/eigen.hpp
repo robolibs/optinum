@@ -17,8 +17,8 @@
 namespace optinum::lina {
 
     template <typename T, std::size_t N> struct EigenSym {
-        datapod::mat::vector<T, N> values{};
-        datapod::mat::matrix<T, N, N> vectors{}; // columns are eigenvectors
+        datapod::mat::Vector<T, N> values{};
+        datapod::mat::Matrix<T, N, N> vectors{}; // columns are eigenvectors
         std::size_t iterations = 0;
     };
 
@@ -98,7 +98,7 @@ namespace optinum::lina {
 
         EigenSym<T, N> out;
         // Create working copy of input matrix
-        datapod::mat::matrix<T, N, N> A_pod;
+        datapod::mat::Matrix<T, N, N> A_pod;
         for (std::size_t i = 0; i < N * N; ++i)
             A_pod[i] = a[i];
         simd::Matrix<T, N, N> A(A_pod);

@@ -16,7 +16,7 @@ constexpr double TOL = 1e-6;
 bool approx_equal(double a, double b, double tol = TOL) { return std::abs(a - b) < tol; }
 
 void test_is_finite() {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     for (std::size_t i = 0; i < 9; ++i)
         A[i] = 0.0;
     A(0, 0) = 1.0;
@@ -35,7 +35,7 @@ void test_is_finite() {
 }
 
 void test_log_det() {
-    dp::mat::matrix<double, 3, 3> I;
+    dp::mat::Matrix<double, 3, 3> I;
     for (std::size_t i = 0; i < 9; ++i)
         I[i] = 0.0;
     I(0, 0) = 1.0;
@@ -50,7 +50,7 @@ void test_log_det() {
 }
 
 void test_triangular_solve() {
-    dp::mat::matrix<double, 3, 3> L;
+    dp::mat::Matrix<double, 3, 3> L;
     L(0, 0) = 1.0;
     L(0, 1) = 0.0;
     L(0, 2) = 0.0;
@@ -60,7 +60,7 @@ void test_triangular_solve() {
     L(2, 0) = 4.0;
     L(2, 1) = 5.0;
     L(2, 2) = 6.0;
-    dp::mat::vector<double, 3> b;
+    dp::mat::Vector<double, 3> b;
     b[0] = 1.0;
     b[1] = 8.0;
     b[2] = 26.0;
@@ -74,7 +74,7 @@ void test_triangular_solve() {
 
 void test_expmat() {
     // exp(0) = I
-    dp::mat::matrix<double, 2, 2> Z;
+    dp::mat::Matrix<double, 2, 2> Z;
     Z(0, 0) = 0.0;
     Z(0, 1) = 0.0;
     Z(1, 0) = 0.0;

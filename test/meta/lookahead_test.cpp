@@ -17,12 +17,12 @@ TEST_CASE("Lookahead: Basic functionality") {
     lookahead.config.k = 5;
     lookahead.config.alpha = 0.5;
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
-    dp::mat::vector<double, 3> grad;
+    dp::mat::Vector<double, 3> grad;
     grad[0] = 0.1;
     grad[1] = 0.2;
     grad[2] = 0.3;
@@ -47,11 +47,11 @@ TEST_CASE("Lookahead: Slow weight interpolation") {
     lookahead.config.k = 2;
     lookahead.config.alpha = 0.5;
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 10.0;
     x[1] = 10.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 1.0;
     grad[1] = 1.0;
 
@@ -80,11 +80,11 @@ TEST_CASE("Lookahead: Reset functionality") {
     meta::Lookahead<opti::VanillaUpdate> lookahead;
     lookahead.config.k = 5;
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 0.1;
     grad[1] = 0.2;
 
@@ -109,12 +109,12 @@ TEST_CASE("Lookahead: With Adam update policy") {
     lookahead_adam.base.beta1 = 0.9;
     lookahead_adam.base.beta2 = 0.999;
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 5.0;
     x[1] = -3.0;
     x[2] = 2.0;
 
-    dp::mat::vector<double, 3> grad;
+    dp::mat::Vector<double, 3> grad;
     grad[0] = 1.0;
     grad[1] = -0.5;
     grad[2] = 0.3;
@@ -184,7 +184,7 @@ TEST_CASE("Lookahead: With GradientDescent optimizer") {
 
     opti::Sphere<double, 2> sphere;
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 5.0;
     x[1] = -3.0;
 
@@ -214,7 +214,7 @@ TEST_CASE("Lookahead: With GradientDescent and Adam") {
 
     opti::Sphere<double, 3> sphere;
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 5.0;
     x[1] = -3.0;
     x[2] = 2.0;
@@ -233,8 +233,8 @@ TEST_CASE("Lookahead: Dynamic vector support") {
     lookahead.config.k = 3;
     lookahead.config.alpha = 0.5;
 
-    dp::mat::vector<double, dp::mat::Dynamic> x(5);
-    dp::mat::vector<double, dp::mat::Dynamic> grad(5);
+    dp::mat::Vector<double, dp::mat::Dynamic> x(5);
+    dp::mat::Vector<double, dp::mat::Dynamic> grad(5);
 
     for (std::size_t i = 0; i < 5; ++i) {
         x[i] = static_cast<double>(i + 1);
@@ -257,11 +257,11 @@ TEST_CASE("Lookahead: Alpha parameter effect") {
         lookahead.config.k = 2;
         lookahead.config.alpha = 0.0;
 
-        dp::mat::vector<double, 2> x;
+        dp::mat::Vector<double, 2> x;
         x[0] = 10.0;
         x[1] = 10.0;
 
-        dp::mat::vector<double, 2> grad;
+        dp::mat::Vector<double, 2> grad;
         grad[0] = 1.0;
         grad[1] = 1.0;
 
@@ -281,11 +281,11 @@ TEST_CASE("Lookahead: Alpha parameter effect") {
         lookahead.config.k = 2;
         lookahead.config.alpha = 1.0;
 
-        dp::mat::vector<double, 2> x;
+        dp::mat::Vector<double, 2> x;
         x[0] = 10.0;
         x[1] = 10.0;
 
-        dp::mat::vector<double, 2> grad;
+        dp::mat::Vector<double, 2> grad;
         grad[0] = 1.0;
         grad[1] = 1.0;
 
@@ -304,11 +304,11 @@ TEST_CASE("Lookahead: K parameter effect") {
     lookahead.config.k = 10;
     lookahead.config.alpha = 0.5;
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 10.0;
     x[1] = 10.0;
 
-    dp::mat::vector<double, 2> grad;
+    dp::mat::Vector<double, 2> grad;
     grad[0] = 0.1;
     grad[1] = 0.1;
 
@@ -330,11 +330,11 @@ TEST_CASE("Lookahead: Float type support") {
     lookahead.config.k = 3;
     lookahead.config.alpha = 0.5;
 
-    dp::mat::vector<float, 2> x;
+    dp::mat::Vector<float, 2> x;
     x[0] = 5.0f;
     x[1] = -3.0f;
 
-    dp::mat::vector<float, 2> grad;
+    dp::mat::Vector<float, 2> grad;
     grad[0] = 0.5f;
     grad[1] = -0.3f;
 

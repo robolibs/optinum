@@ -12,7 +12,7 @@ namespace dp = datapod;
 namespace simd = optinum::simd;
 
 TEST_CASE("Vector - fill()") {
-    dp::mat::vector<float, 5> storage;
+    dp::mat::Vector<float, 5> storage;
     simd::Vector<float, 5> v(storage);
     v.fill(3.14f);
 
@@ -23,7 +23,7 @@ TEST_CASE("Vector - fill()") {
 
 TEST_CASE("Vector - iota()") {
     SUBCASE("iota() - default (0, 1, 2, ...)") {
-        dp::mat::vector<int, 6> storage;
+        dp::mat::Vector<int, 6> storage;
         simd::Vector<int, 6> v(storage);
         v.iota();
 
@@ -36,7 +36,7 @@ TEST_CASE("Vector - iota()") {
     }
 
     SUBCASE("iota(start) - custom start") {
-        dp::mat::vector<float, 5> storage;
+        dp::mat::Vector<float, 5> storage;
         simd::Vector<float, 5> v(storage);
         v.iota(10.0f);
 
@@ -48,7 +48,7 @@ TEST_CASE("Vector - iota()") {
     }
 
     SUBCASE("iota(start, step) - custom start and step") {
-        dp::mat::vector<double, 4> storage;
+        dp::mat::Vector<double, 4> storage;
         simd::Vector<double, 4> v(storage);
         v.iota(5.0, 2.5);
 
@@ -61,7 +61,7 @@ TEST_CASE("Vector - iota()") {
 
 TEST_CASE("Vector - zeros() via pod_type") {
     // dp::mat::vector default constructs to zeros
-    dp::mat::vector<double, 8> v{};
+    dp::mat::Vector<double, 8> v{};
 
     for (std::size_t i = 0; i < 8; ++i) {
         CHECK(v[i] == 0.0);
@@ -69,7 +69,7 @@ TEST_CASE("Vector - zeros() via pod_type") {
 }
 
 TEST_CASE("Vector - ones() via view fill") {
-    dp::mat::vector<float, 6> storage;
+    dp::mat::Vector<float, 6> storage;
     simd::Vector<float, 6> v(storage);
     v.fill(1.0f);
 
@@ -80,7 +80,7 @@ TEST_CASE("Vector - ones() via view fill") {
 
 TEST_CASE("Vector - arange() via iota") {
     SUBCASE("arange() - default") {
-        dp::mat::vector<int, 5> storage;
+        dp::mat::Vector<int, 5> storage;
         simd::Vector<int, 5> v(storage);
         v.iota();
 
@@ -92,7 +92,7 @@ TEST_CASE("Vector - arange() via iota") {
     }
 
     SUBCASE("arange(start)") {
-        dp::mat::vector<float, 4> storage;
+        dp::mat::Vector<float, 4> storage;
         simd::Vector<float, 4> v(storage);
         v.iota(10.0f);
 
@@ -103,7 +103,7 @@ TEST_CASE("Vector - arange() via iota") {
     }
 
     SUBCASE("arange(start, step)") {
-        dp::mat::vector<double, 3> storage;
+        dp::mat::Vector<double, 3> storage;
         simd::Vector<double, 3> v(storage);
         v.iota(2.0, 0.5);
 
@@ -115,7 +115,7 @@ TEST_CASE("Vector - arange() via iota") {
 
 TEST_CASE("Vector - reverse()") {
     SUBCASE("Reverse integers") {
-        dp::mat::vector<int, 5> storage;
+        dp::mat::Vector<int, 5> storage;
         simd::Vector<int, 5> v(storage);
         v.iota(); // [0, 1, 2, 3, 4]
         v.reverse();
@@ -128,7 +128,7 @@ TEST_CASE("Vector - reverse()") {
     }
 
     SUBCASE("Reverse floats") {
-        dp::mat::vector<float, 4> storage;
+        dp::mat::Vector<float, 4> storage;
         simd::Vector<float, 4> v(storage);
         v.iota(10.0f); // [10, 11, 12, 13]
         v.reverse();
@@ -140,7 +140,7 @@ TEST_CASE("Vector - reverse()") {
     }
 
     SUBCASE("Reverse even-sized vector") {
-        dp::mat::vector<int, 6> storage;
+        dp::mat::Vector<int, 6> storage;
         simd::Vector<int, 6> v(storage);
         v.iota(); // [0, 1, 2, 3, 4, 5]
         v.reverse();
@@ -159,7 +159,7 @@ TEST_CASE("Vector - reverse()") {
 // =============================================================================
 
 TEST_CASE("Matrix - fill()") {
-    dp::mat::matrix<double, 3, 4> storage;
+    dp::mat::Matrix<double, 3, 4> storage;
     simd::Matrix<double, 3, 4> m(storage);
     m.fill(2.71);
 
@@ -170,7 +170,7 @@ TEST_CASE("Matrix - fill()") {
 
 TEST_CASE("Matrix - iota()") {
     SUBCASE("iota() - default (0, 1, 2, ...)") {
-        dp::mat::matrix<int, 2, 3> storage;
+        dp::mat::Matrix<int, 2, 3> storage;
         simd::Matrix<int, 2, 3> m(storage);
         m.iota();
 
@@ -181,7 +181,7 @@ TEST_CASE("Matrix - iota()") {
     }
 
     SUBCASE("iota(start)") {
-        dp::mat::matrix<float, 2, 2> storage;
+        dp::mat::Matrix<float, 2, 2> storage;
         simd::Matrix<float, 2, 2> m(storage);
         m.iota(10.0f);
 
@@ -192,7 +192,7 @@ TEST_CASE("Matrix - iota()") {
     }
 
     SUBCASE("iota(start, step)") {
-        dp::mat::matrix<double, 3, 2> storage;
+        dp::mat::Matrix<double, 3, 2> storage;
         simd::Matrix<double, 3, 2> m(storage);
         m.iota(0.0, 0.5);
 
@@ -206,7 +206,7 @@ TEST_CASE("Matrix - iota()") {
 }
 
 TEST_CASE("Matrix - zeros() via pod_type") {
-    dp::mat::matrix<float, 3, 3> m{};
+    dp::mat::Matrix<float, 3, 3> m{};
 
     for (std::size_t i = 0; i < 9; ++i) {
         CHECK(m[i] == 0.0f);
@@ -214,7 +214,7 @@ TEST_CASE("Matrix - zeros() via pod_type") {
 }
 
 TEST_CASE("Matrix - ones() via fill") {
-    dp::mat::matrix<double, 2, 4> storage;
+    dp::mat::Matrix<double, 2, 4> storage;
     simd::Matrix<double, 2, 4> m(storage);
     m.fill(1.0);
 
@@ -225,7 +225,7 @@ TEST_CASE("Matrix - ones() via fill") {
 
 TEST_CASE("Matrix - arange() via iota") {
     SUBCASE("arange() - default") {
-        dp::mat::matrix<int, 2, 3> storage;
+        dp::mat::Matrix<int, 2, 3> storage;
         simd::Matrix<int, 2, 3> m(storage);
         m.iota();
 
@@ -235,7 +235,7 @@ TEST_CASE("Matrix - arange() via iota") {
     }
 
     SUBCASE("arange(start)") {
-        dp::mat::matrix<float, 2, 2> storage;
+        dp::mat::Matrix<float, 2, 2> storage;
         simd::Matrix<float, 2, 2> m(storage);
         m.iota(5.0f);
 
@@ -246,7 +246,7 @@ TEST_CASE("Matrix - arange() via iota") {
     }
 
     SUBCASE("arange(start, step)") {
-        dp::mat::matrix<double, 2, 2> storage;
+        dp::mat::Matrix<double, 2, 2> storage;
         simd::Matrix<double, 2, 2> m(storage);
         m.iota(10.0, 2.0);
 
@@ -258,7 +258,7 @@ TEST_CASE("Matrix - arange() via iota") {
 }
 
 TEST_CASE("Matrix - reverse()") {
-    dp::mat::matrix<int, 2, 3> storage;
+    dp::mat::Matrix<int, 2, 3> storage;
     simd::Matrix<int, 2, 3> m(storage);
     m.iota(); // [0, 1, 2, 3, 4, 5] in linear order
     m.reverse();
@@ -275,7 +275,7 @@ TEST_CASE("Matrix - random() manual") {
     std::mt19937 gen(42);
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
 
-    dp::mat::matrix<float, 5, 5> storage;
+    dp::mat::Matrix<float, 5, 5> storage;
     for (std::size_t i = 0; i < 25; ++i) {
         storage[i] = dis(gen);
     }
@@ -301,7 +301,7 @@ TEST_CASE("Matrix - randint() manual") {
     std::mt19937 gen(42);
     std::uniform_int_distribution<int> dis(0, 100);
 
-    dp::mat::matrix<int, 4, 4> storage;
+    dp::mat::Matrix<int, 4, 4> storage;
     for (std::size_t i = 0; i < 16; ++i) {
         storage[i] = dis(gen);
     }
@@ -314,7 +314,7 @@ TEST_CASE("Matrix - randint() manual") {
 
 TEST_CASE("Constexpr compatibility") {
     SUBCASE("Compile-time zeros") {
-        constexpr dp::mat::vector<int, 3> v{};
+        constexpr dp::mat::Vector<int, 3> v{};
         static_assert(v[0] == 0);
         static_assert(v[1] == 0);
         static_assert(v[2] == 0);
@@ -322,7 +322,7 @@ TEST_CASE("Constexpr compatibility") {
 
     SUBCASE("Compile-time ones - manual") {
         constexpr auto make_ones = []() constexpr {
-            dp::mat::vector<float, 2> v{};
+            dp::mat::Vector<float, 2> v{};
             v[0] = 1.0f;
             v[1] = 1.0f;
             return v;
@@ -334,7 +334,7 @@ TEST_CASE("Constexpr compatibility") {
 
     SUBCASE("Compile-time arange - manual") {
         constexpr auto make_arange = []() constexpr {
-            dp::mat::vector<int, 4> v{};
+            dp::mat::Vector<int, 4> v{};
             for (int i = 0; i < 4; ++i)
                 v[i] = i;
             return v;

@@ -7,7 +7,7 @@ using optinum::simd::Matrix;
 namespace dp = datapod;
 
 TEST_CASE("lina::transpose") {
-    dp::mat::matrix<int, 2, 3> a;
+    dp::mat::Matrix<int, 2, 3> a;
     a(0, 0) = 1;
     a(1, 0) = 4;
     a(0, 1) = 2;

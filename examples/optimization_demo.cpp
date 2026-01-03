@@ -29,7 +29,7 @@ int main() {
     optinum::opti::Sphere<double, 2> sphere;
 
     // Initial point - use dp::mat::vector for owning storage
-    dp::mat::vector<double, 2> x0{{5.0, 3.0}};
+    dp::mat::Vector<double, 2> x0{{5.0, 3.0}};
 
     std::cout << "   Initial point: [" << x0[0] << ", " << x0[1] << "]\n";
     std::cout << "   Initial cost:  " << sphere.evaluate(x0) << "\n\n";
@@ -54,7 +54,7 @@ int main() {
 
     // Define custom function inline
     struct CustomQuadratic {
-        using tensor_type = dp::mat::vector<double, 2>;
+        using tensor_type = dp::mat::Vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -74,7 +74,7 @@ int main() {
     };
 
     CustomQuadratic custom_func;
-    dp::mat::vector<double, 2> x1{{0.0, 0.0}};
+    dp::mat::Vector<double, 2> x1{{0.0, 0.0}};
 
     std::cout << "   Initial point: [" << x1[0] << ", " << x1[1] << "]\n";
     std::cout << "   Initial cost:  " << custom_func.evaluate(x1) << "\n\n";
@@ -102,7 +102,7 @@ int main() {
     gd_10d.max_iterations = 2000;
     gd_10d.tolerance = 1e-6;
 
-    dp::mat::vector<double, 10> x10;
+    dp::mat::Vector<double, 10> x10;
     for (std::size_t i = 0; i < 10; ++i) {
         x10[i] = static_cast<double>(i) - 5.0; // [-5, -4, ..., 4]
     }
@@ -125,7 +125,7 @@ int main() {
     std::cout << "4. Optimization with Early Stopping\n";
     std::cout << "   Stop when objective < 1.0\n\n";
 
-    dp::mat::vector<double, 2> x_callback{{10.0, 10.0}};
+    dp::mat::Vector<double, 2> x_callback{{10.0, 10.0}};
     optinum::opti::EarlyStoppingCallback<double> callback(1.0); // Stop at f < 1.0
 
     auto result4 = gd.optimize(sphere, x_callback, callback);

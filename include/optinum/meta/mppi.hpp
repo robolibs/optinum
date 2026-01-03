@@ -40,7 +40,7 @@ namespace optinum::meta {
      * Result of MPPI optimization step
      */
     template <typename T> struct MPPIResult {
-        dp::mat::vector<T, dp::mat::Dynamic> optimal_control; ///< First control in optimized sequence
+        dp::mat::Vector<T, dp::mat::Dynamic> optimal_control; ///< First control in optimized sequence
         T best_cost;                                          ///< Cost of best sampled trajectory
         std::size_t iterations;                               ///< Number of optimization iterations
         bool valid;                                           ///< Whether optimization succeeded
@@ -58,7 +58,7 @@ namespace optinum::meta {
      *
      * // Define dynamics: x_{t+1} = f(x_t, u_t)
      * auto dynamics = [](const auto& state, const auto& control) {
-     *     dp::mat::vector<double, dp::mat::Dynamic> next_state(state.size());
+     *     dp::mat::Vector<double, dp::mat::Dynamic> next_state(state.size());
      *     // ... integrate dynamics ...
      *     return next_state;
      * };
@@ -94,8 +94,8 @@ namespace optinum::meta {
          * Control bounds for clamping
          */
         struct Bounds {
-            dp::mat::vector<T, dp::mat::Dynamic> lower; ///< Lower bounds for each control dimension
-            dp::mat::vector<T, dp::mat::Dynamic> upper; ///< Upper bounds for each control dimension
+            dp::mat::Vector<T, dp::mat::Dynamic> lower; ///< Lower bounds for each control dimension
+            dp::mat::Vector<T, dp::mat::Dynamic> upper; ///< Upper bounds for each control dimension
 
             bool valid() const { return lower.size() > 0 && lower.size() == upper.size(); }
         };
@@ -122,7 +122,7 @@ namespace optinum::meta {
             // Initialize mean control sequence to zeros
             mean_controls_.resize(config.horizon);
             for (std::size_t t = 0; t < config.horizon; ++t) {
-                mean_controls_[t] = dp::mat::vector<T, dp::mat::Dynamic>(config.control_dim);
+                mean_controls_[t] = dp::mat::Vector<T, dp::mat::Dynamic>(config.control_dim);
                 mean_controls_[t].fill(T{0});
             }
 
@@ -152,7 +152,7 @@ namespace optinum::meta {
          */
         template <typename Dynamics, typename Cost>
         MPPIResult<T> step(Dynamics &&dynamics, Cost &&cost,
-                           const dp::mat::vector<T, dp::mat::Dynamic> &initial_state) {
+                           const dp::mat::Vector<T, dp::mat::Dynamic> &initial_state) {
             const std::size_t state_dim = initial_state.size();
 
             // Auto-detect control dimension from first dynamics call if needed
@@ -184,7 +184,7 @@ namespace optinum::meta {
 
             // Storage for sampled noise and costs
             // noise_samples[k][t] = noise vector for sample k at time t
-            std::vector<std::vector<dp::mat::vector<T, dp::mat::Dynamic>>> noise_samples(K);
+            std::vector<std::vector<dp::mat::Vector<T, dp::mat::Dynamic>>> noise_samples(K);
             std::vector<T> costs(K, T{0});
 
             // Best trajectory tracking
@@ -196,20 +196,20 @@ namespace optinum::meta {
                 noise_samples[k].resize(H);
 
                 // Initialize state for this rollout (SIMD copy)
-                dp::mat::vector<T, dp::mat::Dynamic> state(initial_state.size());
+                dp::mat::Vector<T, dp::mat::Dynamic> state(initial_state.size());
                 simd::backend::copy_runtime<T>(state.data(), initial_state.data(), state_dim);
                 T trajectory_cost = T{0};
 
                 // Rollout trajectory
                 for (std::size_t t = 0; t < H; ++t) {
                     // Sample control noise
-                    noise_samples[k][t] = dp::mat::vector<T, dp::mat::Dynamic>(control_dim);
+                    noise_samples[k][t] = dp::mat::Vector<T, dp::mat::Dynamic>(control_dim);
                     for (std::size_t d = 0; d < control_dim; ++d) {
                         noise_samples[k][t][d] = noise_dist(rng);
                     }
 
                     // Compute noisy control: u = mean + noise (SIMD-optimized)
-                    dp::mat::vector<T, dp::mat::Dynamic> control(control_dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> control(control_dim);
                     simd::backend::add_runtime<T>(control.data(), mean_controls_[t].data(), noise_samples[k][t].data(),
                                                   control_dim);
 
@@ -262,7 +262,7 @@ namespace optinum::meta {
 
             // Update mean control sequence using weighted noise (SIMD-optimized)
             for (std::size_t t = 0; t < H; ++t) {
-                dp::mat::vector<T, dp::mat::Dynamic> delta_u(control_dim);
+                dp::mat::Vector<T, dp::mat::Dynamic> delta_u(control_dim);
                 simd::backend::fill_runtime<T>(delta_u.data(), control_dim, T{0});
 
                 for (std::size_t k = 0; k < K; ++k) {
@@ -284,7 +284,7 @@ namespace optinum::meta {
             }
 
             // Extract first control (receding horizon)
-            dp::mat::vector<T, dp::mat::Dynamic> optimal_control = mean_controls_[0];
+            dp::mat::Vector<T, dp::mat::Dynamic> optimal_control = mean_controls_[0];
 
             // Shift control sequence for next iteration (warm start)
             if (config.warm_start) {
@@ -316,7 +316,7 @@ namespace optinum::meta {
          */
         template <typename Dynamics, typename Cost>
         MPPIResult<T> optimize(Dynamics &&dynamics, Cost &&cost,
-                               const dp::mat::vector<T, dp::mat::Dynamic> &initial_state,
+                               const dp::mat::Vector<T, dp::mat::Dynamic> &initial_state,
                                std::size_t num_iterations = 1) {
             MPPIResult<T> result{{}, std::numeric_limits<T>::max(), 0, false};
 
@@ -336,7 +336,7 @@ namespace optinum::meta {
          *
          * @return Vector of control vectors for each time step
          */
-        const std::vector<dp::mat::vector<T, dp::mat::Dynamic>> &get_control_sequence() const { return mean_controls_; }
+        const std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> &get_control_sequence() const { return mean_controls_; }
 
         /**
          * Get the cost history (if tracking enabled)
@@ -350,7 +350,7 @@ namespace optinum::meta {
          *
          * @param controls Initial control sequence
          */
-        void set_control_sequence(const std::vector<dp::mat::vector<T, dp::mat::Dynamic>> &controls) {
+        void set_control_sequence(const std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> &controls) {
             mean_controls_ = controls;
             if (!controls.empty()) {
                 config.horizon = controls.size();
@@ -360,7 +360,7 @@ namespace optinum::meta {
         }
 
       private:
-        std::vector<dp::mat::vector<T, dp::mat::Dynamic>> mean_controls_; ///< Mean control sequence
+        std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> mean_controls_; ///< Mean control sequence
         std::vector<T> history_;                                          ///< Best cost per iteration
         bool initialized_ = false;                                        ///< Whether controller is initialized
     };

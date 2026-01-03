@@ -10,7 +10,7 @@ namespace dp = datapod;
 
 TEST_CASE("lina::lstsq recovers exact solution for consistent overdetermined system") {
     // A (3x2), x (2), b = A x
-    dp::mat::matrix<double, 3, 2> a;
+    dp::mat::Matrix<double, 3, 2> a;
     a(0, 0) = 1.0;
     a(1, 0) = 2.0;
     a(2, 0) = 3.0;
@@ -18,7 +18,7 @@ TEST_CASE("lina::lstsq recovers exact solution for consistent overdetermined sys
     a(1, 1) = 5.0;
     a(2, 1) = 6.0;
 
-    dp::mat::vector<double, 2> x_true;
+    dp::mat::Vector<double, 2> x_true;
     x_true[0] = 1.0;
     x_true[1] = -1.0;
 

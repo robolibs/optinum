@@ -20,7 +20,7 @@ namespace dp = datapod;
  * Minimum at origin, gradient = x
  */
 template <typename T, std::size_t N> struct QuadraticFunction {
-    using vector_type = dp::mat::vector<T, N>;
+    using vector_type = dp::mat::Vector<T, N>;
 
     T evaluate(const vector_type &x) const {
         T sum = T(0);
@@ -48,7 +48,7 @@ template <typename T, std::size_t N> struct QuadraticFunction {
  * Minimum at (1, 1), challenging for optimization
  */
 struct RosenbrockFunction {
-    using vector_type = dp::mat::vector<double, 2>;
+    using vector_type = dp::mat::Vector<double, 2>;
 
     double evaluate(const vector_type &x) const {
         double a = 1.0 - x[0];
@@ -76,7 +76,7 @@ struct RosenbrockFunction {
  * Minimum at x = (1, 1, ..., 1)
  */
 template <typename T, std::size_t N> struct RosenbrockND {
-    using vector_type = dp::mat::vector<T, N>;
+    using vector_type = dp::mat::Vector<T, N>;
 
     T evaluate(const vector_type &x) const {
         const std::size_t n = x.size();
@@ -117,7 +117,7 @@ template <typename T, std::size_t N> struct RosenbrockND {
  * Minimum at (3, 0.5) with f = 0
  */
 struct BealeFunction {
-    using vector_type = dp::mat::vector<double, 2>;
+    using vector_type = dp::mat::Vector<double, 2>;
 
     double evaluate(const vector_type &x) const {
         double x0 = x[0], x1 = x[1];
@@ -154,7 +154,7 @@ struct BealeFunction {
  * Minimum at (1, 3) with f = 0
  */
 struct BoothFunction {
-    using vector_type = dp::mat::vector<double, 2>;
+    using vector_type = dp::mat::Vector<double, 2>;
 
     double evaluate(const vector_type &x) const {
         double a = x[0] + 2.0 * x[1] - 7.0;
@@ -180,7 +180,7 @@ struct BoothFunction {
 // =============================================================================
 
 TEST_CASE("LBFGS - Quadratic function (2D)") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     LBFGS<double> optimizer;
 
@@ -188,7 +188,7 @@ TEST_CASE("LBFGS - Quadratic function (2D)") {
     optimizer.gradient_tolerance = 1e-8;
 
     SUBCASE("Starting from (1, 1)") {
-        Vec2 x0(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -199,7 +199,7 @@ TEST_CASE("LBFGS - Quadratic function (2D)") {
     }
 
     SUBCASE("Starting from (5, -3)") {
-        Vec2 x0(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{5.0, -3.0});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -208,7 +208,7 @@ TEST_CASE("LBFGS - Quadratic function (2D)") {
     }
 
     SUBCASE("Starting from origin (already optimal)") {
-        Vec2 x0(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{0.0, 0.0});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -218,7 +218,7 @@ TEST_CASE("LBFGS - Quadratic function (2D)") {
 
 TEST_CASE("LBFGS - Quadratic function (higher dimensions)") {
     SUBCASE("5D quadratic") {
-        using Vec5 = dp::mat::vector<double, 5>;
+        using Vec5 = dp::mat::Vector<double, 5>;
         QuadraticFunction<double, 5> func;
         LBFGS<double> optimizer;
         optimizer.gradient_tolerance = 1e-8;
@@ -237,7 +237,7 @@ TEST_CASE("LBFGS - Quadratic function (higher dimensions)") {
     }
 
     SUBCASE("10D quadratic") {
-        using Vec10 = dp::mat::vector<double, 10>;
+        using Vec10 = dp::mat::Vector<double, 10>;
         QuadraticFunction<double, 10> func;
         LBFGS<double> optimizer;
         optimizer.gradient_tolerance = 1e-8;
@@ -257,7 +257,7 @@ TEST_CASE("LBFGS - Quadratic function (higher dimensions)") {
 }
 
 TEST_CASE("LBFGS - Rosenbrock function (2D)") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     RosenbrockFunction func;
     LBFGS<double> optimizer;
 
@@ -266,7 +266,7 @@ TEST_CASE("LBFGS - Rosenbrock function (2D)") {
     optimizer.history_size = 10;
 
     SUBCASE("Starting from (-1, 1)") {
-        Vec2 x0(dp::mat::vector<double, 2>{-1.0, 1.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{-1.0, 1.0});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -276,7 +276,7 @@ TEST_CASE("LBFGS - Rosenbrock function (2D)") {
     }
 
     SUBCASE("Starting from (0, 0)") {
-        Vec2 x0(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{0.0, 0.0});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -285,7 +285,7 @@ TEST_CASE("LBFGS - Rosenbrock function (2D)") {
     }
 
     SUBCASE("Starting from (-2, 2)") {
-        Vec2 x0(dp::mat::vector<double, 2>{-2.0, 2.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{-2.0, 2.0});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -295,14 +295,14 @@ TEST_CASE("LBFGS - Rosenbrock function (2D)") {
 }
 
 TEST_CASE("LBFGS - Booth function") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     BoothFunction func;
     LBFGS<double> optimizer;
 
     optimizer.max_iterations = 100;
     optimizer.gradient_tolerance = 1e-8;
 
-    Vec2 x0(dp::mat::vector<double, 2>{0.0, 0.0});
+    Vec2 x0(dp::mat::Vector<double, 2>{0.0, 0.0});
     auto result = optimizer.optimize(func, x0);
 
     CHECK(result.converged);
@@ -312,14 +312,14 @@ TEST_CASE("LBFGS - Booth function") {
 }
 
 TEST_CASE("LBFGS - Beale function") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     BealeFunction func;
     LBFGS<double> optimizer;
 
     optimizer.max_iterations = 200;
     optimizer.gradient_tolerance = 1e-6;
 
-    Vec2 x0(dp::mat::vector<double, 2>{0.0, 0.0});
+    Vec2 x0(dp::mat::Vector<double, 2>{0.0, 0.0});
     auto result = optimizer.optimize(func, x0);
 
     CHECK(result.converged);
@@ -333,10 +333,10 @@ TEST_CASE("LBFGS - Beale function") {
 // =============================================================================
 
 TEST_CASE("LBFGS - History size variations") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     RosenbrockFunction func;
 
-    Vec2 x0(dp::mat::vector<double, 2>{-1.0, 1.0});
+    Vec2 x0(dp::mat::Vector<double, 2>{-1.0, 1.0});
 
     SUBCASE("Small history (m=3)") {
         LBFGS<double> optimizer;
@@ -373,10 +373,10 @@ TEST_CASE("LBFGS - History size variations") {
 }
 
 TEST_CASE("LBFGS - Line search type") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     RosenbrockFunction func;
 
-    Vec2 x0(dp::mat::vector<double, 2>{-1.0, 1.0});
+    Vec2 x0(dp::mat::Vector<double, 2>{-1.0, 1.0});
 
     SUBCASE("Wolfe line search (default)") {
         LBFGS<double> optimizer;
@@ -404,7 +404,7 @@ TEST_CASE("LBFGS - Line search type") {
 // =============================================================================
 
 TEST_CASE("LBFGS - Dynamic vectors") {
-    using VecDyn = dp::mat::vector<double, dp::mat::Dynamic>;
+    using VecDyn = dp::mat::Vector<double, dp::mat::Dynamic>;
     QuadraticFunction<double, dp::mat::Dynamic> func;
     LBFGS<double> optimizer;
 
@@ -440,7 +440,7 @@ TEST_CASE("LBFGS - Dynamic vectors") {
 }
 
 TEST_CASE("LBFGS - Dynamic Rosenbrock") {
-    using VecDyn = dp::mat::vector<double, dp::mat::Dynamic>;
+    using VecDyn = dp::mat::Vector<double, dp::mat::Dynamic>;
     RosenbrockND<double, dp::mat::Dynamic> func;
     LBFGS<double> optimizer;
 
@@ -466,13 +466,13 @@ TEST_CASE("LBFGS - Dynamic Rosenbrock") {
 // =============================================================================
 
 TEST_CASE("LBFGS - Float precision") {
-    using Vec2 = dp::mat::vector<float, 2>;
+    using Vec2 = dp::mat::Vector<float, 2>;
     QuadraticFunction<float, 2> func;
     LBFGS<float> optimizer;
 
     optimizer.gradient_tolerance = 1e-5f;
 
-    Vec2 x0(dp::mat::vector<float, 2>{1.0f, 1.0f});
+    Vec2 x0(dp::mat::Vector<float, 2>{1.0f, 1.0f});
     auto result = optimizer.optimize(func, x0);
 
     CHECK(result.converged);
@@ -485,13 +485,13 @@ TEST_CASE("LBFGS - Float precision") {
 // =============================================================================
 
 TEST_CASE("LBFGS - Sphere function") {
-    using Vec3 = dp::mat::vector<double, 3>;
+    using Vec3 = dp::mat::Vector<double, 3>;
     Sphere<double, 3> sphere;
     LBFGS<double> optimizer;
 
     optimizer.gradient_tolerance = 1e-8;
 
-    Vec3 x0(dp::mat::vector<double, 3>{2.0, -1.0, 3.0});
+    Vec3 x0(dp::mat::Vector<double, 3>{2.0, -1.0, 3.0});
     auto result = optimizer.optimize(sphere, x0);
 
     CHECK(result.converged);
@@ -507,10 +507,10 @@ TEST_CASE("LBFGS - Sphere function") {
 // =============================================================================
 
 TEST_CASE("LBFGS - Convergence criteria") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
 
-    Vec2 x0(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x0(dp::mat::Vector<double, 2>{1.0, 1.0});
 
     SUBCASE("Gradient tolerance") {
         LBFGS<double> optimizer;
@@ -552,7 +552,7 @@ TEST_CASE("LBFGS - Convergence criteria") {
 // =============================================================================
 
 TEST_CASE("LBFGS - Edge cases") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     LBFGS<double> optimizer;
 
@@ -562,7 +562,7 @@ TEST_CASE("LBFGS - Edge cases") {
         optimizer.function_tolerance = 1e-20; // Very tight
         optimizer.step_tolerance = 1e-20;     // Very tight
 
-        Vec2 x0(dp::mat::vector<double, 2>{100.0, 100.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{100.0, 100.0});
         auto result = optimizer.optimize(func, x0);
 
         // L-BFGS converges very fast on quadratic, so it may converge in 2 iterations
@@ -573,7 +573,7 @@ TEST_CASE("LBFGS - Edge cases") {
     SUBCASE("Very small initial point") {
         optimizer.gradient_tolerance = 1e-10;
 
-        Vec2 x0(dp::mat::vector<double, 2>{1e-8, 1e-8});
+        Vec2 x0(dp::mat::Vector<double, 2>{1e-8, 1e-8});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -583,7 +583,7 @@ TEST_CASE("LBFGS - Edge cases") {
         optimizer.gradient_tolerance = 1e-6;
         optimizer.max_iterations = 100;
 
-        Vec2 x0(dp::mat::vector<double, 2>{1000.0, -1000.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{1000.0, -1000.0});
         auto result = optimizer.optimize(func, x0);
 
         CHECK(result.converged);
@@ -597,7 +597,7 @@ TEST_CASE("LBFGS - Edge cases") {
 // =============================================================================
 
 TEST_CASE("LBFGS - Callback functionality") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     QuadraticFunction<double, 2> func;
     LBFGS<double> optimizer;
 
@@ -624,7 +624,7 @@ TEST_CASE("LBFGS - Callback functionality") {
         bool end_called = false;
 
         CountingCallback callback{&count, &begin_called, &end_called};
-        Vec2 x0(dp::mat::vector<double, 2>{5.0, 5.0}); // Farther from optimum
+        Vec2 x0(dp::mat::Vector<double, 2>{5.0, 5.0}); // Farther from optimum
         auto result = optimizer.optimize(func, x0, callback);
 
         CHECK(begin_called);
@@ -659,7 +659,7 @@ TEST_CASE("LBFGS - Callback functionality") {
         std::size_t last_iteration = 0;
         EarlyStopCallback callback{&last_iteration};
         // Start far from optimum to ensure we need multiple iterations
-        Vec2 x0(dp::mat::vector<double, 2>{-5.0, 5.0});
+        Vec2 x0(dp::mat::Vector<double, 2>{-5.0, 5.0});
         auto result = lbfgs_opt.optimize(rosenbrock, x0, callback);
 
         // The callback should have stopped the optimizer
@@ -674,10 +674,10 @@ TEST_CASE("LBFGS - Callback functionality") {
 // =============================================================================
 
 TEST_CASE("LBFGS - Faster than gradient descent") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     RosenbrockFunction func;
 
-    Vec2 x0(dp::mat::vector<double, 2>{-1.0, 1.0});
+    Vec2 x0(dp::mat::Vector<double, 2>{-1.0, 1.0});
 
     // L-BFGS should converge in far fewer iterations than gradient descent
     LBFGS<double> lbfgs;

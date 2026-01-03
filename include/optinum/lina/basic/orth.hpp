@@ -27,7 +27,7 @@ namespace optinum::lina {
      * @return Matrix whose columns are orthonormal basis (M x r)
      */
     template <typename T, std::size_t M, std::size_t N>
-    [[nodiscard]] datapod::mat::matrix<T, M, M> orth(const simd::Matrix<T, M, N> &a, T tol = T{-1}) noexcept {
+    [[nodiscard]] datapod::mat::Matrix<T, M, M> orth(const simd::Matrix<T, M, N> &a, T tol = T{-1}) noexcept {
         static_assert(std::is_floating_point_v<T>, "orth() requires floating-point type");
 
         // Compute QR decomposition
@@ -37,7 +37,7 @@ namespace optinum::lina {
         std::size_t r = rank(a, tol);
 
         // Extract first r columns of Q
-        datapod::mat::matrix<T, M, M> basis{};
+        datapod::mat::Matrix<T, M, M> basis{};
         for (std::size_t i = 0; i < M; ++i) {
             for (std::size_t j = 0; j < r; ++j) {
                 basis(i, j) = qr_result.q(i, j); // lowercase q

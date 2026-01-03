@@ -64,8 +64,8 @@ namespace optinum::opti {
      *
      * @example
      * // Residual function: curve fitting
-     * auto residual = [&data](const dp::mat::vector<double, 3>& params) {
-     *     dp::mat::vector<double, Dynamic> r;
+     * auto residual = [&data](const dp::mat::Vector<double, 3>& params) {
+     *     dp::mat::Vector<double, Dynamic> r;
      *     r.resize(data.size());
      *     for (size_t i = 0; i < data.size(); ++i) {
      *         double y_pred = params[0] * exp(-params[1] * data[i].x) + params[2];
@@ -79,7 +79,7 @@ namespace optinum::opti {
      * gn.tolerance = 1e-8;
      * gn.use_line_search = true;
      *
-     * dp::mat::vector<double, 3> x0{1.0, 1.0, 0.0};
+     * dp::mat::Vector<double, 3> x0{1.0, 1.0, 0.0};
      * auto result = gn.optimize(residual, x0);
      */
     template <typename T = double> class GaussNewton {
@@ -138,7 +138,7 @@ namespace optinum::opti {
          * @brief Optimize a residual function starting from initial point
          *
          * @param residual_func Residual function f: R^n -> R^m
-         *                      Must accept dp::mat::vector<T,N> and return dp::mat::vector<T,M>
+         *                      Must accept dp::mat::Vector<T,N> and return dp::mat::Vector<T,M>
          * @param x_init Initial parameter vector (will NOT be modified)
          * @param callback Optional callback for monitoring
          * @return OptimizationResult with solution and diagnostics
@@ -146,9 +146,9 @@ namespace optinum::opti {
          * @note For analytical Jacobian, pass it via residual_func.jacobian() method
          */
         template <typename ResidualFunc, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(ResidualFunc &residual_func, const dp::mat::vector<T, N> &x_init,
+        OptimizationResult<T, N> optimize(ResidualFunc &residual_func, const dp::mat::Vector<T, N> &x_init,
                                           CallbackType callback = NoCallback{}) {
-            using vector_type = dp::mat::vector<T, N>;
+            using vector_type = dp::mat::Vector<T, N>;
 
             // Working variables
             vector_type x = x_init; // Current iterate
@@ -353,8 +353,8 @@ namespace optinum::opti {
          * @brief Compute Jacobian matrix numerically using finite differences
          */
         template <typename ResidualFunc, std::size_t N>
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> compute_jacobian(ResidualFunc &residual_func,
-                                                                                const dp::mat::vector<T, N> &x) {
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> compute_jacobian(ResidualFunc &residual_func,
+                                                                                const dp::mat::Vector<T, N> &x) {
             // Check if function provides analytical Jacobian
             if constexpr (requires { residual_func.jacobian(x); }) {
                 return residual_func.jacobian(x);
@@ -367,7 +367,7 @@ namespace optinum::opti {
         /**
          * @brief Compute squared error ||r||^2 / 2 (SIMD-optimized)
          */
-        template <std::size_t M> T compute_squared_error(const dp::mat::vector<T, M> &r) {
+        template <std::size_t M> T compute_squared_error(const dp::mat::Vector<T, M> &r) {
             // Use SIMD dot product: ||r||^2 = r · r
             T sum = simd::backend::dot_runtime<T>(r.data(), r.data(), r.size());
             return sum / T(2); // Factor of 1/2 for gradient consistency
@@ -380,12 +380,12 @@ namespace optinum::opti {
          * For column-major storage, J[:,i] is contiguous, so we use SIMD dot.
          */
         template <std::size_t N, std::size_t M>
-        dp::mat::vector<T, N> compute_gradient(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
-                                               const dp::mat::vector<T, M> &r) {
+        dp::mat::Vector<T, N> compute_gradient(const dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
+                                               const dp::mat::Vector<T, M> &r) {
             const std::size_t m = J.rows();
             const std::size_t n = J.cols();
 
-            dp::mat::vector<T, N> g;
+            dp::mat::Vector<T, N> g;
             if constexpr (N == dp::mat::Dynamic) {
                 g.resize(n);
             }
@@ -414,13 +414,13 @@ namespace optinum::opti {
          * @return Solution vector if successful, std::nullopt on failure
          */
         template <std::size_t N, std::size_t M>
-        std::optional<dp::mat::vector<T, N>>
-        solve_linear_system(const dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
-                            const dp::mat::vector<T, M> &r, std::string &error_msg) {
+        std::optional<dp::mat::Vector<T, N>>
+        solve_linear_system(const dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> &J,
+                            const dp::mat::Vector<T, M> &r, std::string &error_msg) {
             const std::size_t m = J.rows();
             const std::size_t n = J.cols();
 
-            dp::mat::vector<T, N> dx;
+            dp::mat::Vector<T, N> dx;
             if constexpr (N == dp::mat::Dynamic) {
                 dx.resize(n);
             }
@@ -436,7 +436,7 @@ namespace optinum::opti {
                 }
 
                 // Build J^T * J using column-wise operations (more cache-friendly)
-                dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> A(n, n);
+                dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> A(n, n);
                 if (verbose) {
                     std::cout << "A created: " << A.rows() << "x" << A.cols() << std::endl;
                 }
@@ -476,7 +476,7 @@ namespace optinum::opti {
                 if (verbose) {
                     std::cout << "Building Jtr..." << std::endl;
                 }
-                dp::mat::vector<T, dp::mat::Dynamic> b;
+                dp::mat::Vector<T, dp::mat::Dynamic> b;
                 b.resize(n);
                 if (verbose) {
                     std::cout << "b resized to " << b.size() << std::endl;
@@ -577,9 +577,9 @@ namespace optinum::opti {
          * @return Step size alpha, updates x_new and new_error
          */
         template <typename ResidualFunc, std::size_t N, std::size_t M>
-        T line_search(ResidualFunc &residual_func, const dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &dx,
-                      const dp::mat::vector<T, M> &r, T current_error, const dp::mat::vector<T, N> &gradient,
-                      dp::mat::vector<T, N> &x_new, T &new_error) {
+        T line_search(ResidualFunc &residual_func, const dp::mat::Vector<T, N> &x, const dp::mat::Vector<T, N> &dx,
+                      const dp::mat::Vector<T, M> &r, T current_error, const dp::mat::Vector<T, N> &gradient,
+                      dp::mat::Vector<T, N> &x_new, T &new_error) {
             T alpha = line_search_alpha;
 
             // Compute directional derivative g^T * dx

@@ -8,7 +8,7 @@ using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("AdaDeltaUpdate - Sphere function 2D") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
 
     Sphere<double, 2> sphere;
     GradientDescent<AdaDeltaUpdate> gd;
@@ -19,7 +19,7 @@ TEST_CASE("AdaDeltaUpdate - Sphere function 2D") {
     gd.tolerance = 1e-6;
 
     SUBCASE("Converge from (1, 1)") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -30,7 +30,7 @@ TEST_CASE("AdaDeltaUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Converge from (5, -3)") {
-        Vec2 x(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x(dp::mat::Vector<double, 2>{5.0, -3.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -40,7 +40,7 @@ TEST_CASE("AdaDeltaUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Already at minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x(dp::mat::Vector<double, 2>{0.0, 0.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -50,7 +50,7 @@ TEST_CASE("AdaDeltaUpdate - Sphere function 2D") {
 }
 
 TEST_CASE("AdaDeltaUpdate - Sphere function 3D") {
-    using Vec3 = dp::mat::vector<double, 3>;
+    using Vec3 = dp::mat::Vector<double, 3>;
 
     Sphere<double, 3> sphere;
     GradientDescent<AdaDeltaUpdate> gd;
@@ -59,7 +59,7 @@ TEST_CASE("AdaDeltaUpdate - Sphere function 3D") {
     gd.max_iterations = 2000;
     gd.tolerance = 1e-6;
 
-    Vec3 x(dp::mat::vector<double, 3>{2.0, -1.0, 3.0});
+    Vec3 x(dp::mat::Vector<double, 3>{2.0, -1.0, 3.0});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -70,7 +70,7 @@ TEST_CASE("AdaDeltaUpdate - Sphere function 3D") {
 }
 
 TEST_CASE("AdaDeltaUpdate - Sphere function 10D") {
-    using Vec10 = dp::mat::vector<double, 10>;
+    using Vec10 = dp::mat::Vector<double, 10>;
 
     Sphere<double, 10> sphere;
     GradientDescent<AdaDeltaUpdate> gd;
@@ -95,7 +95,7 @@ TEST_CASE("AdaDeltaUpdate - Sphere function 10D") {
 }
 
 TEST_CASE("AdaDeltaUpdate - No learning rate required") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaDelta should work regardless of step_size value
@@ -106,7 +106,7 @@ TEST_CASE("AdaDeltaUpdate - No learning rate required") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -119,7 +119,7 @@ TEST_CASE("AdaDeltaUpdate - No learning rate required") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -128,7 +128,7 @@ TEST_CASE("AdaDeltaUpdate - No learning rate required") {
 }
 
 TEST_CASE("AdaDeltaUpdate - Different rho values") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Default rho (0.95)") {
@@ -136,7 +136,7 @@ TEST_CASE("AdaDeltaUpdate - Different rho values") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -148,7 +148,7 @@ TEST_CASE("AdaDeltaUpdate - Different rho values") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -160,7 +160,7 @@ TEST_CASE("AdaDeltaUpdate - Different rho values") {
         gd.max_iterations = 3000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -168,7 +168,7 @@ TEST_CASE("AdaDeltaUpdate - Different rho values") {
 }
 
 TEST_CASE("AdaDeltaUpdate - Float precision") {
-    using Vec2 = dp::mat::vector<float, 2>;
+    using Vec2 = dp::mat::Vector<float, 2>;
 
     Sphere<float, 2> sphere;
     GradientDescent<AdaDeltaUpdate> gd;
@@ -177,7 +177,7 @@ TEST_CASE("AdaDeltaUpdate - Float precision") {
     gd.max_iterations = 2000;
     gd.tolerance = 1e-5f;
 
-    Vec2 x(dp::mat::vector<float, 2>{1.0f, 1.0f});
+    Vec2 x(dp::mat::Vector<float, 2>{1.0f, 1.0f});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -190,7 +190,7 @@ TEST_CASE("AdaDeltaUpdate - Custom quadratic function") {
     // Custom quadratic: f(x, y) = (x - 2)^2 + (y + 3)^2
     // Minimum at (2, -3)
     struct CustomQuadratic {
-        using tensor_type = dp::mat::vector<double, 2>;
+        using tensor_type = dp::mat::Vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -216,7 +216,7 @@ TEST_CASE("AdaDeltaUpdate - Custom quadratic function") {
     gd.max_iterations = 2000;
     gd.tolerance = 1e-6;
 
-    dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
+    dp::mat::Vector<double, 2> x(dp::mat::Vector<double, 2>{0.0, 0.0});
     auto result = gd.optimize(func, x);
 
     CHECK(result.converged);
@@ -226,7 +226,7 @@ TEST_CASE("AdaDeltaUpdate - Custom quadratic function") {
 }
 
 TEST_CASE("AdaDeltaUpdate - Reset behavior") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<AdaDeltaUpdate> gd;
@@ -236,12 +236,12 @@ TEST_CASE("AdaDeltaUpdate - Reset behavior") {
     gd.reset_policy = true;
 
     // First optimization
-    Vec2 x1(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result1 = gd.optimize(sphere, x1);
     CHECK(result1.converged);
 
     // Second optimization (should behave the same due to reset)
-    Vec2 x2(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result2 = gd.optimize(sphere, x2);
     CHECK(result2.converged);
 
@@ -250,7 +250,7 @@ TEST_CASE("AdaDeltaUpdate - Reset behavior") {
 }
 
 TEST_CASE("AdaDeltaUpdate - Comparison with AdaGrad") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaDelta
@@ -259,7 +259,7 @@ TEST_CASE("AdaDeltaUpdate - Comparison with AdaGrad") {
     adadelta_gd.max_iterations = 2000;
     adadelta_gd.tolerance = 1e-6;
 
-    Vec2 x1(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto adadelta_result = adadelta_gd.optimize(sphere, x1);
 
     // AdaGrad
@@ -268,7 +268,7 @@ TEST_CASE("AdaDeltaUpdate - Comparison with AdaGrad") {
     adagrad_gd.max_iterations = 2000;
     adagrad_gd.tolerance = 1e-6;
 
-    Vec2 x2(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto adagrad_result = adagrad_gd.optimize(sphere, x2);
 
     // Both should converge
@@ -277,7 +277,7 @@ TEST_CASE("AdaDeltaUpdate - Comparison with AdaGrad") {
 }
 
 TEST_CASE("AdaDeltaUpdate - Robustness to initial conditions") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<AdaDeltaUpdate> gd;
@@ -286,7 +286,7 @@ TEST_CASE("AdaDeltaUpdate - Robustness to initial conditions") {
     gd.tolerance = 1e-6;
 
     SUBCASE("Far from minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{10.0, -10.0});
+        Vec2 x(dp::mat::Vector<double, 2>{10.0, -10.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -294,7 +294,7 @@ TEST_CASE("AdaDeltaUpdate - Robustness to initial conditions") {
     }
 
     SUBCASE("Very close to minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{0.01, -0.01});
+        Vec2 x(dp::mat::Vector<double, 2>{0.01, -0.01});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);

@@ -17,7 +17,7 @@ namespace dp = datapod;
 // =============================================================================
 
 TEST_CASE("complex_view - Construction and size queries") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[8];
     for (std::size_t i = 0; i < 8; ++i) {
@@ -43,7 +43,7 @@ TEST_CASE("complex_view - Construction and size queries") {
 }
 
 TEST_CASE("complex_view - Element access") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
 
@@ -73,7 +73,7 @@ TEST_CASE("complex_view - Element access") {
 // =============================================================================
 
 TEST_CASE("complex_view - Conjugate in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, -6.0}, {0.0, 1.0}};
 
@@ -94,7 +94,7 @@ TEST_CASE("complex_view - Conjugate in-place") {
 }
 
 TEST_CASE("complex_view - Normalize in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {
         {3.0, 4.0}, // magnitude = 5
@@ -123,7 +123,7 @@ TEST_CASE("complex_view - Normalize in-place") {
 }
 
 TEST_CASE("complex_view - Scale in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[2] = {{1.0, 2.0}, {3.0, 4.0}};
 
@@ -137,7 +137,7 @@ TEST_CASE("complex_view - Scale in-place") {
 }
 
 TEST_CASE("complex_view - Negate in-place") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[2] = {{1.0, 2.0}, {-3.0, 4.0}};
 
@@ -155,7 +155,7 @@ TEST_CASE("complex_view - Negate in-place") {
 // =============================================================================
 
 TEST_CASE("complex_view - Conjugate to output") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t input[2] = {{1.0, 2.0}, {3.0, -4.0}};
     complex_t output[2];
@@ -178,7 +178,7 @@ TEST_CASE("complex_view - Conjugate to output") {
 // =============================================================================
 
 TEST_CASE("complex_view - Addition") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t a[2] = {{1.0, 2.0}, {3.0, 4.0}};
     complex_t b[2] = {{5.0, 6.0}, {7.0, 8.0}};
@@ -195,7 +195,7 @@ TEST_CASE("complex_view - Addition") {
 }
 
 TEST_CASE("complex_view - Subtraction") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t a[2] = {{5.0, 6.0}, {7.0, 8.0}};
     complex_t b[2] = {{1.0, 2.0}, {3.0, 4.0}};
@@ -212,7 +212,7 @@ TEST_CASE("complex_view - Subtraction") {
 }
 
 TEST_CASE("complex_view - Multiplication") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // (1 + 2i) * (3 + 4i) = (1*3 - 2*4) + (1*4 + 2*3)i = -5 + 10i
     complex_t a[2] = {{1.0, 2.0}, {1.0, 0.0}};
@@ -232,7 +232,7 @@ TEST_CASE("complex_view - Multiplication") {
 }
 
 TEST_CASE("complex_view - Division") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // (3 + 4i) / (1 + 2i) = (3 + 4i)(1 - 2i) / (1 + 4) = (11 - 2i) / 5 = 2.2 - 0.4i
     complex_t a[2] = {{3.0, 4.0}, {1.0, 0.0}};
@@ -256,7 +256,7 @@ TEST_CASE("complex_view - Division") {
 // =============================================================================
 
 TEST_CASE("complex_view - Magnitudes") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {
         {3.0, 4.0}, // magnitude = 5
@@ -274,7 +274,7 @@ TEST_CASE("complex_view - Magnitudes") {
 }
 
 TEST_CASE("complex_view - Phases") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {
         {1.0, 0.0}, // phase = 0
@@ -292,7 +292,7 @@ TEST_CASE("complex_view - Phases") {
 }
 
 TEST_CASE("complex_view - Real and imaginary parts") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[3] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}};
     double reals[3], imags[3];
@@ -311,7 +311,7 @@ TEST_CASE("complex_view - Real and imaginary parts") {
 }
 
 TEST_CASE("complex_view - Sum") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[4] = {{1.0, 1.0}, {2.0, 2.0}, {3.0, 3.0}, {4.0, 4.0}};
 
@@ -323,7 +323,7 @@ TEST_CASE("complex_view - Sum") {
 }
 
 TEST_CASE("complex_view - Dot product (Hermitian)") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // Hermitian inner product: <a, b> = sum(conj(a) * b)
     complex_t a[2] = {{1.0, 0.0}, {0.0, 1.0}}; // [1, i]
@@ -343,7 +343,7 @@ TEST_CASE("complex_view - Dot product (Hermitian)") {
 // =============================================================================
 
 TEST_CASE("complex_view - Subview") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     complex_t data[8];
     for (std::size_t i = 0; i < 8; ++i) {
@@ -363,7 +363,7 @@ TEST_CASE("complex_view - Subview") {
 // =============================================================================
 
 TEST_CASE("complex_view - Tail handling") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     // 5 complex numbers (not a multiple of typical SIMD width 4)
     complex_t data[5] = {{3.0, 4.0}, {0.0, 2.0}, {1.0, 0.0}, {1.0, 1.0}, {5.0, 0.0}};
@@ -391,7 +391,7 @@ TEST_CASE("complex_view - Tail handling") {
 // =============================================================================
 
 TEST_CASE("Complex array view - Basic operations") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
 
     SUBCASE("Construction from raw pointer") {
         complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
@@ -403,7 +403,7 @@ TEST_CASE("Complex array view - Basic operations") {
     }
 
     SUBCASE("Construction from dp::mat::vector") {
-        dp::mat::vector<complex_t, 4> storage;
+        dp::mat::Vector<complex_t, 4> storage;
         storage[0] = {1.0, 2.0};
         storage[1] = {3.0, 4.0};
         storage[2] = {5.0, 6.0};

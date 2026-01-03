@@ -8,7 +8,7 @@ using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("GradientDescent - Sphere function 2D") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
 
     Sphere<double, 2> sphere;
     GradientDescent<> gd;
@@ -18,7 +18,7 @@ TEST_CASE("GradientDescent - Sphere function 2D") {
     gd.tolerance = 1e-6;
 
     SUBCASE("Converge from (1, 1)") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -29,7 +29,7 @@ TEST_CASE("GradientDescent - Sphere function 2D") {
     }
 
     SUBCASE("Converge from (5, -3)") {
-        Vec2 x(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x(dp::mat::Vector<double, 2>{5.0, -3.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -39,7 +39,7 @@ TEST_CASE("GradientDescent - Sphere function 2D") {
     }
 
     SUBCASE("Already at minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x(dp::mat::Vector<double, 2>{0.0, 0.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -49,7 +49,7 @@ TEST_CASE("GradientDescent - Sphere function 2D") {
 }
 
 TEST_CASE("GradientDescent - Sphere function 3D") {
-    using Vec3 = dp::mat::vector<double, 3>;
+    using Vec3 = dp::mat::Vector<double, 3>;
 
     Sphere<double, 3> sphere;
     GradientDescent<> gd;
@@ -58,7 +58,7 @@ TEST_CASE("GradientDescent - Sphere function 3D") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    Vec3 x(dp::mat::vector<double, 3>{2.0, -1.0, 3.0});
+    Vec3 x(dp::mat::Vector<double, 3>{2.0, -1.0, 3.0});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -69,7 +69,7 @@ TEST_CASE("GradientDescent - Sphere function 3D") {
 }
 
 TEST_CASE("GradientDescent - Sphere function 10D") {
-    using Vec10 = dp::mat::vector<double, 10>;
+    using Vec10 = dp::mat::Vector<double, 10>;
 
     Sphere<double, 10> sphere;
     GradientDescent<> gd;
@@ -94,7 +94,7 @@ TEST_CASE("GradientDescent - Sphere function 10D") {
 }
 
 TEST_CASE("GradientDescent - Step size effects") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Small step size (slow convergence)") {
@@ -103,7 +103,7 @@ TEST_CASE("GradientDescent - Step size effects") {
         gd.max_iterations = 5000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -116,7 +116,7 @@ TEST_CASE("GradientDescent - Step size effects") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -125,7 +125,7 @@ TEST_CASE("GradientDescent - Step size effects") {
 }
 
 TEST_CASE("GradientDescent - Max iterations") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;
@@ -145,7 +145,7 @@ TEST_CASE("GradientDescent - Max iterations") {
 }
 
 TEST_CASE("GradientDescent - Callback system") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;
@@ -154,13 +154,13 @@ TEST_CASE("GradientDescent - Callback system") {
     gd.tolerance = 1e-6;
 
     SUBCASE("No callback") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x, NoCallback{});
         CHECK(result.converged);
     }
 
     SUBCASE("Early stopping callback") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         EarlyStoppingCallback<double> callback(0.5); // Stop at objective < 0.5
 
         auto result = gd.optimize(sphere, x, callback);
@@ -172,7 +172,7 @@ TEST_CASE("GradientDescent - Callback system") {
 }
 
 TEST_CASE("GradientDescent - Float precision") {
-    using Vec2 = dp::mat::vector<float, 2>;
+    using Vec2 = dp::mat::Vector<float, 2>;
 
     Sphere<float, 2> sphere;
     GradientDescent<> gd;
@@ -181,7 +181,7 @@ TEST_CASE("GradientDescent - Float precision") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-5f;
 
-    Vec2 x(dp::mat::vector<float, 2>{1.0f, 1.0f});
+    Vec2 x(dp::mat::Vector<float, 2>{1.0f, 1.0f});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -191,7 +191,7 @@ TEST_CASE("GradientDescent - Float precision") {
 }
 
 TEST_CASE("GradientDescent - Result structure") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;
@@ -199,7 +199,7 @@ TEST_CASE("GradientDescent - Result structure") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result = gd.optimize(sphere, x);
 
     // Check all result fields are populated
@@ -218,7 +218,7 @@ TEST_CASE("GradientDescent - Custom function") {
     // Custom quadratic function: f(x, y) = (x - 2)^2 + (y + 3)^2
     // Minimum at (2, -3) with value 0
     struct CustomQuadratic {
-        using tensor_type = dp::mat::vector<double, 2>;
+        using tensor_type = dp::mat::Vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -244,7 +244,7 @@ TEST_CASE("GradientDescent - Custom function") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
+    dp::mat::Vector<double, 2> x(dp::mat::Vector<double, 2>{0.0, 0.0});
     auto result = gd.optimize(func, x);
 
     CHECK(result.converged);
@@ -254,7 +254,7 @@ TEST_CASE("GradientDescent - Custom function") {
 }
 
 TEST_CASE("GradientDescent - Policy reset") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<> gd;
@@ -265,11 +265,11 @@ TEST_CASE("GradientDescent - Policy reset") {
     SUBCASE("With policy reset (default)") {
         gd.reset_policy = true;
 
-        Vec2 x1(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x1(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result1 = gd.optimize(sphere, x1);
         CHECK(result1.converged);
 
-        Vec2 x2(dp::mat::vector<double, 2>{2.0, 2.0});
+        Vec2 x2(dp::mat::Vector<double, 2>{2.0, 2.0});
         auto result2 = gd.optimize(sphere, x2);
         CHECK(result2.converged);
 
@@ -280,11 +280,11 @@ TEST_CASE("GradientDescent - Policy reset") {
     SUBCASE("Without policy reset") {
         gd.reset_policy = false;
 
-        Vec2 x1(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x1(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result1 = gd.optimize(sphere, x1);
         CHECK(result1.converged);
 
-        Vec2 x2(dp::mat::vector<double, 2>{2.0, 2.0});
+        Vec2 x2(dp::mat::Vector<double, 2>{2.0, 2.0});
         auto result2 = gd.optimize(sphere, x2);
         CHECK(result2.converged);
     }

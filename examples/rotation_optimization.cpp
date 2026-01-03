@@ -36,9 +36,9 @@ void example_point_cloud_alignment() {
     std::cout << "========================================\n\n";
 
     // Ground truth rotation: 30 deg around axis [1, 1, 1] normalized
-    dp::mat::vector<double, 3> axis{1.0 / std::sqrt(3.0), 1.0 / std::sqrt(3.0), 1.0 / std::sqrt(3.0)};
+    dp::mat::Vector<double, 3> axis{1.0 / std::sqrt(3.0), 1.0 / std::sqrt(3.0), 1.0 / std::sqrt(3.0)};
     double angle = M_PI / 6; // 30 degrees
-    dp::mat::vector<double, 3> omega_true;
+    dp::mat::Vector<double, 3> omega_true;
     omega_true[0] = axis[0] * angle;
     omega_true[1] = axis[1] * angle;
     omega_true[2] = axis[2] * angle;
@@ -47,11 +47,11 @@ void example_point_cloud_alignment() {
     std::cout << "Ground truth rotation: 30 deg around [1,1,1]\n\n";
 
     // Generate source points and transform to target
-    std::vector<dp::mat::vector<double, 3>> source_points = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0},
+    std::vector<dp::mat::Vector<double, 3>> source_points = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0},
                                                              {1.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 1.0},
                                                              {1.0, 1.0, 1.0}, {-1.0, 0.5, 0.3}};
 
-    std::vector<dp::mat::vector<double, 3>> target_points;
+    std::vector<dp::mat::Vector<double, 3>> target_points;
     for (const auto &p : source_points) {
         target_points.push_back(R_true * p);
     }
@@ -61,9 +61,9 @@ void example_point_cloud_alignment() {
     // Define residual function: r_i = R * p_source_i - p_target_i
     // We parameterize R = R_current * exp(delta) and optimize over delta
     auto make_residual = [&](const lie::SO3d &R_current) {
-        return [&, R_current](const dp::mat::vector<double, 3> &delta) {
+        return [&, R_current](const dp::mat::Vector<double, 3> &delta) {
             lie::SO3d R = R_current * lie::SO3d::exp(delta);
-            dp::mat::vector<double, Dynamic> residuals;
+            dp::mat::Vector<double, Dynamic> residuals;
             residuals.resize(source_points.size() * 3);
 
             for (std::size_t i = 0; i < source_points.size(); ++i) {
@@ -87,7 +87,7 @@ void example_point_cloud_alignment() {
 
     for (int outer = 0; outer < 5; ++outer) {
         auto residual = make_residual(R_estimate);
-        dp::mat::vector<double, 3> delta_init{0.0, 0.0, 0.0};
+        dp::mat::Vector<double, 3> delta_init{0.0, 0.0, 0.0};
 
         auto result = gn.optimize(residual, delta_init);
 
@@ -141,7 +141,7 @@ void example_rotation_averaging() {
     std::cout << "  (noise std dev: ~3 degrees)\n\n";
 
     for (int i = 0; i < num_measurements; ++i) {
-        dp::mat::vector<double, 3> noise_omega{noise(rng), noise(rng), noise(rng)};
+        dp::mat::Vector<double, 3> noise_omega{noise(rng), noise(rng), noise(rng)};
         lie::SO3d R_noisy = R_true * lie::SO3d::exp(noise_omega);
         measurements.push_back(R_noisy);
     }
@@ -214,7 +214,7 @@ void example_camera_imu_calibration() {
 
         // Corresponding IMU rotation (with noise)
         lie::SO3d R_imu_true = R_cam_imu_true * R_cam * R_cam_imu_true.inverse();
-        dp::mat::vector<double, 3> noise_omega{noise(rng), noise(rng), noise(rng)};
+        dp::mat::Vector<double, 3> noise_omega{noise(rng), noise(rng), noise(rng)};
         lie::SO3d R_imu = R_imu_true * lie::SO3d::exp(noise_omega);
 
         pairs.push_back({R_cam, R_imu});
@@ -224,9 +224,9 @@ void example_camera_imu_calibration() {
     // R_imu * R_cam_imu = R_cam_imu * R_cam
     // Residual: log(R_imu * R_cam_imu * R_cam^{-1} * R_cam_imu^{-1})
     auto make_calibration_residual = [&](const lie::SO3d &R_current) {
-        return [&, R_current](const dp::mat::vector<double, 3> &delta) {
+        return [&, R_current](const dp::mat::Vector<double, 3> &delta) {
             lie::SO3d R = R_current * lie::SO3d::exp(delta);
-            dp::mat::vector<double, Dynamic> residuals;
+            dp::mat::Vector<double, Dynamic> residuals;
             residuals.resize(pairs.size() * 3);
 
             for (std::size_t i = 0; i < pairs.size(); ++i) {
@@ -251,7 +251,7 @@ void example_camera_imu_calibration() {
 
     for (int outer = 0; outer < 10; ++outer) {
         auto residual = make_calibration_residual(R_estimate);
-        dp::mat::vector<double, 3> delta_init{0.0, 0.0, 0.0};
+        dp::mat::Vector<double, 3> delta_init{0.0, 0.0, 0.0};
 
         auto result = lm.optimize(residual, delta_init);
         R_estimate = R_estimate * lie::SO3d::exp(result.x);

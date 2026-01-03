@@ -29,8 +29,8 @@ namespace optinum::simd {
      * Used in continuum mechanics for stress/strain tensors.
      */
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::vector<T, 6> to_voigt(const Matrix<T, 3, 3> &tensor) noexcept {
-        dp::mat::vector<T, 6> voigt{};
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6> to_voigt(const Matrix<T, 3, 3> &tensor) noexcept {
+        dp::mat::Vector<T, 6> voigt{};
         voigt[0] = tensor(0, 0); // σ11
         voigt[1] = tensor(1, 1); // σ22
         voigt[2] = tensor(2, 2); // σ33
@@ -42,7 +42,7 @@ namespace optinum::simd {
 
     /// Overload for dp::mat::matrix input
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::vector<T, 6> to_voigt(const dp::mat::matrix<T, 3, 3> &tensor) noexcept {
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6> to_voigt(const dp::mat::Matrix<T, 3, 3> &tensor) noexcept {
         Matrix<T, 3, 3> view(tensor);
         return to_voigt(view);
     }
@@ -53,8 +53,8 @@ namespace optinum::simd {
      * Reconstructs symmetric tensor from Voigt vector.
      */
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::matrix<T, 3, 3> from_voigt(const Vector<T, 6> &voigt) noexcept {
-        dp::mat::matrix<T, 3, 3> tensor{};
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3> from_voigt(const Vector<T, 6> &voigt) noexcept {
+        dp::mat::Matrix<T, 3, 3> tensor{};
         tensor(0, 0) = voigt[0]; // σ11
         tensor(1, 1) = voigt[1]; // σ22
         tensor(2, 2) = voigt[2]; // σ33
@@ -69,7 +69,7 @@ namespace optinum::simd {
 
     /// Overload for dp::mat::vector input
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::matrix<T, 3, 3> from_voigt(const dp::mat::vector<T, 6> &voigt) noexcept {
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3> from_voigt(const dp::mat::Vector<T, 6> &voigt) noexcept {
         Vector<T, 6> view(voigt);
         return from_voigt(view);
     }
@@ -86,7 +86,7 @@ namespace optinum::simd {
      * Used for elasticity matrices in FEM.
      */
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::matrix<T, 6, 6> elasticity_to_voigt(const T C[3][3][3][3]) noexcept {
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 6, 6> elasticity_to_voigt(const T C[3][3][3][3]) noexcept {
         // Voigt index mapping
         constexpr int voigt_map[3][3] = {
             {0, 5, 4}, // (0,0)→0, (0,1)→5, (0,2)→4
@@ -94,7 +94,7 @@ namespace optinum::simd {
             {4, 3, 2}  // (2,0)→4, (2,1)→3, (2,2)→2
         };
 
-        dp::mat::matrix<T, 6, 6> voigt_matrix{};
+        dp::mat::Matrix<T, 6, 6> voigt_matrix{};
         // Initialize to zero
         for (std::size_t i = 0; i < 36; ++i) {
             voigt_matrix[i] = T{};
@@ -119,7 +119,7 @@ namespace optinum::simd {
      * @brief Convert 4th-order elasticity tensor to 6x6 Voigt matrix (reference version)
      */
     template <typename T>
-    [[nodiscard]] dp::mat::matrix<T, 6, 6> elasticity_to_voigt(const T (&C)[3][3][3][3]) noexcept {
+    [[nodiscard]] dp::mat::Matrix<T, 6, 6> elasticity_to_voigt(const T (&C)[3][3][3][3]) noexcept {
         // Voigt index mapping
         constexpr int voigt_map[3][3] = {
             {0, 5, 4}, // i=0: (0,0)->0, (0,1)->5, (0,2)->4
@@ -127,7 +127,7 @@ namespace optinum::simd {
             {4, 3, 2}  // i=2: (2,0)->4, (2,1)->3, (2,2)->2
         };
 
-        dp::mat::matrix<T, 6, 6> voigt_C{};
+        dp::mat::Matrix<T, 6, 6> voigt_C{};
         // Initialize to zero
         for (std::size_t i = 0; i < 36; ++i) {
             voigt_C[i] = T{};
@@ -163,8 +163,8 @@ namespace optinum::simd {
      *                      [2*ε12]  (engineering shear strain γ12)
      */
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::vector<T, 6> strain_to_voigt_engineering(const Matrix<T, 3, 3> &strain) noexcept {
-        dp::mat::vector<T, 6> voigt{};
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6> strain_to_voigt_engineering(const Matrix<T, 3, 3> &strain) noexcept {
+        dp::mat::Vector<T, 6> voigt{};
         voigt[0] = strain(0, 0);        // ε11
         voigt[1] = strain(1, 1);        // ε22
         voigt[2] = strain(2, 2);        // ε33
@@ -176,8 +176,8 @@ namespace optinum::simd {
 
     /// Overload for dp::mat::matrix input
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::vector<T, 6>
-    strain_to_voigt_engineering(const dp::mat::matrix<T, 3, 3> &strain) noexcept {
+    [[nodiscard]] constexpr dp::mat::Vector<T, 6>
+    strain_to_voigt_engineering(const dp::mat::Matrix<T, 3, 3> &strain) noexcept {
         Matrix<T, 3, 3> view(strain);
         return strain_to_voigt_engineering(view);
     }
@@ -188,8 +188,8 @@ namespace optinum::simd {
      * Converts engineering shear strains (γ) back to tensor shear components (ε).
      */
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::matrix<T, 3, 3> strain_from_voigt_engineering(const Vector<T, 6> &voigt) noexcept {
-        dp::mat::matrix<T, 3, 3> strain{};
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3> strain_from_voigt_engineering(const Vector<T, 6> &voigt) noexcept {
+        dp::mat::Matrix<T, 3, 3> strain{};
         strain(0, 0) = voigt[0];        // ε11
         strain(1, 1) = voigt[1];        // ε22
         strain(2, 2) = voigt[2];        // ε33
@@ -204,8 +204,8 @@ namespace optinum::simd {
 
     /// Overload for dp::mat::vector input
     template <typename T>
-    [[nodiscard]] constexpr dp::mat::matrix<T, 3, 3>
-    strain_from_voigt_engineering(const dp::mat::vector<T, 6> &voigt) noexcept {
+    [[nodiscard]] constexpr dp::mat::Matrix<T, 3, 3>
+    strain_from_voigt_engineering(const dp::mat::Vector<T, 6> &voigt) noexcept {
         Vector<T, 6> view(voigt);
         return strain_from_voigt_engineering(view);
     }

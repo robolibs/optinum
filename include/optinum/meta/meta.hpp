@@ -36,7 +36,7 @@ namespace optinum::meta {
 
     /// Common result type for metaheuristic optimizers
     template <typename T> struct MetaResult {
-        dp::mat::vector<T, dp::mat::Dynamic> best_position;
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position;
         T best_value;
         std::size_t iterations;
         std::size_t function_evaluations;

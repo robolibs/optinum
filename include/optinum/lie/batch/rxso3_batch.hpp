@@ -52,10 +52,10 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Quaternion = dp::mat::quaternion<T>;
-        using Tangent = dp::mat::vector<T, 4>; // [sigma, wx, wy, wz] where sigma = log(scale)
-        using Point = dp::mat::vector<T, 3>;
-        using Matrix = dp::mat::matrix<T, 3, 3>;
+        using Quaternion = dp::mat::Quaternion<T>;
+        using Tangent = dp::mat::Vector<T, 4>; // [sigma, wx, wy, wz] where sigma = log(scale)
+        using Point = dp::mat::Vector<T, 3>;
+        using Matrix = dp::mat::Matrix<T, 3, 3>;
         using Element = RxSO3<T>;
         using Rotation = SO3<T>;
 

@@ -20,13 +20,13 @@ TEST_CASE("jacobian - Linear 2D function") {
     // f(x) = A*x where A = [[1, 2], [3, 4]]
     // Jacobian should be constant = A
     auto f = [](const Vector<double, 2> &x) {
-        dp::mat::vector<double, 2> result;
+        dp::mat::Vector<double, 2> result;
         result[0] = 1.0 * x[0] + 2.0 * x[1];
         result[1] = 3.0 * x[0] + 4.0 * x[1];
         return result;
     };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 5.0;
     x[1] = 7.0;
 
@@ -46,13 +46,13 @@ TEST_CASE("jacobian - Nonlinear 2D->2D function") {
     // f(x,y) = [x^2 + y, x*y]
     // Analytical Jacobian: [[2x, 1], [y, x]]
     auto f = [](const Vector<double, 2> &x) {
-        dp::mat::vector<double, 2> result;
+        dp::mat::Vector<double, 2> result;
         result[0] = x[0] * x[0] + x[1];
         result[1] = x[0] * x[1];
         return result;
     };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 3.0;
     x[1] = 4.0;
 
@@ -74,13 +74,13 @@ TEST_CASE("jacobian - 3D->2D function") {
     //   [[y, x, 2z],
     //    [cos(x), z, y]]
     auto f = [](const Vector<double, 3> &x) {
-        dp::mat::vector<double, 2> result;
+        dp::mat::Vector<double, 2> result;
         result[0] = x[0] * x[1] + x[2] * x[2];
         result[1] = std::sin(x[0]) + x[1] * x[2];
         return result;
     };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
@@ -108,14 +108,14 @@ TEST_CASE("jacobian - 2D->3D function") {
     //    [y, x],
     //    [0, 2y]]
     auto f = [](const Vector<double, 2> &x) {
-        dp::mat::vector<double, 3> result;
+        dp::mat::Vector<double, 3> result;
         result[0] = x[0] * x[0];
         result[1] = x[0] * x[1];
         result[2] = x[1] * x[1];
         return result;
     };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 2.0;
     x[1] = 3.0;
 
@@ -140,13 +140,13 @@ TEST_CASE("jacobian - Forward vs Central differences") {
     // Test that central differences are more accurate
     // f(x) = [sin(x), cos(x)]
     auto f = [](const Vector<double, 1> &x) {
-        dp::mat::vector<double, 2> result;
+        dp::mat::Vector<double, 2> result;
         result[0] = std::sin(x[0]);
         result[1] = std::cos(x[0]);
         return result;
     };
 
-    dp::mat::vector<double, 1> x;
+    dp::mat::Vector<double, 1> x;
     x[0] = 0.5;
 
     // Use larger step size to make difference visible
@@ -184,7 +184,7 @@ TEST_CASE("gradient - Sphere function") {
     // Gradient: [2x, 2y]
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 3.0;
     x[1] = 4.0;
 
@@ -204,7 +204,7 @@ TEST_CASE("gradient - Rosenbrock function") {
         return term1 * term1 + 100.0 * term2 * term2;
     };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 0.5;
     x[1] = 0.25;
 
@@ -223,7 +223,7 @@ TEST_CASE("gradient - 3D quadratic function") {
     // Gradient: [2x, 4y, 6z]
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + 2.0 * x[1] * x[1] + 3.0 * x[2] * x[2]; };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
@@ -241,7 +241,7 @@ TEST_CASE("gradient - Forward vs Central differences") {
     // f(x) = sin(x)
     auto f = [](const Vector<double, 1> &x) { return std::sin(x[0]); };
 
-    dp::mat::vector<double, 1> x;
+    dp::mat::Vector<double, 1> x;
     x[0] = 0.5;
 
     // Use larger step size to make difference visible
@@ -272,7 +272,7 @@ TEST_CASE("gradient - Zero gradient at minimum") {
         return dx * dx + dy * dy;
     };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
@@ -287,26 +287,26 @@ TEST_CASE("gradient - Zero gradient at minimum") {
 // =============================================================================
 
 TEST_CASE("jacobian_error - Identical matrices") {
-    dp::mat::matrix<double, 2, 2> J1;
+    dp::mat::Matrix<double, 2, 2> J1;
     J1(0, 0) = 1.0;
     J1(0, 1) = 2.0;
     J1(1, 0) = 3.0;
     J1(1, 1) = 4.0;
 
-    dp::mat::matrix<double, 2, 2> J2 = J1;
+    dp::mat::Matrix<double, 2, 2> J2 = J1;
 
     double error = lina::jacobian_error(Matrix<double, 2, 2>(J1), Matrix<double, 2, 2>(J2));
     CHECK(error == doctest::Approx(0.0).epsilon(1e-12));
 }
 
 TEST_CASE("jacobian_error - Small difference") {
-    dp::mat::matrix<double, 2, 2> J1;
+    dp::mat::Matrix<double, 2, 2> J1;
     J1(0, 0) = 1.0;
     J1(0, 1) = 2.0;
     J1(1, 0) = 3.0;
     J1(1, 1) = 4.0;
 
-    dp::mat::matrix<double, 2, 2> J2;
+    dp::mat::Matrix<double, 2, 2> J2;
     J2(0, 0) = 1.001;
     J2(0, 1) = 2.002;
     J2(1, 0) = 3.003;

@@ -36,7 +36,7 @@ namespace optinum::lina {
 
     // Overload for dp::mat::matrix (owning type)
     template <typename T, std::size_t N>
-    [[nodiscard]] bool is_symmetric(const datapod::mat::matrix<T, N, N> &a,
+    [[nodiscard]] bool is_symmetric(const datapod::mat::Matrix<T, N, N> &a,
                                     T tol = std::numeric_limits<T>::epsilon()) noexcept {
         for (std::size_t i = 0; i < N; ++i) {
             for (std::size_t j = i + 1; j < N; ++j) {
@@ -95,7 +95,7 @@ namespace optinum::lina {
 
     // Overload for dp::mat::matrix (owning type)
     template <typename T, std::size_t N>
-    [[nodiscard]] bool is_positive_definite(const datapod::mat::matrix<T, N, N> &a) noexcept {
+    [[nodiscard]] bool is_positive_definite(const datapod::mat::Matrix<T, N, N> &a) noexcept {
         // First check symmetry
         if (!is_symmetric(a)) {
             return false;

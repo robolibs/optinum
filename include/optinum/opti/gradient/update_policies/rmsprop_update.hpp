@@ -45,7 +45,7 @@ namespace optinum::opti {
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -128,7 +128,7 @@ namespace optinum::opti {
         }
 
       private:
-        dp::mat::vector<double, dp::mat::Dynamic> mean_squared_grad; ///< Moving average of squared gradients
+        dp::mat::Vector<double, dp::mat::Dynamic> mean_squared_grad; ///< Moving average of squared gradients
     };
 
 } // namespace optinum::opti

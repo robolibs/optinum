@@ -10,7 +10,7 @@ namespace dp = datapod;
 
 TEST_CASE("Rastrigin evaluate") {
     Rastrigin<double, 2> rastrigin;
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
 
     SUBCASE("at global minimum (0, 0)") {
         x[0] = 0.0;
@@ -39,8 +39,8 @@ TEST_CASE("Rastrigin evaluate") {
 
 TEST_CASE("Rastrigin gradient") {
     Rastrigin<double, 2> rastrigin;
-    dp::mat::vector<double, 2> x;
-    dp::mat::vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     SUBCASE("at global minimum (0, 0)") {
         x[0] = 0.0;
@@ -64,8 +64,8 @@ TEST_CASE("Rastrigin gradient") {
 
 TEST_CASE("Rastrigin evaluate_with_gradient") {
     Rastrigin<double, 2> rastrigin;
-    dp::mat::vector<double, 2> x;
-    dp::mat::vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     x[0] = 0.0;
     x[1] = 0.0;
@@ -80,7 +80,7 @@ TEST_CASE("Rastrigin evaluate_with_gradient") {
 TEST_CASE("Rastrigin higher dimensions") {
     SUBCASE("3D at minimum") {
         Rastrigin<double, 3> rastrigin;
-        dp::mat::vector<double, 3> x;
+        dp::mat::Vector<double, 3> x;
         x[0] = 0.0;
         x[1] = 0.0;
         x[2] = 0.0;
@@ -89,7 +89,7 @@ TEST_CASE("Rastrigin higher dimensions") {
 
     SUBCASE("5D at minimum") {
         Rastrigin<double, 5> rastrigin;
-        dp::mat::vector<double, 5> x;
+        dp::mat::Vector<double, 5> x;
         for (std::size_t i = 0; i < 5; ++i)
             x[i] = 0.0;
         CHECK(rastrigin.evaluate(x) == doctest::Approx(0.0).epsilon(1e-10));
@@ -97,7 +97,7 @@ TEST_CASE("Rastrigin higher dimensions") {
 
     SUBCASE("10D at minimum") {
         Rastrigin<double, 10> rastrigin;
-        dp::mat::vector<double, 10> x;
+        dp::mat::Vector<double, 10> x;
         for (std::size_t i = 0; i < 10; ++i)
             x[i] = 0.0;
         CHECK(rastrigin.evaluate(x) == doctest::Approx(0.0).epsilon(1e-10));
@@ -106,8 +106,8 @@ TEST_CASE("Rastrigin higher dimensions") {
 
 TEST_CASE("Rastrigin dynamic size") {
     Rastrigin<double, Dynamic> rastrigin;
-    dp::mat::vector<double, Dynamic> x(5);
-    dp::mat::vector<double, Dynamic> g(5);
+    dp::mat::Vector<double, Dynamic> x(5);
+    dp::mat::Vector<double, Dynamic> g(5);
 
     // At minimum
     for (std::size_t i = 0; i < 5; ++i)
@@ -123,7 +123,7 @@ TEST_CASE("Rastrigin dynamic size") {
 
 TEST_CASE("Rastrigin float precision") {
     Rastrigin<float, 2> rastrigin;
-    dp::mat::vector<float, 2> x;
+    dp::mat::Vector<float, 2> x;
 
     x[0] = 0.0f;
     x[1] = 0.0f;
@@ -142,8 +142,8 @@ TEST_CASE("Rastrigin minimum_location") {
 TEST_CASE("Rastrigin local minima") {
     // Rastrigin has local minima at integer coordinates
     Rastrigin<double, 2> rastrigin;
-    dp::mat::vector<double, 2> x;
-    dp::mat::vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     // Check that integer points have near-zero gradient in x direction
     // (they are local minima along each axis)
@@ -159,8 +159,8 @@ TEST_CASE("Rastrigin local minima") {
 TEST_CASE("Rastrigin gradient numerical check") {
     // Verify gradient using finite differences
     Rastrigin<double, 2> rastrigin;
-    dp::mat::vector<double, 2> x;
-    dp::mat::vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     x[0] = 0.3;
     x[1] = -0.7;
@@ -168,8 +168,8 @@ TEST_CASE("Rastrigin gradient numerical check") {
 
     double eps = 1e-7;
     for (std::size_t i = 0; i < 2; ++i) {
-        dp::mat::vector<double, 2> x_plus = x;
-        dp::mat::vector<double, 2> x_minus = x;
+        dp::mat::Vector<double, 2> x_plus = x;
+        dp::mat::Vector<double, 2> x_minus = x;
         x_plus[i] += eps;
         x_minus[i] -= eps;
 
@@ -181,7 +181,7 @@ TEST_CASE("Rastrigin gradient numerical check") {
 TEST_CASE("Rastrigin multimodality") {
     // Verify that the function has multiple local minima
     Rastrigin<double, 1> rastrigin;
-    dp::mat::vector<double, 1> x;
+    dp::mat::Vector<double, 1> x;
 
     // Global minimum at 0
     x[0] = 0.0;

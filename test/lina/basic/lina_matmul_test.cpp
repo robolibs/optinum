@@ -8,13 +8,13 @@ using optinum::simd::Vector;
 namespace dp = datapod;
 
 TEST_CASE("lina::matmul matrix-matrix") {
-    dp::mat::matrix<float, 2, 2> a;
+    dp::mat::Matrix<float, 2, 2> a;
     a(0, 0) = 1.f;
     a(1, 0) = 3.f;
     a(0, 1) = 2.f;
     a(1, 1) = 4.f;
 
-    dp::mat::matrix<float, 2, 2> b;
+    dp::mat::Matrix<float, 2, 2> b;
     b(0, 0) = 5.f;
     b(1, 0) = 7.f;
     b(0, 1) = 6.f;
@@ -28,7 +28,7 @@ TEST_CASE("lina::matmul matrix-matrix") {
 }
 
 TEST_CASE("lina::matmul matrix-vector") {
-    dp::mat::matrix<float, 2, 3> m;
+    dp::mat::Matrix<float, 2, 3> m;
     m(0, 0) = 1.f;
     m(1, 0) = 4.f;
     m(0, 1) = 2.f;
@@ -36,7 +36,7 @@ TEST_CASE("lina::matmul matrix-vector") {
     m(0, 2) = 3.f;
     m(1, 2) = 6.f;
 
-    dp::mat::vector<float, 3> x;
+    dp::mat::Vector<float, 3> x;
     x[0] = 1.f;
     x[1] = 2.f;
     x[2] = 3.f;

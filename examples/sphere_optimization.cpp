@@ -10,10 +10,10 @@ int main() {
     optinum::opti::Sphere<double, 3> sphere;
 
     // Starting point - use dp::mat::vector for owning storage
-    dp::mat::vector<double, 3> x{{5.0, -3.0, 7.0}};
+    dp::mat::Vector<double, 3> x{{5.0, -3.0, 7.0}};
 
     // Gradient storage
-    dp::mat::vector<double, 3> g;
+    dp::mat::Vector<double, 3> g;
 
     // Simple gradient descent
     double lr = 0.1; // learning rate

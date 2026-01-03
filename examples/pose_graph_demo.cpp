@@ -64,7 +64,7 @@ void example_pose_chain() {
         lie::SE3d T_rel_true = poses_true[i].inverse() * poses_true[i + 1];
 
         // Add noise
-        dp::mat::vector<double, 6> noise_twist;
+        dp::mat::Vector<double, 6> noise_twist;
         noise_twist[0] = noise_trans(rng);
         noise_twist[1] = noise_trans(rng);
         noise_twist[2] = noise_trans(rng);
@@ -86,12 +86,12 @@ void example_pose_chain() {
     // Define residual function for pose graph optimization
     // Residual for edge (i, j): log(T_i^{-1} * T_j * T_measured^{-1})
     auto make_residual = [&]() {
-        return [&](const dp::mat::vector<double, Dynamic> &delta) {
+        return [&](const dp::mat::Vector<double, Dynamic> &delta) {
             // Apply delta to poses (except first which is fixed)
             std::vector<lie::SE3d> poses_updated(num_poses);
             poses_updated[0] = poses_estimate[0];
             for (int i = 1; i < num_poses; ++i) {
-                dp::mat::vector<double, 6> delta_i;
+                dp::mat::Vector<double, 6> delta_i;
                 for (int j = 0; j < 6; ++j) {
                     delta_i[j] = delta[(i - 1) * 6 + j];
                 }
@@ -99,7 +99,7 @@ void example_pose_chain() {
             }
 
             // Compute residuals for all edges
-            dp::mat::vector<double, Dynamic> residuals;
+            dp::mat::Vector<double, Dynamic> residuals;
             residuals.resize(measurements.size() * 6);
 
             for (std::size_t k = 0; k < measurements.size(); ++k) {
@@ -137,7 +137,7 @@ void example_pose_chain() {
 
     for (int outer = 0; outer < 5; ++outer) {
         auto residual = make_residual();
-        dp::mat::vector<double, Dynamic> delta_init;
+        dp::mat::Vector<double, Dynamic> delta_init;
         delta_init.resize((num_poses - 1) * 6);
         for (std::size_t i = 0; i < delta_init.size(); ++i) {
             delta_init[i] = 0.0;
@@ -147,7 +147,7 @@ void example_pose_chain() {
 
         // Update poses
         for (int i = 1; i < num_poses; ++i) {
-            dp::mat::vector<double, 6> delta_i;
+            dp::mat::Vector<double, 6> delta_i;
             for (int j = 0; j < 6; ++j) {
                 delta_i[j] = result.x[(i - 1) * 6 + j];
             }
@@ -209,7 +209,7 @@ void example_loop_closure() {
     // Odometry edges (sequential)
     for (int i = 0; i < num_poses - 1; ++i) {
         lie::SE3d T_rel_true = poses_true[i].inverse() * poses_true[i + 1];
-        dp::mat::vector<double, 6> noise_twist;
+        dp::mat::Vector<double, 6> noise_twist;
         noise_twist[0] = noise_trans(rng);
         noise_twist[1] = noise_trans(rng);
         noise_twist[2] = noise_trans(rng);
@@ -223,7 +223,7 @@ void example_loop_closure() {
     // Loop closure edge: pose 4 sees pose 0 again
     {
         lie::SE3d T_loop_true = poses_true[num_poses - 1].inverse() * poses_true[0];
-        dp::mat::vector<double, 6> noise_twist;
+        dp::mat::Vector<double, 6> noise_twist;
         noise_twist[0] = noise_trans(rng) * 0.5; // Loop closure often more accurate
         noise_twist[1] = noise_trans(rng) * 0.5;
         noise_twist[2] = noise_trans(rng) * 0.5;
@@ -251,18 +251,18 @@ void example_loop_closure() {
 
     // Define weighted residual
     auto make_residual = [&]() {
-        return [&](const dp::mat::vector<double, Dynamic> &delta) {
+        return [&](const dp::mat::Vector<double, Dynamic> &delta) {
             std::vector<lie::SE3d> poses_updated(num_poses);
             poses_updated[0] = poses_estimate[0];
             for (int i = 1; i < num_poses; ++i) {
-                dp::mat::vector<double, 6> delta_i;
+                dp::mat::Vector<double, 6> delta_i;
                 for (int j = 0; j < 6; ++j) {
                     delta_i[j] = delta[(i - 1) * 6 + j];
                 }
                 poses_updated[i] = poses_estimate[i] * lie::SE3d::exp(delta_i);
             }
 
-            dp::mat::vector<double, Dynamic> residuals;
+            dp::mat::Vector<double, Dynamic> residuals;
             residuals.resize(edges.size() * 6);
 
             for (std::size_t k = 0; k < edges.size(); ++k) {
@@ -289,7 +289,7 @@ void example_loop_closure() {
 
     for (int outer = 0; outer < 10; ++outer) {
         auto residual = make_residual();
-        dp::mat::vector<double, Dynamic> delta_init;
+        dp::mat::Vector<double, Dynamic> delta_init;
         delta_init.resize((num_poses - 1) * 6);
         for (std::size_t i = 0; i < delta_init.size(); ++i) {
             delta_init[i] = 0.0;
@@ -298,7 +298,7 @@ void example_loop_closure() {
         auto result = lm.optimize(residual, delta_init);
 
         for (int i = 1; i < num_poses; ++i) {
-            dp::mat::vector<double, 6> delta_i;
+            dp::mat::Vector<double, 6> delta_i;
             for (int j = 0; j < 6; ++j) {
                 delta_i[j] = result.x[(i - 1) * 6 + j];
             }

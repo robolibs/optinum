@@ -33,7 +33,7 @@ namespace optinum::simd {
 
       public:
         using value_type = T;
-        using pod_type = dp::mat::vector<T, N>;
+        using pod_type = dp::mat::Vector<T, N>;
         using size_type = std::size_t;
         using reference = T &;
         using const_reference = const T &;

@@ -50,8 +50,8 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
-        using Vector6 = dp::mat::vector<T, 6>; // Owning storage type
+        using Vector3 = dp::mat::Vector<T, 3>; // Owning storage type
+        using Vector6 = dp::mat::Vector<T, 6>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
@@ -279,9 +279,9 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] LocalTwist<NewScalar> cast() const noexcept {
             return LocalTwist<NewScalar>(
-                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
+                dp::mat::Vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
                                               static_cast<NewScalar>(linear_[2])},
-                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
+                dp::mat::Vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
                                               static_cast<NewScalar>(angular_[2])});
         }
 
@@ -299,8 +299,8 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
-        using Vector6 = dp::mat::vector<T, 6>; // Owning storage type
+        using Vector3 = dp::mat::Vector<T, 3>; // Owning storage type
+        using Vector6 = dp::mat::Vector<T, 6>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
@@ -540,9 +540,9 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] GlobalTwist<NewScalar> cast() const noexcept {
             return GlobalTwist<NewScalar>(
-                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
+                dp::mat::Vector<NewScalar, 3>{static_cast<NewScalar>(linear_[0]), static_cast<NewScalar>(linear_[1]),
                                               static_cast<NewScalar>(linear_[2])},
-                dp::mat::vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
+                dp::mat::Vector<NewScalar, 3>{static_cast<NewScalar>(angular_[0]), static_cast<NewScalar>(angular_[1]),
                                               static_cast<NewScalar>(angular_[2])});
         }
 

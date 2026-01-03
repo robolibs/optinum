@@ -54,7 +54,7 @@ namespace optinum::meta {
      * Result of CMA-ES optimization
      */
     template <typename T> struct CMAESResult {
-        dp::mat::vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
         T best_value;                                       ///< Objective value at best position
         std::size_t generations;                            ///< Number of generations performed
         std::size_t function_evaluations;                   ///< Total function evaluations
@@ -119,8 +119,8 @@ namespace optinum::meta {
          * @return CMAESResult with best solution and convergence info
          */
         template <typename F>
-        CMAESResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                                const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        CMAESResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                                const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t n = lower_bounds.size();
 
             // Validate inputs
@@ -132,7 +132,7 @@ namespace optinum::meta {
             }
 
             // Initialize mean at center of bounds
-            dp::mat::vector<T, dp::mat::Dynamic> mean(n);
+            dp::mat::Vector<T, dp::mat::Dynamic> mean(n);
             for (std::size_t i = 0; i < n; ++i) {
                 mean[i] = (lower_bounds[i] + upper_bounds[i]) / T{2};
             }
@@ -151,9 +151,9 @@ namespace optinum::meta {
          * @return CMAESResult with best solution and convergence info
          */
         template <typename F>
-        CMAESResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
-                                const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                                const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        CMAESResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                                const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                                const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t n = initial.size();
 
             // Validate inputs
@@ -172,9 +172,9 @@ namespace optinum::meta {
          * Core CMA-ES optimization implementation
          */
         template <typename F>
-        CMAESResult<T> optimize_impl(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial_mean,
-                                     const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                                     const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        CMAESResult<T> optimize_impl(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial_mean,
+                                     const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                                     const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t n = initial_mean.size();
 
             // Random number generator
@@ -235,7 +235,7 @@ namespace optinum::meta {
             // ============================================================
 
             // Mean of distribution
-            dp::mat::vector<T, dp::mat::Dynamic> m(initial_mean.size());
+            dp::mat::Vector<T, dp::mat::Dynamic> m(initial_mean.size());
             for (std::size_t i = 0; i < initial_mean.size(); ++i) {
                 m[i] = initial_mean[i];
             }
@@ -256,8 +256,8 @@ namespace optinum::meta {
             }
 
             // Evolution paths
-            dp::mat::vector<T, dp::mat::Dynamic> p_sigma(n); // For step-size control
-            dp::mat::vector<T, dp::mat::Dynamic> p_c(n);     // For covariance adaptation
+            dp::mat::Vector<T, dp::mat::Dynamic> p_sigma(n); // For step-size control
+            dp::mat::Vector<T, dp::mat::Dynamic> p_c(n);     // For covariance adaptation
             for (std::size_t i = 0; i < n; ++i) {
                 p_sigma[i] = T{0};
                 p_c[i] = T{0};
@@ -275,7 +275,7 @@ namespace optinum::meta {
             }
 
             // Best solution tracking
-            dp::mat::vector<T, dp::mat::Dynamic> best_position = m;
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position = m;
             T best_value = objective(m);
             std::size_t total_evals = 1;
 
@@ -292,7 +292,7 @@ namespace optinum::meta {
             T last_best = best_value;
 
             // Population storage
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> population(lambda);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> population(lambda);
             std::vector<T> fitness(lambda);
             std::vector<std::size_t> ranking(lambda);
 
@@ -310,7 +310,7 @@ namespace optinum::meta {
             for (; generation < config.max_generations; ++generation) {
                 // Generate and evaluate lambda offspring
                 for (std::size_t k = 0; k < lambda; ++k) {
-                    population[k] = dp::mat::vector<T, dp::mat::Dynamic>(n);
+                    population[k] = dp::mat::Vector<T, dp::mat::Dynamic>(n);
 
                     // Sample z ~ N(0, I)
                     for (std::size_t i = 0; i < n; ++i) {
@@ -376,7 +376,7 @@ namespace optinum::meta {
                 // Update mean: m = sum(w_i * x_i) for i = 1..mu (SIMD)
                 // ============================================================
 
-                dp::mat::vector<T, dp::mat::Dynamic> m_old = m;
+                dp::mat::Vector<T, dp::mat::Dynamic> m_old = m;
 
                 // Zero out mean using SIMD
                 constexpr std::size_t W = simd::backend::default_pack_width<T>();

@@ -30,8 +30,8 @@ namespace optinum::lina {
      */
     template <typename T> struct QRDynamic {
         // Owning storage
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> q_storage;
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> r_storage;
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> q_storage;
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> r_storage;
         // Views over the storage
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> q;
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> r;
@@ -149,7 +149,7 @@ namespace optinum::lina {
 
             // Compute v = Q * w (only w[k:m-1] is non-zero)
             // v[i] = sum_{j=k}^{m-1} Q[i,j] * w[j]
-            dp::mat::vector<T, dp::mat::Dynamic> v_storage(m);
+            dp::mat::Vector<T, dp::mat::Dynamic> v_storage(m);
             simd::Vector<T, simd::Dynamic> v(v_storage);
             v.fill(T{});
 
@@ -220,7 +220,7 @@ namespace optinum::lina {
         }
 
         const std::size_t k_max = (m < n) ? m : n;
-        dp::mat::vector<T, dp::mat::Dynamic> w_storage(m);
+        dp::mat::Vector<T, dp::mat::Dynamic> w_storage(m);
         simd::Vector<T, simd::Dynamic> w(w_storage);
 
         for (std::size_t k = 0; k < k_max; ++k) {

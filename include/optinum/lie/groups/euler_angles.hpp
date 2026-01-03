@@ -45,8 +45,8 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = dp::mat::vector<T, 3>;    // Owning storage type
-        using Matrix3 = dp::mat::matrix<T, 3, 3>; // Owning storage type
+        using Vector3 = dp::mat::Vector<T, 3>;    // Owning storage type
+        using Matrix3 = dp::mat::Matrix<T, 3, 3>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
@@ -329,8 +329,8 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = dp::mat::vector<T, 3>;    // Owning storage type
-        using Matrix3 = dp::mat::matrix<T, 3, 3>; // Owning storage type
+        using Vector3 = dp::mat::Vector<T, 3>;    // Owning storage type
+        using Matrix3 = dp::mat::Matrix<T, 3, 3>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 

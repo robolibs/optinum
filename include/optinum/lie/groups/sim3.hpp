@@ -40,12 +40,12 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = dp::mat::vector<T, 7>; // [sigma, wx, wy, wz, vx, vy, vz]
-        using Translation = dp::mat::vector<T, 3>;
-        using Point = dp::mat::vector<T, 3>;
-        using Params = dp::mat::vector<T, 7>; // [qw, qx, qy, qz, tx, ty, tz]
-        using HomogeneousMatrix = dp::mat::matrix<T, 4, 4>;
-        using AdjointMatrix = dp::mat::matrix<T, 7, 7>;
+        using Tangent = dp::mat::Vector<T, 7>; // [sigma, wx, wy, wz, vx, vy, vz]
+        using Translation = dp::mat::Vector<T, 3>;
+        using Point = dp::mat::Vector<T, 3>;
+        using Params = dp::mat::Vector<T, 7>; // [qw, qx, qy, qz, tx, ty, tz]
+        using HomogeneousMatrix = dp::mat::Matrix<T, 4, 4>;
+        using AdjointMatrix = dp::mat::Matrix<T, 7, 7>;
         using ScaledRotation = RxSO3<T>;
         using Rotation = SO3<T>;
 
@@ -73,7 +73,7 @@ namespace optinum::lie {
             const T s = std::sqrt(T_mat(0, 0) * T_mat(0, 0) + T_mat(1, 0) * T_mat(1, 0) + T_mat(2, 0) * T_mat(2, 0));
 
             // Extract rotation matrix
-            dp::mat::matrix<T, 3, 3> R_mat;
+            dp::mat::Matrix<T, 3, 3> R_mat;
             for (int i = 0; i < 3; ++i) {
                 for (int j = 0; j < 3; ++j) {
                     R_mat(i, j) = T_mat(i, j) / s;
@@ -124,8 +124,8 @@ namespace optinum::lie {
         // Exponential map: [sigma, omega, v] -> Sim3
         [[nodiscard]] static Sim3 exp(const Tangent &twist) noexcept {
             const T sigma = twist[0];
-            dp::mat::vector<T, 3> omega{twist[1], twist[2], twist[3]};
-            dp::mat::vector<T, 3> v{twist[4], twist[5], twist[6]};
+            dp::mat::Vector<T, 3> omega{twist[1], twist[2], twist[3]};
+            dp::mat::Vector<T, 3> v{twist[4], twist[5], twist[6]};
 
             // Scaled rotation
             ScaledRotation rxso3 =
@@ -217,7 +217,7 @@ namespace optinum::lie {
             // Get [sigma, omega] from RxSO3
             auto rxso3_log = rxso3_.log();
             const T sigma = rxso3_log[0];
-            dp::mat::vector<T, 3> omega{rxso3_log[1], rxso3_log[2], rxso3_log[3]};
+            dp::mat::Vector<T, 3> omega{rxso3_log[1], rxso3_log[2], rxso3_log[3]};
 
             // Compute v = W^-1 * t where W is the left Jacobian for Sim(3)
             const T s = rxso3_.scale();
@@ -225,7 +225,7 @@ namespace optinum::lie {
             const T theta = std::sqrt(theta_sq);
             const T sigma_sq = sigma * sigma;
 
-            dp::mat::vector<T, 3> v;
+            dp::mat::Vector<T, 3> v;
 
             if (theta_sq < epsilon<T> * epsilon<T> && std::abs(sigma) < epsilon<T>) {
                 // Small angle and scale: W ≈ I
@@ -361,8 +361,8 @@ namespace optinum::lie {
         }
 
         // Return 3x4 compact form [sR | t]
-        [[nodiscard]] dp::mat::matrix<T, 3, 4> matrix3x4() const noexcept {
-            dp::mat::matrix<T, 3, 4> M;
+        [[nodiscard]] dp::mat::Matrix<T, 3, 4> matrix3x4() const noexcept {
+            dp::mat::Matrix<T, 3, 4> M;
             auto sR = rxso3_.matrix();
             for (int i = 0; i < 3; ++i) {
                 for (int j = 0; j < 3; ++j) {

@@ -11,7 +11,7 @@ int main() {
     std::size_t n = 3;
     std::cout << "Creating dynamic vector of size " << n << "\n";
 
-    dp::mat::vector<double, dp::mat::Dynamic> x(n);
+    dp::mat::Vector<double, dp::mat::Dynamic> x(n);
     std::cout << "Vector created, size = " << x.size() << "\n";
 
     for (std::size_t i = 0; i < n; ++i) {
@@ -27,7 +27,7 @@ int main() {
     std::cout << "f(x) = " << f << "\n";
 
     std::cout << "Computing gradient\n";
-    dp::mat::vector<double, dp::mat::Dynamic> g(n);
+    dp::mat::Vector<double, dp::mat::Dynamic> g(n);
     sphere.gradient(x, g);
     std::cout << "Gradient computed\n";
     for (std::size_t i = 0; i < n; ++i) {

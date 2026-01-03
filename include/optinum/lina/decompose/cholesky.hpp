@@ -18,7 +18,7 @@ namespace optinum::lina {
     namespace dp = ::datapod;
 
     template <typename T, std::size_t N> struct Cholesky {
-        dp::mat::matrix<T, N, N> l{}; // Owning storage for L
+        dp::mat::Matrix<T, N, N> l{}; // Owning storage for L
         bool success = true;
     };
 
@@ -89,8 +89,8 @@ namespace optinum::lina {
 
     // Overload for dp::mat::matrix input
     template <typename T, std::size_t N>
-    [[nodiscard]] Cholesky<T, N> cholesky(const dp::mat::matrix<T, N, N> &a) noexcept {
-        simd::Matrix<T, N, N> view(const_cast<dp::mat::matrix<T, N, N> &>(a));
+    [[nodiscard]] Cholesky<T, N> cholesky(const dp::mat::Matrix<T, N, N> &a) noexcept {
+        simd::Matrix<T, N, N> view(const_cast<dp::mat::Matrix<T, N, N> &>(a));
         return cholesky(view);
     }
 

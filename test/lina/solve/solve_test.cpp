@@ -9,7 +9,7 @@ using optinum::simd::Vector;
 namespace dp = datapod;
 
 TEST_CASE("lina::solve solves Ax=b") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 3.0;
     a(1, 0) = 2.0;
     a(2, 0) = -1.0;
@@ -20,7 +20,7 @@ TEST_CASE("lina::solve solves Ax=b") {
     a(1, 2) = 0.5;
     a(2, 2) = -1.0;
 
-    dp::mat::vector<double, 3> b;
+    dp::mat::Vector<double, 3> b;
     b[0] = 1.0;
     b[1] = -2.0;
     b[2] = 0.0;
@@ -34,13 +34,13 @@ TEST_CASE("lina::solve solves Ax=b") {
 }
 
 TEST_CASE("lina::try_solve detects singular") {
-    dp::mat::matrix<double, 2, 2> a;
+    dp::mat::Matrix<double, 2, 2> a;
     a(0, 0) = 1.0;
     a(1, 0) = 2.0;
     a(0, 1) = 2.0;
     a(1, 1) = 4.0;
 
-    dp::mat::vector<double, 2> b;
+    dp::mat::Vector<double, 2> b;
     b[0] = 1.0;
     b[1] = 2.0;
 

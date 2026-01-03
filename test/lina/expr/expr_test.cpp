@@ -8,11 +8,11 @@ using optinum::simd::Vector;
 namespace dp = datapod;
 
 TEST_CASE("lina::expr vector expression eval") {
-    dp::mat::vector<float, 3> a;
+    dp::mat::Vector<float, 3> a;
     a[0] = 1.f;
     a[1] = 2.f;
     a[2] = 3.f;
-    dp::mat::vector<float, 3> b;
+    dp::mat::Vector<float, 3> b;
     b[0] = 4.f;
     b[1] = 5.f;
     b[2] = 6.f;
@@ -28,13 +28,13 @@ TEST_CASE("lina::expr vector expression eval") {
 }
 
 TEST_CASE("lina::expr matrix expression eval") {
-    dp::mat::matrix<int, 2, 2> a;
+    dp::mat::Matrix<int, 2, 2> a;
     a(0, 0) = 1;
     a(1, 0) = 3;
     a(0, 1) = 2;
     a(1, 1) = 4;
 
-    dp::mat::matrix<int, 2, 2> b;
+    dp::mat::Matrix<int, 2, 2> b;
     b(0, 0) = 5;
     b(1, 0) = 7;
     b(0, 1) = 6;

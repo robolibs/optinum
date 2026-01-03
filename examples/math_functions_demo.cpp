@@ -24,14 +24,14 @@ int main() {
     std::cout << "2. Linear Algebra Functions (optinum::lina::):\n";
 
     // Use dp::mat types for owning storage
-    dp::mat::matrix<double, 3, 3> A_storage;
+    dp::mat::Matrix<double, 3, 3> A_storage;
     optinum::Matrix<double, 3, 3> A(A_storage); // Non-owning view
     A.fill(1.0);
     A(0, 0) = 4.0;
     A(1, 1) = 3.0;
     A(2, 2) = 5.0;
 
-    dp::mat::vector<double, 3> b_storage;
+    dp::mat::Vector<double, 3> b_storage;
     optinum::Vector<double, 3> b(b_storage); // Non-owning view
     b.fill(1.0);
 

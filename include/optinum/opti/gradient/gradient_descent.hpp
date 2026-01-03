@@ -35,7 +35,7 @@ namespace optinum::opti {
      * gd.tolerance = 1e-6;
      *
      * // Initial point
-     * dp::mat::vector<double, 3> x0{1.0, 2.0, 3.0};
+     * dp::mat::Vector<double, 3> x0{1.0, 2.0, 3.0};
      *
      * // Optimize
      * auto result = gd.optimize(func, x0);
@@ -68,9 +68,9 @@ namespace optinum::opti {
          * @return OptimizationResult with solution and convergence info
          */
         template <typename FunctionType, typename T, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(FunctionType &function, dp::mat::vector<T, N> &x_init,
+        OptimizationResult<T, N> optimize(FunctionType &function, dp::mat::Vector<T, N> &x_init,
                                           CallbackType callback = NoCallback{}) {
-            using vector_type = dp::mat::vector<T, N>;
+            using vector_type = dp::mat::Vector<T, N>;
 
             // Working variables
             vector_type x = x_init; // Current iterate
@@ -170,7 +170,7 @@ namespace optinum::opti {
          * Optimize with default-constructed function (for stateless functions)
          */
         template <typename FunctionType, typename T, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(dp::mat::vector<T, N> &x_init, CallbackType callback = NoCallback{}) {
+        OptimizationResult<T, N> optimize(dp::mat::Vector<T, N> &x_init, CallbackType callback = NoCallback{}) {
             FunctionType function;
             return optimize(function, x_init, callback);
         }

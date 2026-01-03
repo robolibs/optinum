@@ -17,7 +17,7 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
     namespace dp = datapod;
 
     SUBCASE("Reshape 2x3x4 to 3x2x4") {
-        dp::mat::tensor<float, 2, 3, 4> storage;
+        dp::mat::Tensor<float, 2, 3, 4> storage;
         Tensor<float, 2, 3, 4> t(storage);
         t.fill(0.0f);
 
@@ -38,7 +38,7 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
     }
 
     SUBCASE("Reshape 2x2x2 to 4x2x1") {
-        dp::mat::tensor<int, 2, 2, 2> storage;
+        dp::mat::Tensor<int, 2, 2, 2> storage;
         Tensor<int, 2, 2, 2> t(storage);
         for (std::size_t i = 0; i < 8; ++i) {
             t[i] = static_cast<int>(i + 1);
@@ -53,7 +53,7 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
     }
 
     SUBCASE("Reshape 3x3x3 to 9x3x1") {
-        dp::mat::tensor<double, 3, 3, 3> storage;
+        dp::mat::Tensor<double, 3, 3, 3> storage;
         Tensor<double, 3, 3, 3> t(storage);
         for (std::size_t i = 0; i < 27; ++i) {
             t[i] = static_cast<double>(i * 0.5);
@@ -68,7 +68,7 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
     }
 
     SUBCASE("Reshape to same dimensions (no-op)") {
-        dp::mat::tensor<float, 2, 3, 4> storage;
+        dp::mat::Tensor<float, 2, 3, 4> storage;
         Tensor<float, 2, 3, 4> t(storage);
         t.fill(42.0f);
 
@@ -88,7 +88,7 @@ TEST_CASE("Tensor reshape() - 4D tensors") {
     namespace dp = datapod;
 
     SUBCASE("Reshape 2x2x2x3 to 3x4x2x1") {
-        dp::mat::tensor<float, 2, 2, 2, 3> storage;
+        dp::mat::Tensor<float, 2, 2, 2, 3> storage;
         Tensor<float, 2, 2, 2, 3> t(storage);
         constexpr std::size_t total = 2 * 2 * 2 * 3;
 
@@ -105,7 +105,7 @@ TEST_CASE("Tensor reshape() - 4D tensors") {
     }
 
     SUBCASE("Reshape 3x2x2x2 to 2x2x2x3") {
-        dp::mat::tensor<int, 3, 2, 2, 2> storage;
+        dp::mat::Tensor<int, 3, 2, 2, 2> storage;
         Tensor<int, 3, 2, 2, 2> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<int>(i * 2);
@@ -139,7 +139,7 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     namespace dp = datapod;
 
     SUBCASE("squeeze<1, N, M> -> <N, M, 1>") {
-        dp::mat::tensor<float, 1, 3, 4> storage;
+        dp::mat::Tensor<float, 1, 3, 4> storage;
         Tensor<float, 1, 3, 4> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i);
@@ -156,7 +156,7 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, 1, M> -> <N, M, 1>") {
-        dp::mat::tensor<float, 3, 1, 4> storage;
+        dp::mat::Tensor<float, 3, 1, 4> storage;
         Tensor<float, 3, 1, 4> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i * 2);
@@ -173,7 +173,7 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, 1> -> <N, M, 1> (no-op)") {
-        dp::mat::tensor<float, 3, 4, 1> storage;
+        dp::mat::Tensor<float, 3, 4, 1> storage;
         Tensor<float, 3, 4, 1> t(storage);
         t.fill(7.5f);
 
@@ -188,7 +188,7 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, P> with all > 1 -> no-op") {
-        dp::mat::tensor<float, 2, 3, 4> storage;
+        dp::mat::Tensor<float, 2, 3, 4> storage;
         Tensor<float, 2, 3, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i);
@@ -210,7 +210,7 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     namespace dp = datapod;
 
     SUBCASE("squeeze<1, N, M, P> -> <N, M, P>") {
-        dp::mat::tensor<float, 1, 2, 3, 4> storage;
+        dp::mat::Tensor<float, 1, 2, 3, 4> storage;
         Tensor<float, 1, 2, 3, 4> t(storage);
         constexpr std::size_t total = 24;
 
@@ -229,7 +229,7 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, 1, M, P> -> <N, M, P>") {
-        dp::mat::tensor<float, 2, 1, 3, 4> storage;
+        dp::mat::Tensor<float, 2, 1, 3, 4> storage;
         Tensor<float, 2, 1, 3, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i + 10);
@@ -245,7 +245,7 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, 1, P> -> <N, M, P>") {
-        dp::mat::tensor<float, 2, 3, 1, 4> storage;
+        dp::mat::Tensor<float, 2, 3, 1, 4> storage;
         Tensor<float, 2, 3, 1, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i * 0.5);
@@ -261,7 +261,7 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     }
 
     SUBCASE("squeeze<N, M, P, 1> -> <N, M, P>") {
-        dp::mat::tensor<float, 2, 3, 4, 1> storage;
+        dp::mat::Tensor<float, 2, 3, 4, 1> storage;
         Tensor<float, 2, 3, 4, 1> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(100 - i);
@@ -282,7 +282,7 @@ TEST_CASE("Tensor squeeze() - Multiple dimensions of size 1") {
     namespace dp = datapod;
 
     SUBCASE("squeeze<1, 1, N, M> -> <N, M, 1>") {
-        dp::mat::tensor<float, 1, 1, 3, 4> storage;
+        dp::mat::Tensor<float, 1, 1, 3, 4> storage;
         Tensor<float, 1, 1, 3, 4> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i * 3);
@@ -299,7 +299,7 @@ TEST_CASE("Tensor squeeze() - Multiple dimensions of size 1") {
     }
 
     SUBCASE("squeeze<N, 1, M, 1> -> <N, M, 1>") {
-        dp::mat::tensor<float, 3, 1, 4, 1> storage;
+        dp::mat::Tensor<float, 3, 1, 4, 1> storage;
         Tensor<float, 3, 1, 4, 1> t(storage);
         for (std::size_t i = 0; i < 12; ++i) {
             t[i] = static_cast<float>(i + 0.5);
@@ -320,7 +320,7 @@ TEST_CASE("Tensor reshape() and squeeze() - Integration") {
     namespace dp = datapod;
 
     SUBCASE("Reshape then squeeze") {
-        dp::mat::tensor<float, 2, 3, 4> storage;
+        dp::mat::Tensor<float, 2, 3, 4> storage;
         Tensor<float, 2, 3, 4> t(storage);
         for (std::size_t i = 0; i < 24; ++i) {
             t[i] = static_cast<float>(i);
@@ -341,7 +341,7 @@ TEST_CASE("Tensor reshape() and squeeze() - Integration") {
     }
 
     SUBCASE("Multiple reshape operations") {
-        dp::mat::tensor<int, 2, 2, 2> storage;
+        dp::mat::Tensor<int, 2, 2, 2> storage;
         Tensor<int, 2, 2, 2> t(storage);
         for (std::size_t i = 0; i < 8; ++i) {
             t[i] = static_cast<int>(i);
@@ -366,7 +366,7 @@ TEST_CASE("Tensor reshape() - Element access after reshape") {
     using namespace on::simd;
     namespace dp = datapod;
 
-    dp::mat::tensor<float, 2, 3, 4> storage;
+    dp::mat::Tensor<float, 2, 3, 4> storage;
     Tensor<float, 2, 3, 4> t(storage);
     // Initialize with a pattern
     for (std::size_t i = 0; i < 2; ++i) {

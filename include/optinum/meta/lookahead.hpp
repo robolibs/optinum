@@ -58,8 +58,8 @@ namespace optinum::meta {
      * gd.step_size = 0.001;
      *
      * // Or use standalone
-     * dp::mat::vector<double, 3> x{1.0, 2.0, 3.0};
-     * dp::mat::vector<double, 3> grad{0.1, 0.2, 0.3};
+     * dp::mat::Vector<double, 3> x{1.0, 2.0, 3.0};
+     * dp::mat::Vector<double, 3> grad{0.1, 0.2, 0.3};
      * lookahead_adam.update(x, 0.001, grad);
      * @endcode
      *
@@ -101,7 +101,7 @@ namespace optinum::meta {
          * @param gradient Current gradient
          */
         template <typename T, std::size_t N>
-        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization of slow weights
@@ -211,14 +211,14 @@ namespace optinum::meta {
         std::size_t step_count() const noexcept { return step_count_; }
 
         /// Get reference to slow weights (for inspection)
-        const dp::mat::vector<double, dp::mat::Dynamic> &slow_weights() const noexcept { return slow_weights_; }
+        const dp::mat::Vector<double, dp::mat::Dynamic> &slow_weights() const noexcept { return slow_weights_; }
 
         /// Get reference to base policy
         BasePolicy &get_base() noexcept { return base; }
         const BasePolicy &get_base() const noexcept { return base; }
 
       private:
-        dp::mat::vector<double, dp::mat::Dynamic> slow_weights_; ///< Slow weights (phi)
+        dp::mat::Vector<double, dp::mat::Dynamic> slow_weights_; ///< Slow weights (phi)
         std::size_t step_count_ = 0;                             ///< Steps since last slow weight update
     };
 

@@ -38,13 +38,13 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = dp::mat::vector<T, 3>;              // [vx, vy, theta] - owning
-        using Translation = dp::mat::vector<T, 2>;          // owning
-        using Point = dp::mat::vector<T, 2>;                // owning
-        using Params = dp::mat::vector<T, 4>;               // [cos, sin, tx, ty] - owning
-        using HomogeneousMatrix = dp::mat::matrix<T, 3, 3>; // owning
-        using TransformMatrix = dp::mat::matrix<T, 2, 3>;   // Compact form - owning
-        using AdjointMatrix = dp::mat::matrix<T, 3, 3>;     // owning
+        using Tangent = dp::mat::Vector<T, 3>;              // [vx, vy, theta] - owning
+        using Translation = dp::mat::Vector<T, 2>;          // owning
+        using Point = dp::mat::Vector<T, 2>;                // owning
+        using Params = dp::mat::Vector<T, 4>;               // [cos, sin, tx, ty] - owning
+        using HomogeneousMatrix = dp::mat::Matrix<T, 3, 3>; // owning
+        using TransformMatrix = dp::mat::Matrix<T, 2, 3>;   // Compact form - owning
+        using AdjointMatrix = dp::mat::Matrix<T, 3, 3>;     // owning
         using Rotation = SO2<T>;
 
         // ===== CONSTANTS =====
@@ -69,7 +69,7 @@ namespace optinum::lie {
         // From 3x3 homogeneous matrix
         explicit SE2(const HomogeneousMatrix &T_mat) noexcept {
             // Extract rotation from top-left 2x2
-            dp::mat::matrix<T, 2, 2> R_mat;
+            dp::mat::Matrix<T, 2, 2> R_mat;
             R_mat(0, 0) = T_mat(0, 0);
             R_mat(0, 1) = T_mat(0, 1);
             R_mat(1, 0) = T_mat(1, 0);
@@ -149,7 +149,7 @@ namespace optinum::lie {
         // Fit closest SE2 to arbitrary 3x3 matrix
         [[nodiscard]] static SE2 fit_to_SE2(const HomogeneousMatrix &M) noexcept {
             // Extract and normalize rotation
-            dp::mat::matrix<T, 2, 2> R_mat;
+            dp::mat::Matrix<T, 2, 2> R_mat;
             R_mat(0, 0) = M(0, 0);
             R_mat(0, 1) = M(0, 1);
             R_mat(1, 0) = M(1, 0);
@@ -255,7 +255,7 @@ namespace optinum::lie {
         }
 
         // Return 2x2 rotation matrix
-        [[nodiscard]] dp::mat::matrix<T, 2, 2> rotation_matrix() const noexcept { return so2_.matrix(); }
+        [[nodiscard]] dp::mat::Matrix<T, 2, 2> rotation_matrix() const noexcept { return so2_.matrix(); }
 
         // ===== LIE ALGEBRA =====
 
@@ -487,7 +487,7 @@ namespace optinum::lie {
         // Cast to different scalar type
         template <typename NewScalar> [[nodiscard]] SE2<NewScalar> cast() const noexcept {
             return SE2<NewScalar>(so2_.template cast<NewScalar>(),
-                                  dp::mat::vector<NewScalar, 2>{{static_cast<NewScalar>(translation_[0]),
+                                  dp::mat::Vector<NewScalar, 2>{{static_cast<NewScalar>(translation_[0]),
                                                                  static_cast<NewScalar>(translation_[1])}});
         }
 

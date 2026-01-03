@@ -17,7 +17,7 @@ constexpr std::size_t NUM_ITERATIONS_SMALL = 1000; // For expensive ops like dec
 constexpr std::size_t NUM_ITERATIONS_FAST = 10000; // For fast ops like transpose
 
 template <typename T, std::size_t R, std::size_t C>
-void fill_random_matrix(dp::mat::matrix<T, R, C> &m, T min_val = -10.0, T max_val = 10.0) {
+void fill_random_matrix(dp::mat::Matrix<T, R, C> &m, T min_val = -10.0, T max_val = 10.0) {
     static std::mt19937 gen(42);
     std::uniform_real_distribution<T> dist(min_val, max_val);
     for (std::size_t i = 0; i < R * C; ++i) {
@@ -26,7 +26,7 @@ void fill_random_matrix(dp::mat::matrix<T, R, C> &m, T min_val = -10.0, T max_va
 }
 
 template <typename T, std::size_t N>
-void fill_random_vector(dp::mat::vector<T, N> &v, T min_val = -10.0, T max_val = 10.0) {
+void fill_random_vector(dp::mat::Vector<T, N> &v, T min_val = -10.0, T max_val = 10.0) {
     static std::mt19937 gen(42);
     std::uniform_real_distribution<T> dist(min_val, max_val);
     for (std::size_t i = 0; i < N; ++i) {
@@ -35,11 +35,11 @@ void fill_random_vector(dp::mat::vector<T, N> &v, T min_val = -10.0, T max_val =
 }
 
 // Make SPD matrix for Cholesky
-template <typename T, std::size_t N> dp::mat::matrix<T, N, N> make_spd_matrix() {
-    dp::mat::matrix<T, N, N> m;
+template <typename T, std::size_t N> dp::mat::Matrix<T, N, N> make_spd_matrix() {
+    dp::mat::Matrix<T, N, N> m;
     fill_random_matrix(m, static_cast<T>(-1.0), static_cast<T>(1.0));
     // A^T * A is SPD
-    dp::mat::matrix<T, N, N> mt;
+    dp::mat::Matrix<T, N, N> mt;
     simd::backend::transpose<T, N, N>(mt.data(), m.data());
     simd::backend::matmul<T, N, N, N>(m.data(), mt.data(), m.data());
     // Add diagonal dominance to ensure positive definiteness
@@ -67,15 +67,15 @@ class Timer {
 // ============================================================================
 
 template <std::size_t M, std::size_t K, std::size_t N> double benchmark_matmul(std::size_t iters) {
-    dp::mat::matrix<double, M, K> a;
-    dp::mat::matrix<double, K, N> b;
+    dp::mat::Matrix<double, M, K> a;
+    dp::mat::Matrix<double, K, N> b;
     fill_random_matrix(a);
     fill_random_matrix(b);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        dp::mat::matrix<double, M, N> c;
+        dp::mat::Matrix<double, M, N> c;
         simd::backend::matmul<double, M, K, N>(c.data(), a.data(), b.data());
         (void)c;
     }
@@ -83,13 +83,13 @@ template <std::size_t M, std::size_t K, std::size_t N> double benchmark_matmul(s
 }
 
 template <std::size_t R, std::size_t C> double benchmark_transpose(std::size_t iters) {
-    dp::mat::matrix<double, R, C> m;
+    dp::mat::Matrix<double, R, C> m;
     fill_random_matrix(m);
 
     Timer timer;
     timer.start();
     for (std::size_t iter = 0; iter < iters; ++iter) {
-        dp::mat::matrix<double, C, R> mt;
+        dp::mat::Matrix<double, C, R> mt;
         simd::backend::transpose<double, R, C>(mt.data(), m.data());
         (void)mt;
     }
@@ -97,7 +97,7 @@ template <std::size_t R, std::size_t C> double benchmark_transpose(std::size_t i
 }
 
 template <std::size_t N> double benchmark_inverse(std::size_t iters) {
-    dp::mat::matrix<double, N, N> m;
+    dp::mat::Matrix<double, N, N> m;
     fill_random_matrix(m, -5.0, 5.0);
     // Ensure invertibility by adding diagonal dominance
     for (std::size_t i = 0; i < N; ++i) {
@@ -115,7 +115,7 @@ template <std::size_t N> double benchmark_inverse(std::size_t iters) {
 }
 
 template <std::size_t N> double benchmark_determinant(std::size_t iters) {
-    dp::mat::matrix<double, N, N> m;
+    dp::mat::Matrix<double, N, N> m;
     fill_random_matrix(m);
 
     Timer timer;
@@ -130,7 +130,7 @@ template <std::size_t N> double benchmark_determinant(std::size_t iters) {
 }
 
 template <std::size_t N> double benchmark_norm_frobenius(std::size_t iters) {
-    dp::mat::matrix<double, N, N> m;
+    dp::mat::Matrix<double, N, N> m;
     fill_random_matrix(m);
 
     Timer timer;
@@ -148,7 +148,7 @@ template <std::size_t N> double benchmark_norm_frobenius(std::size_t iters) {
 // ============================================================================
 
 template <std::size_t N> double benchmark_lu_decomposition(std::size_t iters) {
-    dp::mat::matrix<double, N, N> m;
+    dp::mat::Matrix<double, N, N> m;
     fill_random_matrix(m);
 
     Timer timer;
@@ -164,7 +164,7 @@ template <std::size_t N> double benchmark_lu_decomposition(std::size_t iters) {
 }
 
 template <std::size_t M, std::size_t N> double benchmark_qr_decomposition(std::size_t iters) {
-    dp::mat::matrix<double, M, N> m;
+    dp::mat::Matrix<double, M, N> m;
     fill_random_matrix(m);
 
     Timer timer;
@@ -179,7 +179,7 @@ template <std::size_t M, std::size_t N> double benchmark_qr_decomposition(std::s
 }
 
 template <std::size_t M, std::size_t N> double benchmark_svd(std::size_t iters) {
-    dp::mat::matrix<double, M, N> m;
+    dp::mat::Matrix<double, M, N> m;
     fill_random_matrix(m);
 
     Timer timer;
@@ -208,7 +208,7 @@ template <std::size_t N> double benchmark_cholesky(std::size_t iters) {
 }
 
 template <std::size_t N> double benchmark_eigendecomposition(std::size_t iters) {
-    dp::mat::matrix<double, N, N> m;
+    dp::mat::Matrix<double, N, N> m;
     // Make symmetric for eigendecomposition
     fill_random_matrix(m, -1.0, 1.0);
     for (std::size_t i = 0; i < N; ++i) {
@@ -233,8 +233,8 @@ template <std::size_t N> double benchmark_eigendecomposition(std::size_t iters) 
 // ============================================================================
 
 template <std::size_t N> double benchmark_solve(std::size_t iters) {
-    dp::mat::matrix<double, N, N> A;
-    dp::mat::vector<double, N> b;
+    dp::mat::Matrix<double, N, N> A;
+    dp::mat::Vector<double, N> b;
     fill_random_matrix(A);
     fill_random_vector(b);
     // Ensure invertibility
@@ -254,8 +254,8 @@ template <std::size_t N> double benchmark_solve(std::size_t iters) {
 }
 
 template <std::size_t M, std::size_t N> double benchmark_lstsq(std::size_t iters) {
-    dp::mat::matrix<double, M, N> A;
-    dp::mat::vector<double, M> b;
+    dp::mat::Matrix<double, M, N> A;
+    dp::mat::Vector<double, M> b;
     fill_random_matrix(A);
     fill_random_vector(b);
 
@@ -275,7 +275,7 @@ template <std::size_t M, std::size_t N> double benchmark_lstsq(std::size_t iters
 // ============================================================================
 
 template <std::size_t N> double benchmark_hadamard(std::size_t iters) {
-    dp::mat::matrix<double, N, N> A, B;
+    dp::mat::Matrix<double, N, N> A, B;
     fill_random_matrix(A);
     fill_random_matrix(B);
 
@@ -291,7 +291,7 @@ template <std::size_t N> double benchmark_hadamard(std::size_t iters) {
 }
 
 template <std::size_t N> double benchmark_outer_product(std::size_t iters) {
-    dp::mat::vector<double, N> u, v;
+    dp::mat::Vector<double, N> u, v;
     fill_random_vector(u);
     fill_random_vector(v);
 
@@ -307,7 +307,7 @@ template <std::size_t N> double benchmark_outer_product(std::size_t iters) {
 }
 
 template <std::size_t N> double benchmark_inner_product(std::size_t iters) {
-    dp::mat::matrix<double, N, N> A, B;
+    dp::mat::Matrix<double, N, N> A, B;
     fill_random_matrix(A);
     fill_random_matrix(B);
 

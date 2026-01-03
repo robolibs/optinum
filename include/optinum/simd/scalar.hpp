@@ -7,13 +7,13 @@ namespace optinum::simd {
     namespace dp = ::datapod;
 
     // Scalar: non-owning view over a single arithmetic value
-    // Non-owning view over datapod::mat::scalar<T> or raw T* data
+    // Non-owning view over datapod::mat::Scalar<T> or raw T* data
     template <typename T> class Scalar {
         static_assert(std::is_arithmetic_v<T>, "Scalar<T> requires arithmetic type");
 
       public:
         using value_type = T;
-        using pod_type = dp::mat::scalar<T>;
+        using pod_type = dp::mat::Scalar<T>;
         using pointer = T *;
         using const_pointer = const T *;
         using reference = T &;

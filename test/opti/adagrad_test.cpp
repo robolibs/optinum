@@ -8,7 +8,7 @@ using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("AdaGradUpdate - Sphere function 2D") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
 
     Sphere<double, 2> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -18,7 +18,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 2D") {
     gd.tolerance = 1e-6;
 
     SUBCASE("Converge from (1, 1)") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -29,7 +29,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Converge from (5, -3)") {
-        Vec2 x(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x(dp::mat::Vector<double, 2>{5.0, -3.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -39,7 +39,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Already at minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x(dp::mat::Vector<double, 2>{0.0, 0.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -49,7 +49,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 2D") {
 }
 
 TEST_CASE("AdaGradUpdate - Sphere function 3D") {
-    using Vec3 = dp::mat::vector<double, 3>;
+    using Vec3 = dp::mat::Vector<double, 3>;
 
     Sphere<double, 3> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -58,7 +58,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 3D") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    Vec3 x(dp::mat::vector<double, 3>{2.0, -1.0, 3.0});
+    Vec3 x(dp::mat::Vector<double, 3>{2.0, -1.0, 3.0});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -69,7 +69,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 3D") {
 }
 
 TEST_CASE("AdaGradUpdate - Sphere function 10D") {
-    using Vec10 = dp::mat::vector<double, 10>;
+    using Vec10 = dp::mat::Vector<double, 10>;
 
     Sphere<double, 10> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -94,7 +94,7 @@ TEST_CASE("AdaGradUpdate - Sphere function 10D") {
 }
 
 TEST_CASE("AdaGradUpdate - Adaptive learning rate behavior") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaGrad should work well even with large initial learning rate
@@ -105,7 +105,7 @@ TEST_CASE("AdaGradUpdate - Adaptive learning rate behavior") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -118,7 +118,7 @@ TEST_CASE("AdaGradUpdate - Adaptive learning rate behavior") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -127,7 +127,7 @@ TEST_CASE("AdaGradUpdate - Adaptive learning rate behavior") {
 }
 
 TEST_CASE("AdaGradUpdate - Different epsilon values") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Default epsilon (1e-8)") {
@@ -136,7 +136,7 @@ TEST_CASE("AdaGradUpdate - Different epsilon values") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -149,7 +149,7 @@ TEST_CASE("AdaGradUpdate - Different epsilon values") {
         gd.max_iterations = 1000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -157,7 +157,7 @@ TEST_CASE("AdaGradUpdate - Different epsilon values") {
 }
 
 TEST_CASE("AdaGradUpdate - Float precision") {
-    using Vec2 = dp::mat::vector<float, 2>;
+    using Vec2 = dp::mat::Vector<float, 2>;
 
     Sphere<float, 2> sphere;
     GradientDescent<AdaGradUpdate> gd;
@@ -166,7 +166,7 @@ TEST_CASE("AdaGradUpdate - Float precision") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-5f;
 
-    Vec2 x(dp::mat::vector<float, 2>{1.0f, 1.0f});
+    Vec2 x(dp::mat::Vector<float, 2>{1.0f, 1.0f});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -179,7 +179,7 @@ TEST_CASE("AdaGradUpdate - Custom quadratic function") {
     // Custom quadratic: f(x, y) = (x - 2)^2 + (y + 3)^2
     // Minimum at (2, -3)
     struct CustomQuadratic {
-        using tensor_type = dp::mat::vector<double, 2>;
+        using tensor_type = dp::mat::Vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -205,7 +205,7 @@ TEST_CASE("AdaGradUpdate - Custom quadratic function") {
     gd.max_iterations = 1000;
     gd.tolerance = 1e-6;
 
-    dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
+    dp::mat::Vector<double, 2> x(dp::mat::Vector<double, 2>{0.0, 0.0});
     auto result = gd.optimize(func, x);
 
     CHECK(result.converged);
@@ -215,7 +215,7 @@ TEST_CASE("AdaGradUpdate - Custom quadratic function") {
 }
 
 TEST_CASE("AdaGradUpdate - Reset behavior") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<AdaGradUpdate> gd;
@@ -225,12 +225,12 @@ TEST_CASE("AdaGradUpdate - Reset behavior") {
     gd.reset_policy = true;
 
     // First optimization
-    Vec2 x1(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result1 = gd.optimize(sphere, x1);
     CHECK(result1.converged);
 
     // Second optimization (should behave the same due to reset)
-    Vec2 x2(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result2 = gd.optimize(sphere, x2);
     CHECK(result2.converged);
 
@@ -239,7 +239,7 @@ TEST_CASE("AdaGradUpdate - Reset behavior") {
 }
 
 TEST_CASE("AdaGradUpdate - Comparison with vanilla GD") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaGrad
@@ -248,7 +248,7 @@ TEST_CASE("AdaGradUpdate - Comparison with vanilla GD") {
     adagrad_gd.max_iterations = 1000;
     adagrad_gd.tolerance = 1e-6;
 
-    Vec2 x1(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto adagrad_result = adagrad_gd.optimize(sphere, x1);
 
     // Vanilla GD
@@ -257,7 +257,7 @@ TEST_CASE("AdaGradUpdate - Comparison with vanilla GD") {
     vanilla_gd.max_iterations = 1000;
     vanilla_gd.tolerance = 1e-6;
 
-    Vec2 x2(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto vanilla_result = vanilla_gd.optimize(sphere, x2);
 
     // Both should converge
@@ -266,7 +266,7 @@ TEST_CASE("AdaGradUpdate - Comparison with vanilla GD") {
 }
 
 TEST_CASE("AdaGradUpdate - Accumulated gradient behavior") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // Without reset, accumulated gradients persist
@@ -277,12 +277,12 @@ TEST_CASE("AdaGradUpdate - Accumulated gradient behavior") {
     gd.reset_policy = false;
 
     // First optimization
-    Vec2 x1(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result1 = gd.optimize(sphere, x1);
     CHECK(result1.converged);
 
     // Second optimization without reset - accumulated gradients affect behavior
-    Vec2 x2(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result2 = gd.optimize(sphere, x2);
     CHECK(result2.converged);
 

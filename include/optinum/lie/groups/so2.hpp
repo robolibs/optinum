@@ -21,7 +21,7 @@ namespace optinum::lie {
     // SO(2) represents 2D rotations. Internally stored as a unit complex number:
     //   z = cos(theta) + i*sin(theta) = (real, imag) = (cos, sin)
     //
-    // Storage: dp::mat::complex<T> where real = cos(theta), imag = sin(theta)
+    // Storage: dp::mat::Complex<T> where real = cos(theta), imag = sin(theta)
     // DoF: 1 (rotation angle theta)
     // NumParams: 2 (unit complex number)
     //
@@ -36,10 +36,10 @@ namespace optinum::lie {
         // ===== TYPE ALIASES =====
         using Scalar = T;
         using Tangent = T;                               // R^1, just the angle
-        using Complex = dp::mat::complex<T>;             // Unit complex (cos, sin) - internal storage
-        using Params = dp::mat::vector<T, 2>;            // For compatibility - owning
-        using Point = dp::mat::vector<T, 2>;             // 2D point - owning
-        using RotationMatrix = dp::mat::matrix<T, 2, 2>; // owning
+        using Complex = dp::mat::Complex<T>;             // Unit complex (cos, sin) - internal storage
+        using Params = dp::mat::Vector<T, 2>;            // For compatibility - owning
+        using Point = dp::mat::Vector<T, 2>;             // 2D point - owning
+        using RotationMatrix = dp::mat::Matrix<T, 2, 2>; // owning
         using AdjointMatrix = T;                         // 1x1 matrix = scalar
 
         // ===== CONSTANTS =====

@@ -15,7 +15,7 @@ namespace dp = ::datapod;
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
 
 template <typename T, std::size_t N>
-bool vec_approx_equal(const dp::mat::vector<T, N> &a, const dp::mat::vector<T, N> &b, T tol = T(1e-10)) {
+bool vec_approx_equal(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b, T tol = T(1e-10)) {
     for (std::size_t i = 0; i < N; ++i) {
         if (std::abs(a[i] - b[i]) >= tol)
             return false;
@@ -38,8 +38,8 @@ TEST_CASE("Wrench default construction is zero") {
 }
 
 TEST_CASE("Wrench construction from vectors") {
-    dp::mat::vector<double, 3> force{{1.0, 2.0, 3.0}};
-    dp::mat::vector<double, 3> torque{{0.1, 0.2, 0.3}};
+    dp::mat::Vector<double, 3> force{{1.0, 2.0, 3.0}};
+    dp::mat::Vector<double, 3> torque{{0.1, 0.2, 0.3}};
     Wrenchd wrench(force, torque);
 
     CHECK(vec_approx_equal(wrench.force(), force));
@@ -58,7 +58,7 @@ TEST_CASE("Wrench construction from components") {
 }
 
 TEST_CASE("Wrench construction from Vector6") {
-    dp::mat::vector<double, 6> vec{{1.0, 2.0, 3.0, 0.1, 0.2, 0.3}};
+    dp::mat::Vector<double, 6> vec{{1.0, 2.0, 3.0, 0.1, 0.2, 0.3}};
     Wrenchd wrench(vec);
 
     CHECK(vec_approx_equal(wrench.vector(), vec));
@@ -73,13 +73,13 @@ TEST_CASE("Wrench static factory methods") {
     }
 
     SUBCASE("from_vector") {
-        dp::mat::vector<double, 6> vec{{1.0, 2.0, 3.0, 0.1, 0.2, 0.3}};
+        dp::mat::Vector<double, 6> vec{{1.0, 2.0, 3.0, 0.1, 0.2, 0.3}};
         auto wrench = Wrenchd::from_vector(vec);
         CHECK(vec_approx_equal(wrench.vector(), vec));
     }
 
     SUBCASE("pure_force from Vector3") {
-        dp::mat::vector<double, 3> force{{1.0, 2.0, 3.0}};
+        dp::mat::Vector<double, 3> force{{1.0, 2.0, 3.0}};
         auto wrench = Wrenchd::pure_force(force);
 
         CHECK(vec_approx_equal(wrench.force(), force));
@@ -100,7 +100,7 @@ TEST_CASE("Wrench static factory methods") {
     }
 
     SUBCASE("pure_torque from Vector3") {
-        dp::mat::vector<double, 3> torque{{0.1, 0.2, 0.3}};
+        dp::mat::Vector<double, 3> torque{{0.1, 0.2, 0.3}};
         auto wrench = Wrenchd::pure_torque(torque);
 
         CHECK(approx_equal(wrench.fx(), 0.0));
@@ -134,7 +134,7 @@ TEST_CASE("Wrench mutators") {
     }
 
     SUBCASE("set_force from Vector3") {
-        dp::mat::vector<double, 3> force{{4.0, 5.0, 6.0}};
+        dp::mat::Vector<double, 3> force{{4.0, 5.0, 6.0}};
         wrench.set_force(force);
         CHECK(vec_approx_equal(wrench.force(), force));
     }
@@ -147,13 +147,13 @@ TEST_CASE("Wrench mutators") {
     }
 
     SUBCASE("set_torque from Vector3") {
-        dp::mat::vector<double, 3> torque{{0.4, 0.5, 0.6}};
+        dp::mat::Vector<double, 3> torque{{0.4, 0.5, 0.6}};
         wrench.set_torque(torque);
         CHECK(vec_approx_equal(wrench.torque(), torque));
     }
 
     SUBCASE("set_vector") {
-        dp::mat::vector<double, 6> vec{{7.0, 8.0, 9.0, 0.7, 0.8, 0.9}};
+        dp::mat::Vector<double, 6> vec{{7.0, 8.0, 9.0, 0.7, 0.8, 0.9}};
         wrench.set_vector(vec);
         CHECK(vec_approx_equal(wrench.vector(), vec));
     }
@@ -189,7 +189,7 @@ TEST_CASE("Wrench frame transformation") {
         // Force along x-axis
         Wrenchd wrench = Wrenchd::pure_force(1.0, 0.0, 0.0);
         // Rotate 90° around z
-        SE3d T(SO3d::rot_z(std::numbers::pi / 2), dp::mat::vector<double, 3>{{0.0, 0.0, 0.0}});
+        SE3d T(SO3d::rot_z(std::numbers::pi / 2), dp::mat::Vector<double, 3>{{0.0, 0.0, 0.0}});
 
         auto wrench_new = wrench.transform(T);
 
@@ -290,7 +290,7 @@ TEST_CASE("Wrench power computation") {
 
     SUBCASE("dot product with Vector6") {
         Wrenchd wrench(1.0, 2.0, 3.0, 0.1, 0.2, 0.3);
-        dp::mat::vector<double, 6> v{{0.5, 1.0, 1.5, 0.05, 0.1, 0.15}};
+        dp::mat::Vector<double, 6> v{{0.5, 1.0, 1.5, 0.05, 0.1, 0.15}};
 
         CHECK(approx_equal(wrench.dot(v), 7.07, 1e-10));
     }
@@ -515,7 +515,7 @@ TEST_CASE("Physical scenario: robot arm") {
     Wrenchd wrench_ee = Wrenchd::pure_force(0.0, 0.0, 10.0);
 
     // Transform from end-effector to base
-    SE3d T_base_ee(SO3d::rot_z(std::numbers::pi / 4), dp::mat::vector<double, 3>{{0.5, 0.0, 0.3}});
+    SE3d T_base_ee(SO3d::rot_z(std::numbers::pi / 4), dp::mat::Vector<double, 3>{{0.5, 0.0, 0.3}});
 
     auto wrench_base = wrench_ee.transform(T_base_ee);
 

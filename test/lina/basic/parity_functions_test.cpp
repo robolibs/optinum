@@ -14,7 +14,7 @@ constexpr double TOL = 1e-9;
 bool approx_equal(double a, double b, double tol = TOL) { return std::abs(a - b) < tol; }
 
 void test_rank() {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     for (std::size_t i = 0; i < 9; ++i)
         A[i] = 0.0;
     A(0, 0) = 1.0;
@@ -29,7 +29,7 @@ void test_rank() {
 }
 
 void test_cond() {
-    dp::mat::matrix<double, 3, 3> I;
+    dp::mat::Matrix<double, 3, 3> I;
     for (std::size_t i = 0; i < 9; ++i)
         I[i] = 0.0;
     I(0, 0) = 1.0;
@@ -44,7 +44,7 @@ void test_cond() {
 }
 
 void test_rcond() {
-    dp::mat::matrix<double, 3, 3> I;
+    dp::mat::Matrix<double, 3, 3> I;
     for (std::size_t i = 0; i < 9; ++i)
         I[i] = 0.0;
     I(0, 0) = 1.0;
@@ -59,7 +59,7 @@ void test_rcond() {
 }
 
 void test_pinv() {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     A(0, 0) = 1.0;
     A(0, 1) = 0.0;
     A(0, 2) = 0.0;
@@ -86,7 +86,7 @@ void test_pinv() {
 }
 
 void test_null() {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     for (std::size_t i = 0; i < 9; ++i)
         A[i] = 0.0;
     A(0, 0) = 1.0;
@@ -102,7 +102,7 @@ void test_null() {
 }
 
 void test_orth() {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     for (std::size_t i = 0; i < 9; ++i)
         A[i] = 0.0;
     A(0, 0) = 1.0;
@@ -124,13 +124,13 @@ void test_orth() {
 }
 
 void test_kron() {
-    dp::mat::matrix<double, 2, 2> A;
+    dp::mat::Matrix<double, 2, 2> A;
     A(0, 0) = 1.0;
     A(0, 1) = 2.0;
     A(1, 0) = 3.0;
     A(1, 1) = 4.0;
 
-    dp::mat::matrix<double, 2, 2> B;
+    dp::mat::Matrix<double, 2, 2> B;
     B(0, 0) = 0.0;
     B(0, 1) = 5.0;
     B(1, 0) = 6.0;
@@ -145,7 +145,7 @@ void test_kron() {
 }
 
 void test_is_symmetric() {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     A(0, 0) = 1.0;
     A(0, 1) = 2.0;
     A(0, 2) = 3.0;
@@ -164,7 +164,7 @@ void test_is_symmetric() {
 }
 
 void test_is_positive_definite() {
-    dp::mat::matrix<double, 3, 3> A;
+    dp::mat::Matrix<double, 3, 3> A;
     A(0, 0) = 4.0;
     A(0, 1) = 2.0;
     A(0, 2) = 1.0;

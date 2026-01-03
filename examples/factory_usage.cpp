@@ -73,7 +73,7 @@ int main() {
     print_vector("   simd::arange<double, 4>(0.0, 0.5)", v_arange3);
 
     // For matrix arange, we use iota on a zero-initialized matrix
-    dp::mat::matrix<int, 2, 4> m_arange;
+    dp::mat::Matrix<int, 2, 4> m_arange;
     simd::Matrix<int, 2, 4>(m_arange).iota();
     print_matrix("   Matrix<int, 2, 4> with iota()", m_arange);
     std::cout << "\n";
@@ -85,12 +85,12 @@ int main() {
     std::cout << "PART 2: fill() - Fill existing container\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    dp::mat::vector<float, 4> v_storage;
+    dp::mat::Vector<float, 4> v_storage;
     simd::Vector<float, 4> v(v_storage);
     v.fill(3.14f);
     print_vector("v.fill(3.14f)", v_storage);
 
-    dp::mat::matrix<double, 2, 2> m_storage;
+    dp::mat::Matrix<double, 2, 2> m_storage;
     simd::Matrix<double, 2, 2> m(m_storage);
     m.fill(2.71);
     print_matrix("m.fill(2.71)", m_storage);
@@ -102,22 +102,22 @@ int main() {
     std::cout << "PART 3: iota() - Fill with sequential values\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    dp::mat::vector<int, 5> v1_storage;
+    dp::mat::Vector<int, 5> v1_storage;
     simd::Vector<int, 5> v1(v1_storage);
     v1.iota();
     print_vector("v.iota() - defaults to 0, 1, 2, ...", v1_storage);
 
-    dp::mat::vector<float, 4> v2_storage;
+    dp::mat::Vector<float, 4> v2_storage;
     simd::Vector<float, 4> v2(v2_storage);
     v2.iota(10.0f);
     print_vector("v.iota(10.0f) - start from 10", v2_storage);
 
-    dp::mat::vector<double, 5> v3_storage;
+    dp::mat::Vector<double, 5> v3_storage;
     simd::Vector<double, 5> v3(v3_storage);
     v3.iota(0.0, 2.5);
     print_vector("v.iota(0.0, 2.5) - step by 2.5", v3_storage);
 
-    dp::mat::matrix<int, 3, 3> m1_storage;
+    dp::mat::Matrix<int, 3, 3> m1_storage;
     simd::Matrix<int, 3, 3> m1(m1_storage);
     m1.iota();
     print_matrix("m.iota() - fill matrix sequentially", m1_storage);
@@ -129,14 +129,14 @@ int main() {
     std::cout << "PART 4: reverse() - Reverse element order\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    dp::mat::vector<int, 6> v_rev_storage;
+    dp::mat::Vector<int, 6> v_rev_storage;
     simd::Vector<int, 6> v_rev(v_rev_storage);
     v_rev.iota();
     print_vector("Before reverse", v_rev_storage);
     v_rev.reverse();
     print_vector("After reverse", v_rev_storage);
 
-    dp::mat::matrix<int, 2, 3> m_rev_storage;
+    dp::mat::Matrix<int, 2, 3> m_rev_storage;
     simd::Matrix<int, 2, 3> m_rev(m_rev_storage);
     m_rev.iota();
     print_matrix("Before reverse", m_rev_storage);
@@ -163,12 +163,12 @@ int main() {
     std::cout << "PART 7: Method Chaining\n";
     std::cout << std::string(50, '-') << "\n\n";
 
-    dp::mat::vector<float, 5> v_chain_storage;
+    dp::mat::Vector<float, 5> v_chain_storage;
     simd::Vector<float, 5> v_chain(v_chain_storage);
     v_chain.iota(1.0f, 2.0f).reverse();
     print_vector("v.iota(1.0f, 2.0f).reverse()", v_chain_storage);
 
-    dp::mat::matrix<int, 2, 3> m_chain_storage;
+    dp::mat::Matrix<int, 2, 3> m_chain_storage;
     simd::Matrix<int, 2, 3> m_chain(m_chain_storage);
     m_chain.fill(0).iota(100);
     print_matrix("m.fill(0).iota(100)", m_chain_storage);
@@ -188,7 +188,7 @@ int main() {
     // Initialize weights for ML
     std::cout << "\nExample 2: Initialize neural network weights\n";
     auto weights_storage = simd::random<float, 12>(); // 3x4 = 12 elements
-    dp::mat::matrix<float, 3, 4> weights_matrix;
+    dp::mat::Matrix<float, 3, 4> weights_matrix;
     for (std::size_t i = 0; i < 12; ++i) {
         weights_matrix[i] = weights_storage[i];
     }

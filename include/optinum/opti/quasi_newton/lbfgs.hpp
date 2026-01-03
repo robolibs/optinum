@@ -87,16 +87,16 @@ namespace optinum::opti {
      * @example
      * // Define objective function
      * struct Rosenbrock {
-     *     double evaluate(const dp::mat::vector<double, 2>& x) const {
+     *     double evaluate(const dp::mat::Vector<double, 2>& x) const {
      *         double a = 1.0 - x[0];
      *         double b = x[1] - x[0] * x[0];
      *         return a * a + 100.0 * b * b;
      *     }
-     *     void gradient(const dp::mat::vector<double, 2>& x, dp::mat::vector<double, 2>& g) const {
+     *     void gradient(const dp::mat::Vector<double, 2>& x, dp::mat::Vector<double, 2>& g) const {
      *         g[0] = -2.0 * (1.0 - x[0]) - 400.0 * x[0] * (x[1] - x[0] * x[0]);
      *         g[1] = 200.0 * (x[1] - x[0] * x[0]);
      *     }
-     *     double evaluate_with_gradient(const dp::mat::vector<double, 2>& x, dp::mat::vector<double, 2>& g) const {
+     *     double evaluate_with_gradient(const dp::mat::Vector<double, 2>& x, dp::mat::Vector<double, 2>& g) const {
      *         gradient(x, g);
      *         return evaluate(x);
      *     }
@@ -107,7 +107,7 @@ namespace optinum::opti {
      * optimizer.tolerance = 1e-8;
      * optimizer.history_size = 10;
      *
-     * dp::mat::vector<double, 2> x0{-1.0, 1.0};
+     * dp::mat::Vector<double, 2> x0{-1.0, 1.0};
      * Rosenbrock func;
      * auto result = optimizer.optimize(func, x0);
      * // result.x should be close to (1, 1)
@@ -171,9 +171,9 @@ namespace optinum::opti {
          * - T evaluate_with_gradient(const Vector& x, Vector& g) - both (optional but efficient)
          */
         template <typename FunctionType, std::size_t N, typename CallbackType = NoCallback>
-        OptimizationResult<T, N> optimize(FunctionType &function, const dp::mat::vector<T, N> &x_init,
+        OptimizationResult<T, N> optimize(FunctionType &function, const dp::mat::Vector<T, N> &x_init,
                                           CallbackType callback = NoCallback{}) {
-            using vector_type = dp::mat::vector<T, N>;
+            using vector_type = dp::mat::Vector<T, N>;
 
             const std::size_t n = x_init.size();
 
@@ -198,10 +198,10 @@ namespace optinum::opti {
             // s_history[i] = x_{k-m+i+1} - x_{k-m+i}
             // y_history[i] = g_{k-m+i+1} - g_{k-m+i}
             // rho_history[i] = 1 / (y_i^T * s_i)
-            dp::mat::vector<T, dp::mat::Dynamic> s_flat; // Flattened s vectors
-            dp::mat::vector<T, dp::mat::Dynamic> y_flat; // Flattened y vectors
-            dp::mat::vector<T, dp::mat::Dynamic> rho;    // rho values
-            dp::mat::vector<T, dp::mat::Dynamic> alpha;  // alpha values for two-loop recursion
+            dp::mat::Vector<T, dp::mat::Dynamic> s_flat; // Flattened s vectors
+            dp::mat::Vector<T, dp::mat::Dynamic> y_flat; // Flattened y vectors
+            dp::mat::Vector<T, dp::mat::Dynamic> rho;    // rho values
+            dp::mat::Vector<T, dp::mat::Dynamic> alpha;  // alpha values for two-loop recursion
 
             s_flat.resize(history_size * n);
             y_flat.resize(history_size * n);
@@ -438,12 +438,12 @@ namespace optinum::opti {
          * @param direction Output: search direction d = -H_k * g_k
          */
         template <std::size_t N>
-        void compute_direction(const dp::mat::vector<T, N> &gradient,
-                               const dp::mat::vector<T, dp::mat::Dynamic> &s_flat,
-                               const dp::mat::vector<T, dp::mat::Dynamic> &y_flat,
-                               const dp::mat::vector<T, dp::mat::Dynamic> &rho,
-                               dp::mat::vector<T, dp::mat::Dynamic> &alpha, std::size_t history_count,
-                               std::size_t history_start, std::size_t n, dp::mat::vector<T, N> &direction) const {
+        void compute_direction(const dp::mat::Vector<T, N> &gradient,
+                               const dp::mat::Vector<T, dp::mat::Dynamic> &s_flat,
+                               const dp::mat::Vector<T, dp::mat::Dynamic> &y_flat,
+                               const dp::mat::Vector<T, dp::mat::Dynamic> &rho,
+                               dp::mat::Vector<T, dp::mat::Dynamic> &alpha, std::size_t history_count,
+                               std::size_t history_start, std::size_t n, dp::mat::Vector<T, N> &direction) const {
             // If no history, use steepest descent
             if (history_count == 0) {
                 // direction = -gradient using SIMD
@@ -452,7 +452,7 @@ namespace optinum::opti {
             }
 
             // q = gradient (copy) using SIMD
-            dp::mat::vector<T, dp::mat::Dynamic> q;
+            dp::mat::Vector<T, dp::mat::Dynamic> q;
             q.resize(n);
             simd::backend::copy_runtime<T>(q.data(), gradient.data(), n);
 
@@ -488,7 +488,7 @@ namespace optinum::opti {
             }
 
             // r = gamma * q (initial Hessian approximation H_0 = gamma * I) using SIMD
-            dp::mat::vector<T, dp::mat::Dynamic> r;
+            dp::mat::Vector<T, dp::mat::Dynamic> r;
             r.resize(n);
             simd::backend::mul_scalar_runtime<T>(r.data(), q.data(), gamma, n);
 

@@ -40,12 +40,12 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = dp::mat::vector<T, 4>; // [sigma, theta, vx, vy]
-        using Translation = dp::mat::vector<T, 2>;
-        using Point = dp::mat::vector<T, 2>;
-        using Params = dp::mat::vector<T, 4>; // [s*cos, s*sin, tx, ty]
-        using HomogeneousMatrix = dp::mat::matrix<T, 3, 3>;
-        using AdjointMatrix = dp::mat::matrix<T, 4, 4>;
+        using Tangent = dp::mat::Vector<T, 4>; // [sigma, theta, vx, vy]
+        using Translation = dp::mat::Vector<T, 2>;
+        using Point = dp::mat::Vector<T, 2>;
+        using Params = dp::mat::Vector<T, 4>; // [s*cos, s*sin, tx, ty]
+        using HomogeneousMatrix = dp::mat::Matrix<T, 3, 3>;
+        using AdjointMatrix = dp::mat::Matrix<T, 4, 4>;
         using ScaledRotation = RxSO2<T>;
         using Rotation = SO2<T>;
 
@@ -179,7 +179,7 @@ namespace optinum::lie {
 
             // Compute v = V^-1 * t where V is the left Jacobian for Sim(2)
             // We need to invert the V matrix from exp()
-            dp::mat::vector<T, 2> v;
+            dp::mat::Vector<T, 2> v;
             const T s = rxso2_.scale();
             const T theta_sq = theta * theta;
             const T sigma_sq = sigma * sigma;
@@ -278,8 +278,8 @@ namespace optinum::lie {
         }
 
         // Return 2x3 compact form [sR | t]
-        [[nodiscard]] dp::mat::matrix<T, 2, 3> matrix2x3() const noexcept {
-            dp::mat::matrix<T, 2, 3> M;
+        [[nodiscard]] dp::mat::Matrix<T, 2, 3> matrix2x3() const noexcept {
+            dp::mat::Matrix<T, 2, 3> M;
             auto sR = rxso2_.matrix();
             M(0, 0) = sR(0, 0);
             M(0, 1) = sR(0, 1);

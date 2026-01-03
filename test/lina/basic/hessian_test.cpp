@@ -23,7 +23,7 @@ TEST_CASE("hessian - Quadratic function 2D") {
     // Hessian: [[2, 2], [2, 6]] (constant)
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] + 2.0 * x[0] * x[1] + 3.0 * x[1] * x[1]; };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
@@ -44,7 +44,7 @@ TEST_CASE("hessian - Sphere function") {
     // Hessian: 2*I (identity scaled by 2)
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + x[1] * x[1] + x[2] * x[2]; };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
@@ -80,7 +80,7 @@ TEST_CASE("hessian - Rosenbrock function") {
         return t1 * t1 + 100.0 * t2 * t2;
     };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 1.0;
 
@@ -102,7 +102,7 @@ TEST_CASE("hessian - Symmetry") {
         return x[0] * x[1] * x[2] + std::sin(x[0]) * std::cos(x[1]) + x[2] * x[2];
     };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 0.5;
     x[1] = 1.0;
     x[2] = 1.5;
@@ -118,7 +118,7 @@ TEST_CASE("hessian - Symmetry") {
 TEST_CASE("hessian - Float precision") {
     auto f = [](const Vector<float, 2> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-    dp::mat::vector<float, 2> x;
+    dp::mat::Vector<float, 2> x;
     x[0] = 1.0f;
     x[1] = 2.0f;
 
@@ -141,11 +141,11 @@ TEST_CASE("hessian_vector_product - Quadratic function") {
     // H*v = 2*v
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    dp::mat::vector<double, 2> v;
+    dp::mat::Vector<double, 2> v;
     v[0] = 1.0;
     v[1] = 0.0;
 
@@ -161,11 +161,11 @@ TEST_CASE("hessian_vector_product - Mixed quadratic") {
     // Hessian: [[2, 2], [2, 6]]
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] + 2.0 * x[0] * x[1] + 3.0 * x[1] * x[1]; };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
-    dp::mat::vector<double, 2> v;
+    dp::mat::Vector<double, 2> v;
     v[0] = 1.0;
     v[1] = 1.0;
 
@@ -179,19 +179,19 @@ TEST_CASE("hessian_vector_product - Mixed quadratic") {
 TEST_CASE("hessian_vector_product - Consistency with full Hessian") {
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + 2.0 * x[1] * x[1] + 3.0 * x[2] * x[2]; };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
 
-    dp::mat::vector<double, 3> v;
+    dp::mat::Vector<double, 3> v;
     v[0] = 0.5;
     v[1] = 1.0;
     v[2] = 1.5;
 
     // Compute using full Hessian
     auto H = lina::hessian(f, Vector<double, 3>(x));
-    dp::mat::vector<double, 3> Hv_full;
+    dp::mat::Vector<double, 3> Hv_full;
     for (std::size_t i = 0; i < 3; ++i) {
         Hv_full[i] = 0.0;
         for (std::size_t j = 0; j < 3; ++j) {
@@ -213,7 +213,7 @@ TEST_CASE("hessian_vector_product - Consistency with full Hessian") {
 // =============================================================================
 
 TEST_CASE("is_positive_definite - Identity matrix") {
-    dp::mat::matrix<double, 3, 3> I;
+    dp::mat::Matrix<double, 3, 3> I;
     for (std::size_t i = 0; i < 3; ++i) {
         for (std::size_t j = 0; j < 3; ++j) {
             I(i, j) = (i == j) ? 1.0 : 0.0;
@@ -224,7 +224,7 @@ TEST_CASE("is_positive_definite - Identity matrix") {
 }
 
 TEST_CASE("is_positive_definite - Scaled identity") {
-    dp::mat::matrix<double, 2, 2> H;
+    dp::mat::Matrix<double, 2, 2> H;
     H(0, 0) = 2.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
@@ -235,7 +235,7 @@ TEST_CASE("is_positive_definite - Scaled identity") {
 
 TEST_CASE("is_positive_definite - Positive definite matrix") {
     // [[4, 2], [2, 3]] has eigenvalues 5 and 2 (both positive)
-    dp::mat::matrix<double, 2, 2> H;
+    dp::mat::Matrix<double, 2, 2> H;
     H(0, 0) = 4.0;
     H(0, 1) = 2.0;
     H(1, 0) = 2.0;
@@ -246,7 +246,7 @@ TEST_CASE("is_positive_definite - Positive definite matrix") {
 
 TEST_CASE("is_positive_definite - Not positive definite (negative diagonal)") {
     // Matrix with negative diagonal element
-    dp::mat::matrix<double, 2, 2> H;
+    dp::mat::Matrix<double, 2, 2> H;
     H(0, 0) = -1.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
@@ -256,7 +256,7 @@ TEST_CASE("is_positive_definite - Not positive definite (negative diagonal)") {
 }
 
 TEST_CASE("is_positive_definite - Zero matrix") {
-    dp::mat::matrix<double, 2, 2> H;
+    dp::mat::Matrix<double, 2, 2> H;
     H(0, 0) = 0.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
@@ -266,7 +266,7 @@ TEST_CASE("is_positive_definite - Zero matrix") {
 }
 
 TEST_CASE("is_positive_definite - Negative definite") {
-    dp::mat::matrix<double, 2, 2> H;
+    dp::mat::Matrix<double, 2, 2> H;
     H(0, 0) = -2.0;
     H(0, 1) = 0.0;
     H(1, 0) = 0.0;
@@ -284,7 +284,7 @@ TEST_CASE("laplacian - Sphere function") {
     // Laplacian = 2 + 2 + 2 = 6
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + x[1] * x[1] + x[2] * x[2]; };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
@@ -299,7 +299,7 @@ TEST_CASE("laplacian - Weighted quadratic") {
     // Laplacian = 2 + 4 + 6 = 12
     auto f = [](const Vector<double, 3> &x) { return x[0] * x[0] + 2.0 * x[1] * x[1] + 3.0 * x[2] * x[2]; };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
@@ -314,7 +314,7 @@ TEST_CASE("laplacian - Consistency with Hessian trace") {
         return x[0] * x[0] + 2.0 * x[0] * x[1] + 3.0 * x[1] * x[1] + x[2] * x[2];
     };
 
-    dp::mat::vector<double, 3> x;
+    dp::mat::Vector<double, 3> x;
     x[0] = 1.0;
     x[1] = 2.0;
     x[2] = 3.0;
@@ -334,26 +334,26 @@ TEST_CASE("laplacian - Consistency with Hessian trace") {
 // =============================================================================
 
 TEST_CASE("hessian_error - Identical matrices") {
-    dp::mat::matrix<double, 2, 2> H1;
+    dp::mat::Matrix<double, 2, 2> H1;
     H1(0, 0) = 2.0;
     H1(0, 1) = 1.0;
     H1(1, 0) = 1.0;
     H1(1, 1) = 3.0;
 
-    dp::mat::matrix<double, 2, 2> H2 = H1;
+    dp::mat::Matrix<double, 2, 2> H2 = H1;
 
     double error = lina::hessian_error(Matrix<double, 2, 2>(H1), Matrix<double, 2, 2>(H2));
     CHECK(error == doctest::Approx(0.0).epsilon(1e-12));
 }
 
 TEST_CASE("hessian_error - Small difference") {
-    dp::mat::matrix<double, 2, 2> H1;
+    dp::mat::Matrix<double, 2, 2> H1;
     H1(0, 0) = 2.0;
     H1(0, 1) = 1.0;
     H1(1, 0) = 1.0;
     H1(1, 1) = 3.0;
 
-    dp::mat::matrix<double, 2, 2> H2;
+    dp::mat::Matrix<double, 2, 2> H2;
     H2(0, 0) = 2.002;
     H2(0, 1) = 1.001;
     H2(1, 0) = 1.001;
@@ -376,7 +376,7 @@ TEST_CASE("hessian - At minimum (positive definite)") {
         return dx * dx + dy * dy;
     };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 1.0;
     x[1] = 2.0;
 
@@ -394,7 +394,7 @@ TEST_CASE("hessian - At saddle point (indefinite)") {
     // Saddle at (0, 0), Hessian = [[2, 0], [0, -2]] (indefinite)
     auto f = [](const Vector<double, 2> &x) { return x[0] * x[0] - x[1] * x[1]; };
 
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
     x[0] = 0.0;
     x[1] = 0.0;
 

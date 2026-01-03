@@ -23,12 +23,12 @@ int main() {
     std::cout << "PART 1: Data Ownership - Views Don't Own Data!\n\n";
 
     // Data is owned by datapod types (dp::mat::vector, matrix, tensor)
-    dp::mat::vector<float, 10> owned_data;
+    dp::mat::Vector<float, 10> owned_data;
     for (int i = 0; i < 10; i++) {
         owned_data[i] = static_cast<float>(i * 10);
     }
 
-    std::cout << "Original data (owned by dp::mat::vector<float,10>):\n   ";
+    std::cout << "Original data (owned by dp::mat::Vector<float,10>):\n   ";
     for (int i = 0; i < 10; i++) {
         std::cout << owned_data[i] << " ";
     }

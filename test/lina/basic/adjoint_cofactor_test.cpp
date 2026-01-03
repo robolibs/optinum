@@ -11,7 +11,7 @@ namespace dp = datapod;
 // =============================================================================
 
 TEST_CASE("Cofactor 2x2") {
-    dp::mat::matrix<double, 2, 2> a;
+    dp::mat::Matrix<double, 2, 2> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(1, 0) = 3.0;
@@ -27,7 +27,7 @@ TEST_CASE("Cofactor 2x2") {
 }
 
 TEST_CASE("Cofactor 3x3") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(0, 2) = 3.0;
@@ -52,7 +52,7 @@ TEST_CASE("Cofactor 3x3") {
 }
 
 TEST_CASE("Cofactor 4x4") {
-    dp::mat::matrix<double, 4, 4> a;
+    dp::mat::Matrix<double, 4, 4> a;
     for (std::size_t i = 0; i < 16; ++i)
         a[i] = 0.0;
     a(0, 0) = 1.0;
@@ -77,7 +77,7 @@ TEST_CASE("Cofactor 4x4") {
 }
 
 TEST_CASE("Cofactor property - det(A) from cofactor expansion") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 6.0;
     a(0, 1) = 1.0;
     a(0, 2) = 1.0;
@@ -102,7 +102,7 @@ TEST_CASE("Cofactor property - det(A) from cofactor expansion") {
 // =============================================================================
 
 TEST_CASE("Adjoint 2x2") {
-    dp::mat::matrix<double, 2, 2> a;
+    dp::mat::Matrix<double, 2, 2> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(1, 0) = 3.0;
@@ -118,7 +118,7 @@ TEST_CASE("Adjoint 2x2") {
 }
 
 TEST_CASE("Adjoint 3x3") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 3.0;
     a(0, 1) = 0.0;
     a(0, 2) = 2.0;
@@ -142,7 +142,7 @@ TEST_CASE("Adjoint 3x3") {
 }
 
 TEST_CASE("Adjoint property - A * adj(A) = det(A) * I") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 2.0;
     a(0, 1) = -1.0;
     a(0, 2) = 0.0;
@@ -168,7 +168,7 @@ TEST_CASE("Adjoint property - A * adj(A) = det(A) * I") {
 }
 
 TEST_CASE("Adjoint property - Inverse via adjoint") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 1.0;
     a(0, 1) = 2.0;
     a(0, 2) = 3.0;
@@ -199,7 +199,7 @@ TEST_CASE("Adjoint property - Inverse via adjoint") {
 }
 
 TEST_CASE("Adjoint 4x4") {
-    dp::mat::matrix<double, 4, 4> a;
+    dp::mat::Matrix<double, 4, 4> a;
     // Create a simple symmetric positive definite matrix
     a(0, 0) = 4.0;
     a(0, 1) = 1.0;
@@ -233,7 +233,7 @@ TEST_CASE("Adjoint 4x4") {
 }
 
 TEST_CASE("Adjugate alias") {
-    dp::mat::matrix<double, 2, 2> a;
+    dp::mat::Matrix<double, 2, 2> a;
     a(0, 0) = 5.0;
     a(0, 1) = 7.0;
     a(1, 0) = 2.0;
@@ -254,7 +254,7 @@ TEST_CASE("Adjugate alias") {
 // =============================================================================
 
 TEST_CASE("Cofactor and adjoint consistency") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 1.0;
     a(0, 1) = 0.0;
     a(0, 2) = 2.0;
@@ -279,7 +279,7 @@ TEST_CASE("Cofactor and adjoint consistency") {
 
 TEST_CASE("Cofactor matrix symmetry for symmetric matrix") {
     // For a symmetric matrix, cofactor matrix should also be symmetric
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     a(0, 0) = 2.0;
     a(0, 1) = 1.0;
     a(0, 2) = 0.0;

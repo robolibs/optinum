@@ -37,34 +37,34 @@ namespace optinum::lina {
 
         // Matrix addition (SIMD-optimized) - returns owning type
         template <typename T, std::size_t N>
-        datapod::mat::matrix<T, N, N> add(const datapod::mat::matrix<T, N, N> &A,
-                                          const datapod::mat::matrix<T, N, N> &B) noexcept {
-            datapod::mat::matrix<T, N, N> C;
+        datapod::mat::Matrix<T, N, N> add(const datapod::mat::Matrix<T, N, N> &A,
+                                          const datapod::mat::Matrix<T, N, N> &B) noexcept {
+            datapod::mat::Matrix<T, N, N> C;
             simd::backend::add<T, N * N>(C.data(), A.data(), B.data());
             return C;
         }
 
         // Matrix subtraction (SIMD-optimized) - returns owning type
         template <typename T, std::size_t N>
-        datapod::mat::matrix<T, N, N> sub(const datapod::mat::matrix<T, N, N> &A,
-                                          const datapod::mat::matrix<T, N, N> &B) noexcept {
-            datapod::mat::matrix<T, N, N> C;
+        datapod::mat::Matrix<T, N, N> sub(const datapod::mat::Matrix<T, N, N> &A,
+                                          const datapod::mat::Matrix<T, N, N> &B) noexcept {
+            datapod::mat::Matrix<T, N, N> C;
             simd::backend::sub<T, N * N>(C.data(), A.data(), B.data());
             return C;
         }
 
         // Scalar multiply (SIMD-optimized) - returns owning type
         template <typename T, std::size_t N>
-        datapod::mat::matrix<T, N, N> scale(T scalar, const datapod::mat::matrix<T, N, N> &A) noexcept {
-            datapod::mat::matrix<T, N, N> C;
+        datapod::mat::Matrix<T, N, N> scale(T scalar, const datapod::mat::Matrix<T, N, N> &A) noexcept {
+            datapod::mat::Matrix<T, N, N> C;
             simd::backend::mul_scalar<T, N * N>(C.data(), A.data(), scalar);
             return C;
         }
 
         // Scale for simd::Matrix input - returns owning type
         template <typename T, std::size_t N>
-        datapod::mat::matrix<T, N, N> scale(T scalar, const simd::Matrix<T, N, N> &A) noexcept {
-            datapod::mat::matrix<T, N, N> C;
+        datapod::mat::Matrix<T, N, N> scale(T scalar, const simd::Matrix<T, N, N> &A) noexcept {
+            datapod::mat::Matrix<T, N, N> C;
             simd::backend::mul_scalar<T, N * N>(C.data(), A.data(), scalar);
             return C;
         }
@@ -87,7 +87,7 @@ namespace optinum::lina {
      * @return exp(A)
      */
     template <typename T, std::size_t N>
-    [[nodiscard]] datapod::mat::matrix<T, N, N> expmat(const simd::Matrix<T, N, N> &A) noexcept {
+    [[nodiscard]] datapod::mat::Matrix<T, N, N> expmat(const simd::Matrix<T, N, N> &A) noexcept {
         static_assert(std::is_floating_point_v<T>, "expmat() requires floating-point type");
 
         using namespace expmat_detail;
@@ -121,7 +121,7 @@ namespace optinum::lina {
         constexpr T c5 = 1.0 / 30240.0;
 
         // Identity matrix
-        datapod::mat::matrix<T, N, N> I;
+        datapod::mat::Matrix<T, N, N> I;
         for (std::size_t i = 0; i < N; ++i) {
             for (std::size_t j = 0; j < N; ++j) {
                 I(i, j) = (i == j) ? T{1} : T{0};
@@ -167,8 +167,8 @@ namespace optinum::lina {
 
     // Overload for dp::mat::matrix (owning type)
     template <typename T, std::size_t N>
-    [[nodiscard]] datapod::mat::matrix<T, N, N> expmat(const datapod::mat::matrix<T, N, N> &A) noexcept {
-        simd::Matrix<T, N, N> view(const_cast<datapod::mat::matrix<T, N, N> &>(A));
+    [[nodiscard]] datapod::mat::Matrix<T, N, N> expmat(const datapod::mat::Matrix<T, N, N> &A) noexcept {
+        simd::Matrix<T, N, N> view(const_cast<datapod::mat::Matrix<T, N, N> &>(A));
         return expmat(view);
     }
 

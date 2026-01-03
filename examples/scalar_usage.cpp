@@ -6,16 +6,16 @@ namespace simd = optinum::simd;
 
 int main() {
     // Create scalars using dp::mat::scalar (owning storage)
-    dp::mat::scalar<float> a{3.14f};
-    dp::mat::scalar<float> b{2.0f};
+    dp::mat::Scalar<float> a{3.14f};
+    dp::mat::Scalar<float> b{2.0f};
 
     // Create non-owning views using simd::Scalar
     simd::Scalar<float> view_a(a);
     simd::Scalar<float> view_b(b);
 
     // Arithmetic using views (implicit conversion to T)
-    dp::mat::scalar<float> c{static_cast<float>(view_a) + static_cast<float>(view_b)};
-    dp::mat::scalar<float> d{static_cast<float>(view_a) * static_cast<float>(view_b)};
+    dp::mat::Scalar<float> c{static_cast<float>(view_a) + static_cast<float>(view_b)};
+    dp::mat::Scalar<float> d{static_cast<float>(view_a) * static_cast<float>(view_b)};
 
     std::cout << "a = " << view_a.get() << "\n";
     std::cout << "b = " << view_b.get() << "\n";
@@ -39,13 +39,13 @@ int main() {
     std::cout << "view_raw.get() = " << view_raw.get() << "\n";
 
     // Create double scalar with initializer
-    dp::mat::scalar<double> raw{42.0};
+    dp::mat::Scalar<double> raw{42.0};
     simd::Scalar<double> view_double(raw);
     std::cout << "raw = " << view_double.get() << "\n";
 
     // Comparison operators
-    dp::mat::scalar<float> x{10.0f};
-    dp::mat::scalar<float> y{20.0f};
+    dp::mat::Scalar<float> x{10.0f};
+    dp::mat::Scalar<float> y{20.0f};
     simd::Scalar<float> view_x(x);
     simd::Scalar<float> view_y(y);
 

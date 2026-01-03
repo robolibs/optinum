@@ -9,7 +9,7 @@ using optinum::simd::Matrix;
 namespace dp = datapod;
 
 TEST_CASE("lina::qr reconstructs A ~= Q*R") {
-    dp::mat::matrix<double, 3, 2> a;
+    dp::mat::Matrix<double, 3, 2> a;
     a(0, 0) = 1.0;
     a(1, 0) = 2.0;
     a(2, 0) = 3.0;
@@ -28,7 +28,7 @@ TEST_CASE("lina::qr reconstructs A ~= Q*R") {
 }
 
 TEST_CASE("lina::qr Q is approximately orthonormal") {
-    dp::mat::matrix<double, 3, 2> a;
+    dp::mat::Matrix<double, 3, 2> a;
     a(0, 0) = 1.0;
     a(1, 0) = 2.0;
     a(2, 0) = 3.0;

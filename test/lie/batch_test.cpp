@@ -521,7 +521,7 @@ TEST_SUITE("SE2Batch") {
         std::mt19937 rng(456);
         std::uniform_real_distribution<double> dist(-0.3, 0.3);
 
-        std::array<dp::mat::vector<double, 3>, N> twists;
+        std::array<dp::mat::Vector<double, 3>, N> twists;
         for (std::size_t i = 0; i < N; ++i) {
             twists[i] = {dist(rng), dist(rng), dist(rng)};
         }
@@ -552,7 +552,7 @@ TEST_SUITE("SE2Batch") {
 
         // Verify each element against scalar exp
         for (std::size_t i = 0; i < N; ++i) {
-            dp::mat::vector<double, 3> twist{vx[i], vy[i], theta[i]};
+            dp::mat::Vector<double, 3> twist{vx[i], vy[i], theta[i]};
             auto expected = SE2d::exp(twist);
 
             CHECK(batch[i].so2().is_approx(expected.so2(), 1e-5));
@@ -751,7 +751,7 @@ TEST_SUITE("SO3Batch") {
 
         // Verify each element
         for (std::size_t i = 0; i < N; ++i) {
-            dp::mat::vector<double, 3> omega{omega_x[i], omega_y[i], omega_z[i]};
+            dp::mat::Vector<double, 3> omega{omega_x[i], omega_y[i], omega_z[i]};
             auto expected = SO3d::exp(omega);
             CHECK(batch[i].is_approx(expected, 1e-10));
         }
@@ -903,7 +903,7 @@ TEST_SUITE("SO3Batch") {
         constexpr std::size_t N = 8;
         std::mt19937 rng(123);
 
-        std::array<dp::mat::vector<double, 3>, N> omegas;
+        std::array<dp::mat::Vector<double, 3>, N> omegas;
         std::uniform_real_distribution<double> dist(-0.5, 0.5);
 
         for (std::size_t i = 0; i < N; ++i) {
@@ -1114,7 +1114,7 @@ TEST_SUITE("SE3Batch") {
         std::mt19937 rng(456);
         std::uniform_real_distribution<double> dist(-0.3, 0.3);
 
-        std::array<dp::mat::vector<double, 6>, N> twists;
+        std::array<dp::mat::Vector<double, 6>, N> twists;
         for (std::size_t i = 0; i < N; ++i) {
             twists[i] = {dist(rng), dist(rng), dist(rng), dist(rng), dist(rng), dist(rng)};
         }
@@ -1358,7 +1358,7 @@ TEST_SUITE("RxSO3Batch") {
 
         // Verify against scalar exp
         for (std::size_t i = 0; i < N; ++i) {
-            dp::mat::vector<double, 4> tangent{{sigma[i], wx[i], wy[i], wz[i]}};
+            dp::mat::Vector<double, 4> tangent{{sigma[i], wx[i], wy[i], wz[i]}};
             auto expected = RxSO3d::exp(tangent);
             CHECK(batch[i].is_approx(expected, 1e-5));
         }

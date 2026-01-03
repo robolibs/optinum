@@ -7,16 +7,16 @@ using optinum::simd::Matrix;
 namespace dp = datapod;
 
 template <typename T, std::size_t M, std::size_t N>
-static dp::mat::matrix<T, M, N> reconstruct(const lina::SVD<T, M, N> &f) {
+static dp::mat::Matrix<T, M, N> reconstruct(const lina::SVD<T, M, N> &f) {
     // A ~= U(:,0:K-1) * diag(S) * Vt
     constexpr std::size_t K = (M < N) ? M : N;
 
-    dp::mat::matrix<T, M, N> usv;
+    dp::mat::Matrix<T, M, N> usv;
     for (std::size_t i = 0; i < M * N; ++i)
         usv[i] = T{};
 
     // Compute U(:,0:K-1) * diag(S) -> MxK
-    dp::mat::matrix<T, M, K> us;
+    dp::mat::Matrix<T, M, K> us;
     for (std::size_t j = 0; j < K; ++j) {
         for (std::size_t i = 0; i < M; ++i) {
             us(i, j) = f.u(i, j) * f.s[j];
@@ -38,7 +38,7 @@ static dp::mat::matrix<T, M, N> reconstruct(const lina::SVD<T, M, N> &f) {
 }
 
 TEST_CASE("lina::svd reconstructs A (3x2)") {
-    dp::mat::matrix<double, 3, 2> a;
+    dp::mat::Matrix<double, 3, 2> a;
     a(0, 0) = 1.0;
     a(1, 0) = 2.0;
     a(2, 0) = 3.0;

@@ -32,11 +32,11 @@ namespace optinum::simd {
      *
      * Hamilton product is implemented for SIMD quaternion multiplication.
      */
-    template <typename T, std::size_t W> class pack<dp::mat::quaternion<T>, W> {
+    template <typename T, std::size_t W> class pack<dp::mat::Quaternion<T>, W> {
         static_assert(std::is_floating_point_v<T>, "Quaternion pack requires floating-point type");
 
       public:
-        using value_type = dp::mat::quaternion<T>;
+        using value_type = dp::mat::Quaternion<T>;
         using real_type = T;
         using real_pack = pack<T, W>;
 
@@ -616,14 +616,14 @@ namespace optinum::simd {
 
     // Dot product
     template <typename T, std::size_t W>
-    pack<T, W> dot(const pack<dp::mat::quaternion<T>, W> &a, const pack<dp::mat::quaternion<T>, W> &b) noexcept {
+    pack<T, W> dot(const pack<dp::mat::Quaternion<T>, W> &a, const pack<dp::mat::Quaternion<T>, W> &b) noexcept {
         return a.dot(b);
     }
 
     // Spherical linear interpolation (constant angular velocity)
     template <typename T, std::size_t W>
-    pack<dp::mat::quaternion<T>, W> slerp(const pack<dp::mat::quaternion<T>, W> &a,
-                                          const pack<dp::mat::quaternion<T>, W> &b, T t) noexcept {
+    pack<dp::mat::Quaternion<T>, W> slerp(const pack<dp::mat::Quaternion<T>, W> &a,
+                                          const pack<dp::mat::Quaternion<T>, W> &b, T t) noexcept {
         // Handle quaternion double-cover
         auto d = a.dot(b);
 

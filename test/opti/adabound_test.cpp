@@ -8,7 +8,7 @@ using namespace optinum::opti;
 namespace dp = datapod;
 
 TEST_CASE("AdaBoundUpdate - Sphere function 2D") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
 
     Sphere<double, 2> sphere;
     GradientDescent<AdaBoundUpdate> gd;
@@ -18,7 +18,7 @@ TEST_CASE("AdaBoundUpdate - Sphere function 2D") {
     gd.tolerance = 1e-6;
 
     SUBCASE("Converge from (1, 1)") {
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -29,7 +29,7 @@ TEST_CASE("AdaBoundUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Converge from (5, -3)") {
-        Vec2 x(dp::mat::vector<double, 2>{5.0, -3.0});
+        Vec2 x(dp::mat::Vector<double, 2>{5.0, -3.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -39,7 +39,7 @@ TEST_CASE("AdaBoundUpdate - Sphere function 2D") {
     }
 
     SUBCASE("Already at minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{0.0, 0.0});
+        Vec2 x(dp::mat::Vector<double, 2>{0.0, 0.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -49,7 +49,7 @@ TEST_CASE("AdaBoundUpdate - Sphere function 2D") {
 }
 
 TEST_CASE("AdaBoundUpdate - Sphere function 3D") {
-    using Vec3 = dp::mat::vector<double, 3>;
+    using Vec3 = dp::mat::Vector<double, 3>;
 
     Sphere<double, 3> sphere;
     GradientDescent<AdaBoundUpdate> gd;
@@ -58,7 +58,7 @@ TEST_CASE("AdaBoundUpdate - Sphere function 3D") {
     gd.max_iterations = 2000;
     gd.tolerance = 1e-6;
 
-    Vec3 x(dp::mat::vector<double, 3>{2.0, -1.0, 3.0});
+    Vec3 x(dp::mat::Vector<double, 3>{2.0, -1.0, 3.0});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -69,7 +69,7 @@ TEST_CASE("AdaBoundUpdate - Sphere function 3D") {
 }
 
 TEST_CASE("AdaBoundUpdate - Sphere function 10D") {
-    using Vec10 = dp::mat::vector<double, 10>;
+    using Vec10 = dp::mat::Vector<double, 10>;
 
     Sphere<double, 10> sphere;
     GradientDescent<AdaBoundUpdate> gd;
@@ -94,7 +94,7 @@ TEST_CASE("AdaBoundUpdate - Sphere function 10D") {
 }
 
 TEST_CASE("AdaBoundUpdate - Dynamic bounds behavior") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaBound should work with different final_lr values
@@ -104,7 +104,7 @@ TEST_CASE("AdaBoundUpdate - Dynamic bounds behavior") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -118,7 +118,7 @@ TEST_CASE("AdaBoundUpdate - Dynamic bounds behavior") {
         gd.max_iterations = 3000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -132,7 +132,7 @@ TEST_CASE("AdaBoundUpdate - Dynamic bounds behavior") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -141,7 +141,7 @@ TEST_CASE("AdaBoundUpdate - Dynamic bounds behavior") {
 }
 
 TEST_CASE("AdaBoundUpdate - Different gamma values") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Default gamma (1e-3)") {
@@ -150,7 +150,7 @@ TEST_CASE("AdaBoundUpdate - Different gamma values") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -163,7 +163,7 @@ TEST_CASE("AdaBoundUpdate - Different gamma values") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -176,7 +176,7 @@ TEST_CASE("AdaBoundUpdate - Different gamma values") {
         gd.max_iterations = 2000;
         gd.tolerance = 1e-6;
 
-        Vec2 x(dp::mat::vector<double, 2>{1.0, 1.0});
+        Vec2 x(dp::mat::Vector<double, 2>{1.0, 1.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -184,7 +184,7 @@ TEST_CASE("AdaBoundUpdate - Different gamma values") {
 }
 
 TEST_CASE("AdaBoundUpdate - Float precision") {
-    using Vec2 = dp::mat::vector<float, 2>;
+    using Vec2 = dp::mat::Vector<float, 2>;
 
     Sphere<float, 2> sphere;
     GradientDescent<AdaBoundUpdate> gd;
@@ -193,7 +193,7 @@ TEST_CASE("AdaBoundUpdate - Float precision") {
     gd.max_iterations = 2000;
     gd.tolerance = 1e-5f;
 
-    Vec2 x(dp::mat::vector<float, 2>{1.0f, 1.0f});
+    Vec2 x(dp::mat::Vector<float, 2>{1.0f, 1.0f});
     auto result = gd.optimize(sphere, x);
 
     CHECK(result.converged);
@@ -206,7 +206,7 @@ TEST_CASE("AdaBoundUpdate - Custom quadratic function") {
     // Custom quadratic: f(x, y) = (x - 2)^2 + (y + 3)^2
     // Minimum at (2, -3)
     struct CustomQuadratic {
-        using tensor_type = dp::mat::vector<double, 2>;
+        using tensor_type = dp::mat::Vector<double, 2>;
 
         double evaluate(const tensor_type &x) const {
             double dx = x[0] - 2.0;
@@ -232,7 +232,7 @@ TEST_CASE("AdaBoundUpdate - Custom quadratic function") {
     gd.max_iterations = 2000;
     gd.tolerance = 1e-6;
 
-    dp::mat::vector<double, 2> x(dp::mat::vector<double, 2>{0.0, 0.0});
+    dp::mat::Vector<double, 2> x(dp::mat::Vector<double, 2>{0.0, 0.0});
     auto result = gd.optimize(func, x);
 
     CHECK(result.converged);
@@ -242,7 +242,7 @@ TEST_CASE("AdaBoundUpdate - Custom quadratic function") {
 }
 
 TEST_CASE("AdaBoundUpdate - Reset behavior") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<AdaBoundUpdate> gd;
@@ -252,12 +252,12 @@ TEST_CASE("AdaBoundUpdate - Reset behavior") {
     gd.reset_policy = true;
 
     // First optimization
-    Vec2 x1(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result1 = gd.optimize(sphere, x1);
     CHECK(result1.converged);
 
     // Second optimization (should behave the same due to reset)
-    Vec2 x2(dp::mat::vector<double, 2>{1.0, 1.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{1.0, 1.0});
     auto result2 = gd.optimize(sphere, x2);
     CHECK(result2.converged);
 
@@ -266,7 +266,7 @@ TEST_CASE("AdaBoundUpdate - Reset behavior") {
 }
 
 TEST_CASE("AdaBoundUpdate - Comparison with Adam") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     // AdaBound
@@ -275,7 +275,7 @@ TEST_CASE("AdaBoundUpdate - Comparison with Adam") {
     adabound_gd.max_iterations = 2000;
     adabound_gd.tolerance = 1e-6;
 
-    Vec2 x1(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x1(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto adabound_result = adabound_gd.optimize(sphere, x1);
 
     // Adam
@@ -284,7 +284,7 @@ TEST_CASE("AdaBoundUpdate - Comparison with Adam") {
     adam_gd.max_iterations = 2000;
     adam_gd.tolerance = 1e-6;
 
-    Vec2 x2(dp::mat::vector<double, 2>{5.0, 5.0});
+    Vec2 x2(dp::mat::Vector<double, 2>{5.0, 5.0});
     auto adam_result = adam_gd.optimize(sphere, x2);
 
     // Both should converge
@@ -293,7 +293,7 @@ TEST_CASE("AdaBoundUpdate - Comparison with Adam") {
 }
 
 TEST_CASE("AdaBoundUpdate - Robustness to initial conditions") {
-    using Vec2 = dp::mat::vector<double, 2>;
+    using Vec2 = dp::mat::Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     GradientDescent<AdaBoundUpdate> gd;
@@ -302,7 +302,7 @@ TEST_CASE("AdaBoundUpdate - Robustness to initial conditions") {
     gd.tolerance = 1e-6;
 
     SUBCASE("Far from minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{10.0, -10.0});
+        Vec2 x(dp::mat::Vector<double, 2>{10.0, -10.0});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);
@@ -310,7 +310,7 @@ TEST_CASE("AdaBoundUpdate - Robustness to initial conditions") {
     }
 
     SUBCASE("Very close to minimum") {
-        Vec2 x(dp::mat::vector<double, 2>{0.01, -0.01});
+        Vec2 x(dp::mat::Vector<double, 2>{0.01, -0.01});
         auto result = gd.optimize(sphere, x);
 
         CHECK(result.converged);

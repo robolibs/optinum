@@ -19,11 +19,11 @@ namespace optinum::simd {
     // =============================================================================
     // complex_view<T, W> - SIMD view over complex number arrays
     //
-    // Provides transparent SIMD access to dp::mat::complex<T> arrays.
+    // Provides transparent SIMD access to dp::mat::Complex<T> arrays.
     // User works with complex numbers directly; SIMD is handled internally.
     //
     // Usage:
-    //   dp::mat::complex<double> nums[8];
+    //   dp::mat::Complex<double> nums[8];
     //   auto cv = complex_view<double, 4>(nums, 8);
     //   cv.conjugate_inplace();  // SIMD under the hood
     //
@@ -36,7 +36,7 @@ namespace optinum::simd {
         static_assert(W > 0, "complex_view requires W > 0");
 
       public:
-        using value_type = dp::mat::complex<T>;
+        using value_type = dp::mat::Complex<T>;
         using real_type = T;
         using pack_type = pack<value_type, W>;
         using real_pack = pack<T, W>;

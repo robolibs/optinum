@@ -28,7 +28,7 @@ namespace optinum::opti {
      *   Rosenbrock<double, Dynamic> - Dynamic size
      */
     template <typename T, std::size_t N> struct Rosenbrock {
-        using tensor_type = dp::mat::vector<T, N>;
+        using tensor_type = dp::mat::Vector<T, N>;
 
         static constexpr T A = T{100}; ///< Scaling factor for the quadratic term
 

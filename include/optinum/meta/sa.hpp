@@ -52,7 +52,7 @@ namespace optinum::meta {
      * Result of Simulated Annealing optimization
      */
     template <typename T> struct SAResult {
-        dp::mat::vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
         T best_value;                                       ///< Objective value at best position
         std::size_t iterations;                             ///< Number of iterations performed
         std::size_t accepted_moves;                         ///< Number of accepted moves
@@ -73,7 +73,7 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * dp::mat::vector<double, dp::mat::Dynamic> initial{1.0, 1.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> initial{1.0, 1.0};
      * auto result = sa.optimize(objective, initial);
      * @endcode
      *
@@ -115,7 +115,7 @@ namespace optinum::meta {
          * @param initial Starting point
          * @return SAResult with best solution and convergence info
          */
-        template <typename F> SAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial) {
+        template <typename F> SAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial) {
             const std::size_t dim = initial.size();
 
             if (dim == 0) {
@@ -123,8 +123,8 @@ namespace optinum::meta {
             }
 
             // No bounds - use large range
-            dp::mat::vector<T, dp::mat::Dynamic> lower(dim);
-            dp::mat::vector<T, dp::mat::Dynamic> upper(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> lower(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> upper(dim);
             lower.fill(-std::numeric_limits<T>::max());
             upper.fill(std::numeric_limits<T>::max());
 
@@ -142,9 +142,9 @@ namespace optinum::meta {
          * @return SAResult with best solution and convergence info
          */
         template <typename F>
-        SAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
-                             const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        SAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
 
             if (dim == 0 || lower_bounds.size() != dim || upper_bounds.size() != dim) {
@@ -164,8 +164,8 @@ namespace optinum::meta {
          * @return SAResult with best solution and convergence info
          */
         template <typename F>
-        SAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        SAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
 
             if (dim == 0 || upper_bounds.size() != dim) {
@@ -173,7 +173,7 @@ namespace optinum::meta {
             }
 
             // Start from center of bounds
-            dp::mat::vector<T, dp::mat::Dynamic> initial(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> initial(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 initial[d] = (lower_bounds[d] + upper_bounds[d]) / T{2};
             }
@@ -186,9 +186,9 @@ namespace optinum::meta {
          * Core optimization implementation
          */
         template <typename F>
-        SAResult<T> optimize_impl(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
-                                  const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                                  const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        SAResult<T> optimize_impl(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                                  const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                                  const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
 
             // Random number generator
@@ -198,12 +198,12 @@ namespace optinum::meta {
             std::uniform_int_distribution<std::size_t> dim_dist(0, dim - 1);
 
             // Initialize current and best solutions using SIMD copy
-            dp::mat::vector<T, dp::mat::Dynamic> current(initial.size());
+            dp::mat::Vector<T, dp::mat::Dynamic> current(initial.size());
             simd::backend::copy_runtime<T>(current.data(), initial.data(), dim);
             T current_value = objective(current);
             std::size_t total_evals = 1;
 
-            dp::mat::vector<T, dp::mat::Dynamic> best(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> best(dim);
             simd::backend::copy_runtime<T>(best.data(), current.data(), dim);
             T best_value = current_value;
 
@@ -212,7 +212,7 @@ namespace optinum::meta {
             T step_size = config.step_size;
 
             // Compute step size based on range if bounds are finite
-            dp::mat::vector<T, dp::mat::Dynamic> range(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> range(dim);
             for (std::size_t d = 0; d < dim; ++d) {
                 if (std::isfinite(upper_bounds[d]) && std::isfinite(lower_bounds[d])) {
                     range[d] = (upper_bounds[d] - lower_bounds[d]) * step_size;
@@ -243,7 +243,7 @@ namespace optinum::meta {
 
             for (; iteration < config.max_iterations; ++iteration) {
                 // Generate neighbor by perturbing one random dimension
-                dp::mat::vector<T, dp::mat::Dynamic> neighbor = current;
+                dp::mat::Vector<T, dp::mat::Dynamic> neighbor = current;
                 std::size_t perturb_dim = dim_dist(rng);
 
                 // Gaussian perturbation

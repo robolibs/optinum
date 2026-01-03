@@ -24,9 +24,9 @@ namespace optinum::lina {
         // Extract submatrix by removing row i and column j
         // Returns owning type for safe storage
         template <typename T, std::size_t N>
-        [[nodiscard]] constexpr datapod::mat::matrix<T, N - 1, N - 1>
+        [[nodiscard]] constexpr datapod::mat::Matrix<T, N - 1, N - 1>
         submatrix(const simd::Matrix<T, N, N> &a, std::size_t row, std::size_t col) noexcept {
-            datapod::mat::matrix<T, N - 1, N - 1> result;
+            datapod::mat::Matrix<T, N - 1, N - 1> result;
 
             std::size_t dst_row = 0;
             for (std::size_t i = 0; i < N; ++i) {
@@ -68,9 +68,9 @@ namespace optinum::lina {
     // Cofactor Matrix - Specialized for 2x2
     // =========================================================================
     template <typename T>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, 2, 2> cofactor(const simd::Matrix<T, 2, 2> &a) noexcept {
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, 2, 2> cofactor(const simd::Matrix<T, 2, 2> &a) noexcept {
         // For 2x2: cofactor matrix is just [[a11, -a10], [-a01, a00]]
-        datapod::mat::matrix<T, 2, 2> result;
+        datapod::mat::Matrix<T, 2, 2> result;
 
         result(0, 0) = a(1, 1);  // C_00 = a11
         result(0, 1) = -a(1, 0); // C_01 = -a10
@@ -84,8 +84,8 @@ namespace optinum::lina {
     // Cofactor Matrix - Specialized for 3x3
     // =========================================================================
     template <typename T>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, 3, 3> cofactor(const simd::Matrix<T, 3, 3> &a) noexcept {
-        datapod::mat::matrix<T, 3, 3> result;
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, 3, 3> cofactor(const simd::Matrix<T, 3, 3> &a) noexcept {
+        datapod::mat::Matrix<T, 3, 3> result;
 
         // Compute each cofactor using 2x2 determinants
         // C_ij = (-1)^(i+j) * det(minor_ij)
@@ -112,8 +112,8 @@ namespace optinum::lina {
     // Cofactor Matrix - Specialized for 4x4
     // =========================================================================
     template <typename T>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, 4, 4> cofactor(const simd::Matrix<T, 4, 4> &a) noexcept {
-        datapod::mat::matrix<T, 4, 4> result;
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, 4, 4> cofactor(const simd::Matrix<T, 4, 4> &a) noexcept {
+        datapod::mat::Matrix<T, 4, 4> result;
 
         // For 4x4, each cofactor is a 3x3 determinant
         // We compute them using the specialized 3x3 det formula
@@ -131,10 +131,10 @@ namespace optinum::lina {
     // Cofactor Matrix - General case (N x N, N > 4)
     // =========================================================================
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, N, N> cofactor(const simd::Matrix<T, N, N> &a) noexcept
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, N, N> cofactor(const simd::Matrix<T, N, N> &a) noexcept
     requires(N > 4)
     {
-        datapod::mat::matrix<T, N, N> result;
+        datapod::mat::Matrix<T, N, N> result;
 
         for (std::size_t i = 0; i < N; ++i) {
             for (std::size_t j = 0; j < N; ++j) {
@@ -149,28 +149,28 @@ namespace optinum::lina {
     // Overloads for dp::mat::matrix (owning type)
     // =========================================================================
     template <typename T>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, 2, 2> cofactor(const datapod::mat::matrix<T, 2, 2> &a) noexcept {
-        simd::Matrix<T, 2, 2> view(const_cast<datapod::mat::matrix<T, 2, 2> &>(a));
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, 2, 2> cofactor(const datapod::mat::Matrix<T, 2, 2> &a) noexcept {
+        simd::Matrix<T, 2, 2> view(const_cast<datapod::mat::Matrix<T, 2, 2> &>(a));
         return cofactor(view);
     }
 
     template <typename T>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, 3, 3> cofactor(const datapod::mat::matrix<T, 3, 3> &a) noexcept {
-        simd::Matrix<T, 3, 3> view(const_cast<datapod::mat::matrix<T, 3, 3> &>(a));
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, 3, 3> cofactor(const datapod::mat::Matrix<T, 3, 3> &a) noexcept {
+        simd::Matrix<T, 3, 3> view(const_cast<datapod::mat::Matrix<T, 3, 3> &>(a));
         return cofactor(view);
     }
 
     template <typename T>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, 4, 4> cofactor(const datapod::mat::matrix<T, 4, 4> &a) noexcept {
-        simd::Matrix<T, 4, 4> view(const_cast<datapod::mat::matrix<T, 4, 4> &>(a));
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, 4, 4> cofactor(const datapod::mat::Matrix<T, 4, 4> &a) noexcept {
+        simd::Matrix<T, 4, 4> view(const_cast<datapod::mat::Matrix<T, 4, 4> &>(a));
         return cofactor(view);
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr datapod::mat::matrix<T, N, N> cofactor(const datapod::mat::matrix<T, N, N> &a) noexcept
+    [[nodiscard]] constexpr datapod::mat::Matrix<T, N, N> cofactor(const datapod::mat::Matrix<T, N, N> &a) noexcept
     requires(N > 4)
     {
-        simd::Matrix<T, N, N> view(const_cast<datapod::mat::matrix<T, N, N> &>(a));
+        simd::Matrix<T, N, N> view(const_cast<datapod::mat::Matrix<T, N, N> &>(a));
         return cofactor(view);
     }
 

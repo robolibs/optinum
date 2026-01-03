@@ -5,7 +5,7 @@ using optinum::simd::pack;
 namespace dp = datapod;
 
 TEST_CASE("Complex pack construction") {
-    using complex_t = dp::mat::complex<float>;
+    using complex_t = dp::mat::Complex<float>;
     using cpack = pack<complex_t, 4>;
 
     // Zero initialization
@@ -27,7 +27,7 @@ TEST_CASE("Complex pack construction") {
 }
 
 TEST_CASE("Complex pack arithmetic") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
     using cpack = pack<complex_t, 2>;
 
     // Create two complex packs
@@ -63,7 +63,7 @@ TEST_CASE("Complex pack arithmetic") {
 }
 
 TEST_CASE("Complex pack conjugate and magnitude") {
-    using complex_t = dp::mat::complex<float>;
+    using complex_t = dp::mat::Complex<float>;
     using cpack = pack<complex_t, 4>;
 
     pack<float, 4> r, i;
@@ -99,7 +99,7 @@ TEST_CASE("Complex pack conjugate and magnitude") {
 }
 
 TEST_CASE("Complex pack interleaved load/store") {
-    using complex_t = dp::mat::complex<double>;
+    using complex_t = dp::mat::Complex<double>;
     using cpack = pack<complex_t, 4>;
 
     complex_t data[4] = {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
@@ -121,7 +121,7 @@ TEST_CASE("Complex pack interleaved load/store") {
 }
 
 TEST_CASE("Complex pack split load/store") {
-    using complex_t = dp::mat::complex<float>;
+    using complex_t = dp::mat::Complex<float>;
     using cpack = pack<complex_t, 4>;
 
     float reals[4] = {1.0f, 2.0f, 3.0f, 4.0f};

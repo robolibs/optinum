@@ -57,8 +57,8 @@ namespace optinum::meta {
      * gd.step_size = 0.001;
      *
      * // Or use standalone
-     * dp::mat::vector<double, 3> x{1.0, 2.0, 3.0};
-     * dp::mat::vector<double, 3> grad{0.1, 0.2, 0.3};
+     * dp::mat::Vector<double, 3> x{1.0, 2.0, 3.0};
+     * dp::mat::Vector<double, 3> grad{0.1, 0.2, 0.3};
      * swats.update(x, 0.001, grad);
      *
      * // Check if switched
@@ -103,7 +103,7 @@ namespace optinum::meta {
          * @param gradient Current gradient
          */
         template <std::size_t N>
-        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization
@@ -180,7 +180,7 @@ namespace optinum::meta {
          * Adam update step - SIMD accelerated
          */
         template <std::size_t N>
-        void update_adam(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
+        void update_adam(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             T one_minus_beta1 = T{1} - config.beta1;
@@ -289,7 +289,7 @@ namespace optinum::meta {
          * SGD update step (after switching) - SIMD accelerated
          */
         template <std::size_t N>
-        void update_sgd(dp::mat::vector<T, N> &x, const dp::mat::vector<T, N> &gradient) noexcept {
+        void update_sgd(dp::mat::Vector<T, N> &x, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
             // x -= sgd_lr * gradient using SIMD scale_sub
             simd::backend::scale_sub_runtime<T>(x.data(), sgd_lr_, gradient.data(), n);
@@ -303,7 +303,7 @@ namespace optinum::meta {
          * we switch to SGD.
          */
         template <std::size_t N>
-        void check_switch_criterion(T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
+        void check_switch_criterion(T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = gradient.size();
 
             // Compute current effective learning rate
@@ -331,8 +331,8 @@ namespace optinum::meta {
             }
         }
 
-        dp::mat::vector<T, dp::mat::Dynamic> m_; ///< First moment estimate
-        dp::mat::vector<T, dp::mat::Dynamic> v_; ///< Second moment estimate
+        dp::mat::Vector<T, dp::mat::Dynamic> m_; ///< First moment estimate
+        dp::mat::Vector<T, dp::mat::Dynamic> v_; ///< Second moment estimate
         std::size_t iteration_ = 0;              ///< Current iteration
         bool switched_ = false;                  ///< Whether we've switched to SGD
         std::size_t switch_iter_ = 0;            ///< Iteration at which we switched

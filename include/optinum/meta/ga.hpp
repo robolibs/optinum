@@ -77,7 +77,7 @@ namespace optinum::meta {
      * Result of GA optimization
      */
     template <typename T> struct GAResult {
-        dp::mat::vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
+        dp::mat::Vector<T, dp::mat::Dynamic> best_position; ///< Best solution found
         T best_value;                                       ///< Objective value at best position
         std::size_t generations;                            ///< Number of generations performed
         std::size_t function_evaluations;                   ///< Total function evaluations
@@ -98,8 +98,8 @@ namespace optinum::meta {
      *
      * auto objective = [](const auto& x) { return x[0]*x[0] + x[1]*x[1]; };
      *
-     * dp::mat::vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
-     * dp::mat::vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> lower{-5.0, -5.0};
+     * dp::mat::Vector<double, dp::mat::Dynamic> upper{5.0, 5.0};
      *
      * auto result = ga.optimize(objective, lower, upper);
      * @endcode
@@ -147,8 +147,8 @@ namespace optinum::meta {
          * @return GAResult with best solution and convergence info
          */
         template <typename F>
-        GAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        GAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = lower_bounds.size();
             const std::size_t pop_size = config.population_size;
 
@@ -169,17 +169,17 @@ namespace optinum::meta {
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
             // Initialize population
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> population(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> population(pop_size);
             std::vector<T> fitness(pop_size);
             std::size_t total_evals = 0;
 
             // Best solution tracking
-            dp::mat::vector<T, dp::mat::Dynamic> best_position(dim);
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position(dim);
             T best_value = std::numeric_limits<T>::max();
 
             // Initialize population randomly
             for (std::size_t i = 0; i < pop_size; ++i) {
-                population[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
+                population[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
                 for (std::size_t d = 0; d < dim; ++d) {
                     T r = uniform(rng);
                     population[i][d] = lower_bounds[d] + r * (upper_bounds[d] - lower_bounds[d]);
@@ -205,7 +205,7 @@ namespace optinum::meta {
             std::size_t horizon_idx = 0;
 
             // Offspring storage
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> offspring(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> offspring(pop_size);
             std::vector<T> offspring_fitness(pop_size);
 
             // Ranking for selection
@@ -239,8 +239,8 @@ namespace optinum::meta {
                     }
 
                     // Create offspring
-                    dp::mat::vector<T, dp::mat::Dynamic> child1(dim);
-                    dp::mat::vector<T, dp::mat::Dynamic> child2(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child1(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child2(dim);
 
                     // Crossover
                     if (uniform(rng) < config.crossover_prob) {
@@ -309,9 +309,9 @@ namespace optinum::meta {
          * Optimize starting from an initial point
          */
         template <typename F>
-        GAResult<T> optimize(F &&objective, const dp::mat::vector<T, dp::mat::Dynamic> &initial,
-                             const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                             const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds) {
+        GAResult<T> optimize(F &&objective, const dp::mat::Vector<T, dp::mat::Dynamic> &initial,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                             const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds) {
             const std::size_t dim = initial.size();
             const std::size_t pop_size = config.population_size;
 
@@ -326,11 +326,11 @@ namespace optinum::meta {
             std::mt19937 rng(rd());
             std::uniform_real_distribution<T> uniform(T{0}, T{1});
 
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> population(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> population(pop_size);
             std::vector<T> fitness(pop_size);
             std::size_t total_evals = 0;
 
-            dp::mat::vector<T, dp::mat::Dynamic> best_position(initial.size());
+            dp::mat::Vector<T, dp::mat::Dynamic> best_position(initial.size());
             for (std::size_t i = 0; i < initial.size(); ++i) {
                 best_position[i] = initial[i];
             }
@@ -338,7 +338,7 @@ namespace optinum::meta {
             ++total_evals;
 
             // First individual is the initial point
-            population[0] = dp::mat::vector<T, dp::mat::Dynamic>(initial.size());
+            population[0] = dp::mat::Vector<T, dp::mat::Dynamic>(initial.size());
             for (std::size_t i = 0; i < initial.size(); ++i) {
                 population[0][i] = initial[i];
             }
@@ -346,7 +346,7 @@ namespace optinum::meta {
 
             // Rest initialized randomly
             for (std::size_t i = 1; i < pop_size; ++i) {
-                population[i] = dp::mat::vector<T, dp::mat::Dynamic>(dim);
+                population[i] = dp::mat::Vector<T, dp::mat::Dynamic>(dim);
                 for (std::size_t d = 0; d < dim; ++d) {
                     T r = uniform(rng);
                     population[i][d] = lower_bounds[d] + r * (upper_bounds[d] - lower_bounds[d]);
@@ -369,7 +369,7 @@ namespace optinum::meta {
             std::vector<T> horizon_buffer(config.horizon_size, best_value);
             std::size_t horizon_idx = 0;
 
-            std::vector<dp::mat::vector<T, dp::mat::Dynamic>> offspring(pop_size);
+            std::vector<dp::mat::Vector<T, dp::mat::Dynamic>> offspring(pop_size);
             std::vector<T> offspring_fitness(pop_size);
             std::vector<std::size_t> ranking(pop_size);
 
@@ -394,8 +394,8 @@ namespace optinum::meta {
                         parent2 = select_parent(fitness, ranking, rng, uniform);
                     }
 
-                    dp::mat::vector<T, dp::mat::Dynamic> child1(dim);
-                    dp::mat::vector<T, dp::mat::Dynamic> child2(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child1(dim);
+                    dp::mat::Vector<T, dp::mat::Dynamic> child2(dim);
 
                     if (uniform(rng) < config.crossover_prob) {
                         crossover_op(population[parent1], population[parent2], child1, child2, lower_bounds,
@@ -517,11 +517,11 @@ namespace optinum::meta {
          * Crossover operation
          */
         template <typename RNG, typename Dist>
-        void crossover_op(const dp::mat::vector<T, dp::mat::Dynamic> &parent1,
-                          const dp::mat::vector<T, dp::mat::Dynamic> &parent2,
-                          dp::mat::vector<T, dp::mat::Dynamic> &child1, dp::mat::vector<T, dp::mat::Dynamic> &child2,
-                          const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                          const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
+        void crossover_op(const dp::mat::Vector<T, dp::mat::Dynamic> &parent1,
+                          const dp::mat::Vector<T, dp::mat::Dynamic> &parent2,
+                          dp::mat::Vector<T, dp::mat::Dynamic> &child1, dp::mat::Vector<T, dp::mat::Dynamic> &child2,
+                          const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                          const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
             const std::size_t dim = parent1.size();
 
             switch (config.crossover) {
@@ -629,9 +629,9 @@ namespace optinum::meta {
          * Mutation operation
          */
         template <typename RNG, typename Dist>
-        void mutate(dp::mat::vector<T, dp::mat::Dynamic> &individual,
-                    const dp::mat::vector<T, dp::mat::Dynamic> &lower_bounds,
-                    const dp::mat::vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
+        void mutate(dp::mat::Vector<T, dp::mat::Dynamic> &individual,
+                    const dp::mat::Vector<T, dp::mat::Dynamic> &lower_bounds,
+                    const dp::mat::Vector<T, dp::mat::Dynamic> &upper_bounds, RNG &rng, Dist &uniform) {
             const std::size_t dim = individual.size();
             std::normal_distribution<T> normal(T{0}, T{1});
 

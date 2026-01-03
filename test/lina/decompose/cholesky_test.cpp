@@ -7,7 +7,7 @@ using optinum::simd::Matrix;
 namespace dp = datapod;
 
 TEST_CASE("lina::cholesky reconstructs A = L*L^T") {
-    dp::mat::matrix<double, 3, 3> a;
+    dp::mat::Matrix<double, 3, 3> a;
     // SPD matrix
     a(0, 0) = 4.0;
     a(1, 0) = 12.0;
@@ -23,7 +23,7 @@ TEST_CASE("lina::cholesky reconstructs A = L*L^T") {
     CHECK(f.success);
 
     // Manually compute L * L^T
-    dp::mat::matrix<double, 3, 3> recon;
+    dp::mat::Matrix<double, 3, 3> recon;
     for (std::size_t i = 0; i < 9; ++i)
         recon[i] = 0.0;
     for (std::size_t i = 0; i < 3; ++i) {

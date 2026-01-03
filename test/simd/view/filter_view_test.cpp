@@ -264,7 +264,7 @@ TEST_CASE("filter_view - Integration with Vector") {
     using namespace on::simd;
 
     // Create backing storage and view
-    datapod::mat::vector<float, 8> v_storage;
+    datapod::mat::Vector<float, 8> v_storage;
     on::simd::Vector<float, 8> v(v_storage);
     for (std::size_t i = 0; i < 8; ++i) {
         v[i] = static_cast<float>(i + 1);

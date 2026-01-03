@@ -30,9 +30,9 @@ namespace optinum::lina {
      */
     template <typename T> struct LUDynamic {
         // Owning storage
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> l_storage;
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> u_storage;
-        dp::mat::vector<std::size_t, dp::mat::Dynamic> p_storage;
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> l_storage;
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> u_storage;
+        dp::mat::Vector<std::size_t, dp::mat::Dynamic> p_storage;
 
         // Views for SIMD operations
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> l;
@@ -178,7 +178,7 @@ namespace optinum::lina {
         LUDynamic<T> out(n);
 
         // Copy input to working matrix (owning storage + view)
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> lu_storage(n, n);
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> lu_storage(n, n);
         simd::Matrix<T, simd::Dynamic, simd::Dynamic> lu_mat(lu_storage);
         for (std::size_t i = 0; i < n * n; ++i) {
             lu_mat[i] = a[i];
@@ -267,13 +267,13 @@ namespace optinum::lina {
      * @return Solution vector x
      */
     template <typename T>
-    [[nodiscard]] inline dp::mat::vector<T, dp::mat::Dynamic>
+    [[nodiscard]] inline dp::mat::Vector<T, dp::mat::Dynamic>
     lu_solve_dynamic(const LUDynamic<T> &f, const simd::Vector<T, simd::Dynamic> &b) {
         const std::size_t n = b.size();
 
         // Owning storage for result vectors
-        dp::mat::vector<T, dp::mat::Dynamic> x_storage(n);
-        dp::mat::vector<T, dp::mat::Dynamic> y_storage(n);
+        dp::mat::Vector<T, dp::mat::Dynamic> x_storage(n);
+        dp::mat::Vector<T, dp::mat::Dynamic> y_storage(n);
         simd::Vector<T, simd::Dynamic> x(x_storage);
         simd::Vector<T, simd::Dynamic> y(y_storage);
 

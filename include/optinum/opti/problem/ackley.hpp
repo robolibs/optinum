@@ -35,7 +35,7 @@ namespace optinum::opti {
      *   Ackley<double, Dynamic> - Dynamic size
      */
     template <typename T, std::size_t N> struct Ackley {
-        using tensor_type = dp::mat::vector<T, N>;
+        using tensor_type = dp::mat::Vector<T, N>;
 
         static constexpr T A = T{20};                         ///< First exponential scaling
         static constexpr T B = T{0.2};                        ///< Decay rate for quadratic term

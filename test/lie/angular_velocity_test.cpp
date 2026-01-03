@@ -15,7 +15,7 @@ namespace dp = ::datapod;
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
 
 template <typename T, std::size_t N>
-bool vec_approx_equal(const dp::mat::vector<T, N> &a, const dp::mat::vector<T, N> &b, T tol = T(1e-10)) {
+bool vec_approx_equal(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b, T tol = T(1e-10)) {
     for (std::size_t i = 0; i < N; ++i) {
         if (std::abs(a[i] - b[i]) >= tol)
             return false;
@@ -43,7 +43,7 @@ TEST_CASE("LocalAngularVelocity construction from components") {
 }
 
 TEST_CASE("LocalAngularVelocity construction from vector") {
-    dp::mat::vector<double, 3> v{{1.0, 2.0, 3.0}};
+    dp::mat::Vector<double, 3> v{{1.0, 2.0, 3.0}};
     LocalAngularVelocityd omega(v);
 
     CHECK(vec_approx_equal(omega.vector(), v));
@@ -174,7 +174,7 @@ TEST_CASE("LocalAngularVelocity integration") {
         auto R_new = omega.apply_to(R_initial, dt);
 
         // R_new = R_initial * exp(omega * dt)
-        auto expected = R_initial * SO3d::exp(dp::mat::vector<double, 3>{{0.0, 0.0, 0.1}});
+        auto expected = R_initial * SO3d::exp(dp::mat::Vector<double, 3>{{0.0, 0.0, 0.1}});
         CHECK(R_new.is_approx(expected, 1e-10));
     }
 }
@@ -206,7 +206,7 @@ TEST_CASE("GlobalAngularVelocity integration") {
         auto R_new = omega.apply_to(R_initial, dt);
 
         // R_new = exp(omega * dt) * R_initial
-        auto expected = SO3d::exp(dp::mat::vector<double, 3>{{0.0, 0.0, 0.1}}) * R_initial;
+        auto expected = SO3d::exp(dp::mat::Vector<double, 3>{{0.0, 0.0, 0.1}}) * R_initial;
         CHECK(R_new.is_approx(expected, 1e-10));
     }
 }

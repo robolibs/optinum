@@ -9,7 +9,7 @@ namespace simd = optinum::simd;
 // =============================================================================
 
 TEST_CASE("noalias() - Vector assignment") {
-    dp::mat::vector<float, 4> a_storage, b_storage, c_storage;
+    dp::mat::Vector<float, 4> a_storage, b_storage, c_storage;
     simd::Vector<float, 4> a(a_storage), b(b_storage), c(c_storage);
 
     // Initialize using element access
@@ -28,7 +28,7 @@ TEST_CASE("noalias() - Vector assignment") {
 }
 
 TEST_CASE("MatrixNoAlias") {
-    dp::mat::matrix<double, 2, 2> a_storage, b_storage, c_storage;
+    dp::mat::Matrix<double, 2, 2> a_storage, b_storage, c_storage;
     simd::Matrix<double, 2, 2> a(a_storage), b(b_storage), c(c_storage);
 
     // Initialize matrices
@@ -53,7 +53,7 @@ TEST_CASE("MatrixNoAlias") {
 
 TEST_CASE("TensorNoAlias") {
     // Create storage for tensors (Tensor is now a non-owning view)
-    dp::mat::tensor<float, 2, 2, 2> a_storage, b_storage, c_storage;
+    dp::mat::Tensor<float, 2, 2, 2> a_storage, b_storage, c_storage;
     simd::Tensor<float, 2, 2, 2> a(a_storage), b(b_storage), c(c_storage);
 
     // Initialize tensors
@@ -79,7 +79,7 @@ TEST_CASE("TensorNoAlias") {
 }
 
 TEST_CASE("WrapperDataAccess") {
-    dp::mat::vector<float, 3> storage;
+    dp::mat::Vector<float, 3> storage;
     simd::Vector<float, 3> v(storage);
     v[0] = 1.0f;
     v[1] = 2.0f;
@@ -100,7 +100,7 @@ TEST_CASE("WrapperDataAccess") {
 
 TEST_CASE("ToRowMajorMatrix") {
     // Create column-major matrix (optinum default)
-    dp::mat::matrix<double, 2, 3> storage;
+    dp::mat::Matrix<double, 2, 3> storage;
     simd::Matrix<double, 2, 3> col_major(storage);
     col_major(0, 0) = 1.0;
     col_major(0, 1) = 2.0;
@@ -122,7 +122,7 @@ TEST_CASE("ToRowMajorMatrix") {
 }
 
 TEST_CASE("ToColumnMajorMatrix") {
-    dp::mat::matrix<float, 3, 2> storage;
+    dp::mat::Matrix<float, 3, 2> storage;
     simd::Matrix<float, 3, 2> mat(storage);
     mat(0, 0) = 1.0f;
     mat(0, 1) = 2.0f;
@@ -143,7 +143,7 @@ TEST_CASE("ToColumnMajorMatrix") {
 }
 
 TEST_CASE("CopyToRowMajorArray") {
-    dp::mat::matrix<double, 2, 3> storage;
+    dp::mat::Matrix<double, 2, 3> storage;
     simd::Matrix<double, 2, 3> mat(storage);
     mat(0, 0) = 1.0;
     mat(0, 1) = 2.0;
@@ -167,7 +167,7 @@ TEST_CASE("CopyToRowMajorArray") {
 TEST_CASE("CopyFromRowMajorArray") {
     double row_array[6] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
-    dp::mat::matrix<double, 2, 3> storage;
+    dp::mat::Matrix<double, 2, 3> storage;
     simd::Matrix<double, 2, 3> mat(storage);
     simd::copy_from_rowmajor(mat, row_array);
 
@@ -182,7 +182,7 @@ TEST_CASE("CopyFromRowMajorArray") {
 
 TEST_CASE("TensorColumnMajorConversion") {
     // Create storage for tensor (Tensor is now a non-owning view)
-    dp::mat::tensor<float, 2, 2, 2> tensor_storage;
+    dp::mat::Tensor<float, 2, 2, 2> tensor_storage;
     simd::Tensor<float, 2, 2, 2> tensor(tensor_storage);
 
     // Initialize with known pattern
@@ -202,7 +202,7 @@ TEST_CASE("TensorColumnMajorConversion") {
     CHECK(col_array[7] == doctest::Approx(7.0f));
 
     // Copy back and verify
-    dp::mat::tensor<float, 2, 2, 2> recovered_storage;
+    dp::mat::Tensor<float, 2, 2, 2> recovered_storage;
     simd::Tensor<float, 2, 2, 2> recovered(recovered_storage);
     simd::copy_from_columnmajor(recovered, col_array);
 
@@ -221,7 +221,7 @@ TEST_CASE("TensorColumnMajorConversion") {
 
 TEST_CASE("ToVoigtStressTensor") {
     // Create symmetric 3x3 stress tensor
-    dp::mat::matrix<double, 3, 3> storage;
+    dp::mat::Matrix<double, 3, 3> storage;
     simd::Matrix<double, 3, 3> stress(storage);
     stress(0, 0) = 1.0;
     stress(0, 1) = 4.0;
@@ -245,7 +245,7 @@ TEST_CASE("ToVoigtStressTensor") {
 }
 
 TEST_CASE("FromVoigtToTensor") {
-    dp::mat::vector<double, 6> storage;
+    dp::mat::Vector<double, 6> storage;
     simd::Vector<double, 6> voigt(storage);
     voigt[0] = 1.0;
     voigt[1] = 2.0;
@@ -271,7 +271,7 @@ TEST_CASE("FromVoigtToTensor") {
 }
 
 TEST_CASE("RoundTripConversion") {
-    dp::mat::matrix<double, 3, 3> storage;
+    dp::mat::Matrix<double, 3, 3> storage;
     simd::Matrix<double, 3, 3> original(storage);
     original(0, 0) = 10.0;
     original(0, 1) = 12.0;
@@ -295,7 +295,7 @@ TEST_CASE("RoundTripConversion") {
 
 TEST_CASE("EngineeringStrainConversion") {
     // Engineering strains have shear components doubled
-    dp::mat::vector<double, 6> storage;
+    dp::mat::Vector<double, 6> storage;
     simd::Vector<double, 6> eng_strain(storage);
     eng_strain[0] = 0.001;
     eng_strain[1] = 0.002;
@@ -424,7 +424,7 @@ TEST_CASE("GetAfterArithmetic") {
 
 TEST_CASE("CombinedFeaturesWorkflow") {
     // Create stress tensor in Voigt notation
-    dp::mat::vector<double, 6> voigt_storage;
+    dp::mat::Vector<double, 6> voigt_storage;
     simd::Vector<double, 6> stress_voigt(voigt_storage);
     stress_voigt[0] = 100.0;
     stress_voigt[1] = 200.0;
@@ -437,7 +437,7 @@ TEST_CASE("CombinedFeaturesWorkflow") {
     auto stress_tensor = simd::from_voigt(stress_voigt);
 
     // Apply transformation (simple scaling) using backend
-    dp::mat::matrix<double, 3, 3> result_storage;
+    dp::mat::Matrix<double, 3, 3> result_storage;
     simd::Matrix<double, 3, 3> result(result_storage);
     simd::backend::mul_scalar<double, 9>(result.data(), stress_tensor.data(), 2.0);
 

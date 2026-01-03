@@ -27,7 +27,7 @@ namespace optinum::opti {
          * @param gradient Current gradient ∇f(x)
          */
         template <typename T, std::size_t N>
-        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) const noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) const noexcept {
             // x = x - step_size * gradient using SIMD
             simd::backend::scale_sub_runtime<T>(x.data(), step_size, gradient.data(), x.size());
         }

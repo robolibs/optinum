@@ -21,7 +21,7 @@ namespace optinum::lie {
     // SO(3) represents 3D rotations. Internally stored as a unit quaternion.
     //
     // Quaternion convention: q = w + xi + yj + zk (scalar-first, Hamilton convention)
-    // Storage: dp::mat::quaternion<T> with [w, x, y, z]
+    // Storage: dp::mat::Quaternion<T> with [w, x, y, z]
     // DoF: 3 (rotation vector / axis-angle)
     // NumParams: 4 (unit quaternion)
     //
@@ -39,11 +39,11 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Tangent = dp::mat::vector<T, 3>; // R^3 (rotation vector) - owning type
-        using Quaternion = dp::mat::quaternion<T>;
-        using Point = dp::mat::vector<T, 3>;             // 3D point - owning type
-        using RotationMatrix = dp::mat::matrix<T, 3, 3>; // Owning type for return values
-        using AdjointMatrix = dp::mat::matrix<T, 3, 3>;  // Owning type for return values
+        using Tangent = dp::mat::Vector<T, 3>; // R^3 (rotation vector) - owning type
+        using Quaternion = dp::mat::Quaternion<T>;
+        using Point = dp::mat::Vector<T, 3>;             // 3D point - owning type
+        using RotationMatrix = dp::mat::Matrix<T, 3, 3>; // Owning type for return values
+        using AdjointMatrix = dp::mat::Matrix<T, 3, 3>;  // Owning type for return values
 
         // ===== CONSTANTS =====
         static constexpr std::size_t DoF = 3;
@@ -662,7 +662,7 @@ namespace optinum::lie {
 
         if (dot > T(1) - epsilon<T>) {
             // Linear interpolation for very close quaternions
-            dp::mat::quaternion<T> result{qa.w + t * (qb.w - qa.w), qa.x + t * (qb.x - qa.x), qa.y + t * (qb.y - qa.y),
+            dp::mat::Quaternion<T> result{qa.w + t * (qb.w - qa.w), qa.x + t * (qb.x - qa.x), qa.y + t * (qb.y - qa.y),
                                           qa.z + t * (qb.z - qa.z)};
             return SO3<T>(result);
         }

@@ -17,23 +17,23 @@ namespace optinum::lina {
     namespace dp = ::datapod;
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr dp::Result<dp::mat::vector<T, N>, dp::Error>
+    [[nodiscard]] constexpr dp::Result<dp::mat::Vector<T, N>, dp::Error>
     try_solve(const simd::Matrix<T, N, N> &a, const simd::Vector<T, N> &b) noexcept {
         const auto f = lu<T, N>(a);
         if (f.singular) {
-            return dp::Result<dp::mat::vector<T, N>, dp::Error>::err(dp::Error::invalid_argument("matrix is singular"));
+            return dp::Result<dp::mat::Vector<T, N>, dp::Error>::err(dp::Error::invalid_argument("matrix is singular"));
         }
-        return dp::Result<dp::mat::vector<T, N>, dp::Error>::ok(lu_solve(f, b));
+        return dp::Result<dp::mat::Vector<T, N>, dp::Error>::ok(lu_solve(f, b));
     }
 
     template <typename T, std::size_t N>
-    [[nodiscard]] constexpr dp::mat::vector<T, N> solve(const simd::Matrix<T, N, N> &a,
+    [[nodiscard]] constexpr dp::mat::Vector<T, N> solve(const simd::Matrix<T, N, N> &a,
                                                         const simd::Vector<T, N> &b) noexcept {
         auto r = try_solve<T, N>(a, b);
         if (r.is_ok()) {
             return r.value();
         }
-        dp::mat::vector<T, N> zero;
+        dp::mat::Vector<T, N> zero;
         for (std::size_t i = 0; i < N; ++i) {
             zero[i] = T{};
         }
@@ -41,18 +41,18 @@ namespace optinum::lina {
     }
 
     template <typename T, std::size_t N, std::size_t M>
-    [[nodiscard]] constexpr dp::Result<dp::mat::matrix<T, N, M>, dp::Error>
+    [[nodiscard]] constexpr dp::Result<dp::mat::Matrix<T, N, M>, dp::Error>
     try_solve(const simd::Matrix<T, N, N> &a, const simd::Matrix<T, N, M> &b) noexcept {
         const auto f = lu<T, N>(a);
         if (f.singular) {
-            return dp::Result<dp::mat::matrix<T, N, M>, dp::Error>::err(
+            return dp::Result<dp::mat::Matrix<T, N, M>, dp::Error>::err(
                 dp::Error::invalid_argument("matrix is singular"));
         }
 
-        dp::mat::matrix<T, N, M> x;
+        dp::mat::Matrix<T, N, M> x;
         for (std::size_t col = 0; col < M; ++col) {
             // Extract column from b (columns are contiguous in column-major)
-            dp::mat::vector<T, N> rhs_storage;
+            dp::mat::Vector<T, N> rhs_storage;
             simd::Vector<T, N> rhs(rhs_storage);
             const T *b_col = b.data() + col * N;
             for (std::size_t i = 0; i < N; ++i) {
@@ -68,17 +68,17 @@ namespace optinum::lina {
             }
         }
 
-        return dp::Result<dp::mat::matrix<T, N, M>, dp::Error>::ok(x);
+        return dp::Result<dp::mat::Matrix<T, N, M>, dp::Error>::ok(x);
     }
 
     template <typename T, std::size_t N, std::size_t M>
-    [[nodiscard]] constexpr dp::mat::matrix<T, N, M> solve(const simd::Matrix<T, N, N> &a,
+    [[nodiscard]] constexpr dp::mat::Matrix<T, N, M> solve(const simd::Matrix<T, N, N> &a,
                                                            const simd::Matrix<T, N, M> &b) noexcept {
         auto r = try_solve<T, N, M>(a, b);
         if (r.is_ok()) {
             return r.value();
         }
-        dp::mat::matrix<T, N, M> zero;
+        dp::mat::Matrix<T, N, M> zero;
         for (std::size_t i = 0; i < N * M; ++i) {
             zero[i] = T{};
         }

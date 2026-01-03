@@ -47,10 +47,10 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Complex = dp::mat::complex<T>;
+        using Complex = dp::mat::Complex<T>;
         using Tangent = T; // R^1, just the angle for SO2
-        using Point = dp::mat::vector<T, 2>;
-        using RotationMatrix = dp::mat::matrix<T, 2, 2>;
+        using Point = dp::mat::Vector<T, 2>;
+        using RotationMatrix = dp::mat::Matrix<T, 2, 2>;
         using Element = SO2<T>;
 
         // SIMD width selection (auto-detect based on architecture)

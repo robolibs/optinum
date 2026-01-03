@@ -8,7 +8,7 @@ namespace dp = datapod;
 namespace simd = optinum::simd;
 
 TEST_CASE("Print scalar") {
-    dp::mat::scalar<double> storage(3.14159);
+    dp::mat::Scalar<double> storage(3.14159);
     simd::Scalar<double> s(storage);
 
     // Just make sure it doesn't crash
@@ -23,7 +23,7 @@ TEST_CASE("Print scalar") {
 }
 
 TEST_CASE("Print vector") {
-    dp::mat::vector<float, 3> storage;
+    dp::mat::Vector<float, 3> storage;
     simd::Vector<float, 3> v(storage);
     v[0] = 1.0f;
     v[1] = 2.5f;
@@ -41,7 +41,7 @@ TEST_CASE("Print vector") {
 }
 
 TEST_CASE("Print matrix") {
-    dp::mat::matrix<double, 2, 2> storage;
+    dp::mat::Matrix<double, 2, 2> storage;
     simd::Matrix<double, 2, 2> m(storage);
     m(0, 0) = 1.0;
     m(1, 0) = 2.0;
@@ -60,7 +60,7 @@ TEST_CASE("Print matrix") {
 }
 
 TEST_CASE("Print complex") {
-    dp::mat::vector<dp::mat::complex<double>, 2> storage;
+    dp::mat::Vector<dp::mat::Complex<double>, 2> storage;
     simd::Complex<double, 2> c(storage);
     c[0] = {3.0, 4.0};
     c[1] = {-1.0, 2.5};
@@ -77,7 +77,7 @@ TEST_CASE("Print complex") {
 }
 
 TEST_CASE("Write and read vector") {
-    dp::mat::vector<double, 4> storage;
+    dp::mat::Vector<double, 4> storage;
     simd::Vector<double, 4> v(storage);
     v[0] = 1.0;
     v[1] = 2.0;
@@ -91,7 +91,7 @@ TEST_CASE("Write and read vector") {
     CHECK(write_ok);
 
     // Read
-    dp::mat::vector<double, 4> storage2;
+    dp::mat::Vector<double, 4> storage2;
     simd::Vector<double, 4> v2(storage2);
     bool read_ok = simd::read(v2, filename);
     CHECK(read_ok);
@@ -104,7 +104,7 @@ TEST_CASE("Write and read vector") {
 }
 
 TEST_CASE("Write and read matrix") {
-    dp::mat::matrix<float, 2, 3> storage;
+    dp::mat::Matrix<float, 2, 3> storage;
     simd::Matrix<float, 2, 3> m(storage);
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
@@ -120,7 +120,7 @@ TEST_CASE("Write and read matrix") {
     CHECK(write_ok);
 
     // Read
-    dp::mat::matrix<float, 2, 3> storage2;
+    dp::mat::Matrix<float, 2, 3> storage2;
     simd::Matrix<float, 2, 3> m2(storage2);
     bool read_ok = simd::read(m2, filename);
     CHECK(read_ok);
@@ -132,7 +132,7 @@ TEST_CASE("Write and read matrix") {
 }
 
 TEST_CASE("Write complex") {
-    dp::mat::vector<dp::mat::complex<double>, 3> storage;
+    dp::mat::Vector<dp::mat::Complex<double>, 3> storage;
     simd::Complex<double, 3> c(storage);
     c[0] = {1.0, 2.0};
     c[1] = {3.0, 4.0};
@@ -155,7 +155,7 @@ TEST_CASE("Write complex") {
 }
 
 TEST_CASE("Write scalar") {
-    dp::mat::scalar<double> storage(42.123456789);
+    dp::mat::Scalar<double> storage(42.123456789);
     simd::Scalar<double> s(storage);
 
     const std::string filename = "/tmp/test_scalar.txt";

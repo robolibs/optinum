@@ -10,7 +10,7 @@ namespace dp = datapod;
 
 TEST_CASE("Rosenbrock evaluate") {
     Rosenbrock<double, 2> rosenbrock;
-    dp::mat::vector<double, 2> x;
+    dp::mat::Vector<double, 2> x;
 
     SUBCASE("at global minimum (1, 1)") {
         x[0] = 1.0;
@@ -49,8 +49,8 @@ TEST_CASE("Rosenbrock evaluate") {
 
 TEST_CASE("Rosenbrock gradient") {
     Rosenbrock<double, 2> rosenbrock;
-    dp::mat::vector<double, 2> x;
-    dp::mat::vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     SUBCASE("at global minimum (1, 1)") {
         x[0] = 1.0;
@@ -84,8 +84,8 @@ TEST_CASE("Rosenbrock gradient") {
 
 TEST_CASE("Rosenbrock evaluate_with_gradient") {
     Rosenbrock<double, 2> rosenbrock;
-    dp::mat::vector<double, 2> x;
-    dp::mat::vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     x[0] = 1.0;
     x[1] = 1.0;
@@ -100,7 +100,7 @@ TEST_CASE("Rosenbrock evaluate_with_gradient") {
 TEST_CASE("Rosenbrock higher dimensions") {
     SUBCASE("3D at minimum") {
         Rosenbrock<double, 3> rosenbrock;
-        dp::mat::vector<double, 3> x;
+        dp::mat::Vector<double, 3> x;
         x[0] = 1.0;
         x[1] = 1.0;
         x[2] = 1.0;
@@ -109,7 +109,7 @@ TEST_CASE("Rosenbrock higher dimensions") {
 
     SUBCASE("5D at minimum") {
         Rosenbrock<double, 5> rosenbrock;
-        dp::mat::vector<double, 5> x;
+        dp::mat::Vector<double, 5> x;
         for (std::size_t i = 0; i < 5; ++i)
             x[i] = 1.0;
         CHECK(rosenbrock.evaluate(x) == doctest::Approx(0.0).epsilon(1e-10));
@@ -117,7 +117,7 @@ TEST_CASE("Rosenbrock higher dimensions") {
 
     SUBCASE("10D at minimum") {
         Rosenbrock<double, 10> rosenbrock;
-        dp::mat::vector<double, 10> x;
+        dp::mat::Vector<double, 10> x;
         for (std::size_t i = 0; i < 10; ++i)
             x[i] = 1.0;
         CHECK(rosenbrock.evaluate(x) == doctest::Approx(0.0).epsilon(1e-10));
@@ -126,8 +126,8 @@ TEST_CASE("Rosenbrock higher dimensions") {
 
 TEST_CASE("Rosenbrock dynamic size") {
     Rosenbrock<double, Dynamic> rosenbrock;
-    dp::mat::vector<double, Dynamic> x(5);
-    dp::mat::vector<double, Dynamic> g(5);
+    dp::mat::Vector<double, Dynamic> x(5);
+    dp::mat::Vector<double, Dynamic> g(5);
 
     // At minimum
     for (std::size_t i = 0; i < 5; ++i)
@@ -143,7 +143,7 @@ TEST_CASE("Rosenbrock dynamic size") {
 
 TEST_CASE("Rosenbrock float precision") {
     Rosenbrock<float, 2> rosenbrock;
-    dp::mat::vector<float, 2> x;
+    dp::mat::Vector<float, 2> x;
 
     x[0] = 1.0f;
     x[1] = 1.0f;
@@ -162,8 +162,8 @@ TEST_CASE("Rosenbrock minimum_location") {
 TEST_CASE("Rosenbrock gradient numerical check") {
     // Verify gradient using finite differences
     Rosenbrock<double, 2> rosenbrock;
-    dp::mat::vector<double, 2> x;
-    dp::mat::vector<double, 2> g;
+    dp::mat::Vector<double, 2> x;
+    dp::mat::Vector<double, 2> g;
 
     x[0] = 0.5;
     x[1] = 0.5;
@@ -171,8 +171,8 @@ TEST_CASE("Rosenbrock gradient numerical check") {
 
     double eps = 1e-7;
     for (std::size_t i = 0; i < 2; ++i) {
-        dp::mat::vector<double, 2> x_plus = x;
-        dp::mat::vector<double, 2> x_minus = x;
+        dp::mat::Vector<double, 2> x_plus = x;
+        dp::mat::Vector<double, 2> x_minus = x;
         x_plus[i] += eps;
         x_minus[i] -= eps;
 

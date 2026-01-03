@@ -17,7 +17,7 @@ namespace on = optinum;
 // =============================================================================
 
 TEST_CASE("algo::exp - y = exp(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{0.0f, 1.0f, -1.0f, 2.0f, -2.0f, 0.5f, -0.5f, 3.0f}};
     alignas(32) vec_t y;
@@ -37,7 +37,7 @@ TEST_CASE("algo::exp - y = exp(x)") {
 }
 
 TEST_CASE("algo::exp - in-place x = exp(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{0.0f, 1.0f, -1.0f, 2.0f}};
 
@@ -51,7 +51,7 @@ TEST_CASE("algo::exp - in-place x = exp(x)") {
 }
 
 TEST_CASE("algo::exp - tail handling") {
-    using vec_t = datapod::mat::vector<float, 10>;
+    using vec_t = datapod::mat::Vector<float, 10>;
 
     alignas(32) vec_t x, y;
     for (std::size_t i = 0; i < 10; ++i) {
@@ -69,7 +69,7 @@ TEST_CASE("algo::exp - tail handling") {
 }
 
 TEST_CASE("algo::exp - extreme values") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-100.0f, 100.0f, 10.0f, -10.0f}};
     alignas(32) vec_t y;
@@ -92,7 +92,7 @@ TEST_CASE("algo::exp - extreme values") {
 }
 
 TEST_CASE("algo::exp - accuracy test") {
-    using vec_t = datapod::mat::vector<float, 16>;
+    using vec_t = datapod::mat::Vector<float, 16>;
 
     alignas(32) vec_t x, y;
 
@@ -115,7 +115,7 @@ TEST_CASE("algo::exp - accuracy test") {
 }
 
 TEST_CASE("algo::exp - double precision") {
-    using vec_t = datapod::mat::vector<double, 4>;
+    using vec_t = datapod::mat::Vector<double, 4>;
 
     alignas(32) vec_t x{{0.0, 1.0, -1.0, 2.0}};
     alignas(32) vec_t y;
@@ -136,7 +136,7 @@ TEST_CASE("algo::exp - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::log - y = log(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1.0f, 2.0f, 0.5f, 10.0f, 0.1f, std::exp(1.0f), std::exp(2.0f), std::exp(-1.0f)}};
     alignas(32) vec_t y;
@@ -154,7 +154,7 @@ TEST_CASE("algo::log - y = log(x)") {
 }
 
 TEST_CASE("algo::log - in-place") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.0f, 2.0f, 10.0f, std::exp(1.0f)}};
 
@@ -183,7 +183,7 @@ TEST_CASE("algo::log - in-place") {
 // =============================================================================
 
 TEST_CASE("algo::sin - in-place") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     constexpr float PI = 3.14159265358979323846f;
     alignas(32) vec_t x{{0.0f, PI / 2.0f, PI, 3.0f * PI / 2.0f}};
@@ -202,7 +202,7 @@ TEST_CASE("algo::sin - in-place") {
 // =============================================================================
 
 TEST_CASE("algo::cos - y = cos(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     constexpr float PI = 3.14159265358979323846f;
     alignas(32) vec_t x{{0.0f, PI / 6.0f, PI / 4.0f, PI / 3.0f, PI / 2.0f, PI, -PI / 2.0f, 2.0f * PI}};
@@ -224,7 +224,7 @@ TEST_CASE("algo::cos - y = cos(x)") {
 }
 
 TEST_CASE("algo::cos - in-place") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     constexpr float PI = 3.14159265358979323846f;
     alignas(32) vec_t x{{0.0f, PI / 2.0f, PI, 3.0f * PI / 2.0f}};
@@ -243,7 +243,7 @@ TEST_CASE("algo::cos - in-place") {
 // =============================================================================
 
 TEST_CASE("algo::tanh - y = tanh(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{0.0f, 1.0f, -1.0f, 2.0f, -2.0f, 5.0f, -5.0f, 0.5f}};
     alignas(32) vec_t y;
@@ -263,7 +263,7 @@ TEST_CASE("algo::tanh - y = tanh(x)") {
 }
 
 TEST_CASE("algo::tanh - in-place") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{0.0f, 1.0f, -1.0f, 2.0f}};
 
@@ -281,7 +281,7 @@ TEST_CASE("algo::tanh - in-place") {
 // =============================================================================
 
 TEST_CASE("algo::sqrt - y = sqrt(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{0.0f, 1.0f, 4.0f, 9.0f, 16.0f, 25.0f, 100.0f, 2.0f}};
     alignas(32) vec_t y;
@@ -302,7 +302,7 @@ TEST_CASE("algo::sqrt - y = sqrt(x)") {
 }
 
 TEST_CASE("algo::sqrt - in-place") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.0f, 4.0f, 9.0f, 16.0f}};
 
@@ -320,7 +320,7 @@ TEST_CASE("algo::sqrt - in-place") {
 // =============================================================================
 
 TEST_CASE("algo::exp - matrix_view") {
-    using mat_t = datapod::mat::matrix<float, 4, 3>;
+    using mat_t = datapod::mat::Matrix<float, 4, 3>;
 
     alignas(32) mat_t x;
     alignas(32) mat_t y;
@@ -342,7 +342,7 @@ TEST_CASE("algo::exp - matrix_view") {
 }
 
 TEST_CASE("algo::exp - matrix_view in-place") {
-    using mat_t = datapod::mat::matrix<float, 4, 2>;
+    using mat_t = datapod::mat::Matrix<float, 4, 2>;
 
     alignas(32) mat_t x;
     std::array<float, 8> original;
@@ -361,7 +361,7 @@ TEST_CASE("algo::exp - matrix_view in-place") {
 }
 
 TEST_CASE("algo::log - matrix_view") {
-    using mat_t = datapod::mat::matrix<float, 3, 3>;
+    using mat_t = datapod::mat::Matrix<float, 3, 3>;
 
     alignas(32) mat_t x;
     alignas(32) mat_t y;
@@ -381,7 +381,7 @@ TEST_CASE("algo::log - matrix_view") {
 }
 
 TEST_CASE("algo::tanh - matrix_view") {
-    using mat_t = datapod::mat::matrix<float, 2, 4>;
+    using mat_t = datapod::mat::Matrix<float, 2, 4>;
 
     alignas(32) mat_t x;
     alignas(32) mat_t y;
@@ -401,7 +401,7 @@ TEST_CASE("algo::tanh - matrix_view") {
 }
 
 TEST_CASE("algo::sqrt - matrix_view") {
-    using mat_t = datapod::mat::matrix<float, 4, 4>;
+    using mat_t = datapod::mat::Matrix<float, 4, 4>;
 
     alignas(32) mat_t x;
     alignas(32) mat_t y;
@@ -425,7 +425,7 @@ TEST_CASE("algo::sqrt - matrix_view") {
 // =============================================================================
 
 TEST_CASE("algo::exp - tensor_view") {
-    using tensor_t = datapod::mat::tensor<float, 2, 3, 4>;
+    using tensor_t = datapod::mat::Tensor<float, 2, 3, 4>;
 
     alignas(32) tensor_t x;
     alignas(32) tensor_t y;
@@ -446,7 +446,7 @@ TEST_CASE("algo::exp - tensor_view") {
 }
 
 TEST_CASE("algo::exp - tensor_view in-place") {
-    using tensor_t = datapod::mat::tensor<float, 2, 2, 4>;
+    using tensor_t = datapod::mat::Tensor<float, 2, 2, 4>;
 
     alignas(32) tensor_t x;
     std::array<float, 16> original;
@@ -465,7 +465,7 @@ TEST_CASE("algo::exp - tensor_view in-place") {
 }
 
 TEST_CASE("algo::log - tensor_view") {
-    using tensor_t = datapod::mat::tensor<float, 3, 2, 2>;
+    using tensor_t = datapod::mat::Tensor<float, 3, 2, 2>;
 
     alignas(32) tensor_t x;
     alignas(32) tensor_t y;
@@ -485,7 +485,7 @@ TEST_CASE("algo::log - tensor_view") {
 }
 
 TEST_CASE("algo::tanh - tensor_view") {
-    using tensor_t = datapod::mat::tensor<float, 2, 2, 3>;
+    using tensor_t = datapod::mat::Tensor<float, 2, 2, 3>;
 
     alignas(32) tensor_t x;
     alignas(32) tensor_t y;
@@ -505,7 +505,7 @@ TEST_CASE("algo::tanh - tensor_view") {
 }
 
 TEST_CASE("algo::sqrt - tensor_view") {
-    using tensor_t = datapod::mat::tensor<float, 2, 3, 2>;
+    using tensor_t = datapod::mat::Tensor<float, 2, 3, 2>;
 
     alignas(32) tensor_t x;
     alignas(32) tensor_t y;
@@ -530,8 +530,8 @@ TEST_CASE("algo::sqrt - tensor_view") {
 
 TEST_CASE("algo - matrix and vector same underlying data") {
     // A 4x2 matrix has same storage as an 8-element vector
-    using mat_t = datapod::mat::matrix<float, 4, 2>;
-    using vec_t = datapod::mat::vector<float, 8>;
+    using mat_t = datapod::mat::Matrix<float, 4, 2>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) mat_t m;
     alignas(32) vec_t v;
@@ -558,7 +558,7 @@ TEST_CASE("algo - matrix and vector same underlying data") {
 // =============================================================================
 
 TEST_CASE("algo::log - double precision") {
-    using vec_t = datapod::mat::vector<double, 4>;
+    using vec_t = datapod::mat::Vector<double, 4>;
 
     alignas(32) vec_t x{{1.0, 2.0, 0.5, std::exp(1.0)}};
     alignas(32) vec_t y;
@@ -575,7 +575,7 @@ TEST_CASE("algo::log - double precision") {
 }
 
 TEST_CASE("algo::sin - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     constexpr double PI = 3.141592653589793;
     alignas(32) vec_t x{{0.0, PI / 6.0, PI / 4.0, PI / 3.0, PI / 2.0, PI, -PI / 2.0, 2.0 * PI}};
@@ -597,7 +597,7 @@ TEST_CASE("algo::sin - double precision") {
 }
 
 TEST_CASE("algo::cos - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     constexpr double PI = 3.141592653589793;
     alignas(32) vec_t x{{0.0, PI / 6.0, PI / 4.0, PI / 3.0, PI / 2.0, PI, -PI / 2.0, 2.0 * PI}};
@@ -619,7 +619,7 @@ TEST_CASE("algo::cos - double precision") {
 }
 
 TEST_CASE("algo::tanh - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{0.0, 0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 5.0}};
     alignas(32) vec_t y;
@@ -640,7 +640,7 @@ TEST_CASE("algo::tanh - double precision") {
 }
 
 TEST_CASE("algo::sqrt - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{0.0, 1.0, 4.0, 9.0, 16.0, 25.0, 2.0, 0.25}};
     alignas(32) vec_t y;
@@ -665,7 +665,7 @@ TEST_CASE("algo::sqrt - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::tan - y = tan(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     constexpr float PI = 3.14159265f;
     alignas(32) vec_t x{{0.0f, PI / 6.0f, PI / 4.0f, PI / 3.0f, -PI / 6.0f, -PI / 4.0f, -PI / 3.0f, 0.5f}};
@@ -687,7 +687,7 @@ TEST_CASE("algo::tan - y = tan(x)") {
 }
 
 TEST_CASE("algo::tan - in-place x = tan(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     constexpr float PI = 3.14159265f;
     alignas(32) vec_t x{{0.0f, PI / 6.0f, PI / 4.0f, -PI / 4.0f}};
@@ -702,7 +702,7 @@ TEST_CASE("algo::tan - in-place x = tan(x)") {
 }
 
 TEST_CASE("algo::tan - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     constexpr double PI = 3.141592653589793;
     alignas(32) vec_t x{{0.0, PI / 6.0, PI / 4.0, PI / 3.0, -PI / 6.0, -PI / 4.0, -PI / 3.0, 1.0}};
@@ -728,7 +728,7 @@ TEST_CASE("algo::tan - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::ceil - y = ceil(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1.5f, -1.5f, 2.9f, -2.9f, 0.1f, -0.1f, 3.0f, -3.0f}};
     alignas(32) vec_t y;
@@ -749,7 +749,7 @@ TEST_CASE("algo::ceil - y = ceil(x)") {
 }
 
 TEST_CASE("algo::ceil - in-place x = ceil(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.5f, -1.5f, 2.9f, -2.9f}};
 
@@ -763,7 +763,7 @@ TEST_CASE("algo::ceil - in-place x = ceil(x)") {
 }
 
 TEST_CASE("algo::ceil - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{1.5, -1.5, 2.9, -2.9, 0.1, -0.1, 3.0, -3.0}};
     alignas(32) vec_t y;
@@ -788,7 +788,7 @@ TEST_CASE("algo::ceil - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::floor - y = floor(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1.5f, -1.5f, 2.1f, -2.1f, 0.9f, -0.9f, 3.0f, -3.0f}};
     alignas(32) vec_t y;
@@ -809,7 +809,7 @@ TEST_CASE("algo::floor - y = floor(x)") {
 }
 
 TEST_CASE("algo::floor - in-place x = floor(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.5f, -1.5f, 2.1f, -2.1f}};
 
@@ -823,7 +823,7 @@ TEST_CASE("algo::floor - in-place x = floor(x)") {
 }
 
 TEST_CASE("algo::floor - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{1.5, -1.5, 2.1, -2.1, 0.9, -0.9, 3.0, -3.0}};
     alignas(32) vec_t y;
@@ -848,7 +848,7 @@ TEST_CASE("algo::floor - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::round - y = round(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1.5f, 2.5f, -1.5f, -2.5f, 1.4f, 1.6f, -1.4f, -1.6f}};
     alignas(32) vec_t y;
@@ -870,7 +870,7 @@ TEST_CASE("algo::round - y = round(x)") {
 }
 
 TEST_CASE("algo::round - in-place x = round(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.5f, 2.5f, -1.5f, -2.5f}};
 
@@ -884,7 +884,7 @@ TEST_CASE("algo::round - in-place x = round(x)") {
 }
 
 TEST_CASE("algo::round - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{1.5, 2.5, -1.5, -2.5, 1.4, 1.6, -1.4, -1.6}};
     alignas(32) vec_t y;
@@ -909,7 +909,7 @@ TEST_CASE("algo::round - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::trunc - y = trunc(x)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{1.9f, -1.9f, 2.1f, -2.1f, 0.9f, -0.9f, 3.0f, -3.0f}};
     alignas(32) vec_t y;
@@ -930,7 +930,7 @@ TEST_CASE("algo::trunc - y = trunc(x)") {
 }
 
 TEST_CASE("algo::trunc - in-place x = trunc(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.9f, -1.9f, 2.1f, -2.1f}};
 
@@ -944,7 +944,7 @@ TEST_CASE("algo::trunc - in-place x = trunc(x)") {
 }
 
 TEST_CASE("algo::trunc - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{1.9, -1.9, 2.1, -2.1, 0.9, -0.9, 3.0, -3.0}};
     alignas(32) vec_t y;
@@ -969,7 +969,7 @@ TEST_CASE("algo::trunc - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::pow - z = pow(x, y)") {
-    using vec_t = datapod::mat::vector<float, 8>;
+    using vec_t = datapod::mat::Vector<float, 8>;
 
     alignas(32) vec_t x{{2.0f, 3.0f, 4.0f, 5.0f, 2.0f, 10.0f, 1.5f, 2.5f}};
     alignas(32) vec_t y{{3.0f, 2.0f, 0.5f, 0.0f, -1.0f, 2.0f, 3.0f, 2.0f}};
@@ -992,7 +992,7 @@ TEST_CASE("algo::pow - z = pow(x, y)") {
 }
 
 TEST_CASE("algo::pow - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{2.0, 3.0, 4.0, 5.0, 2.0, 10.0, 1.5, 2.5}};
     alignas(32) vec_t y{{3.0, 2.0, 0.5, 0.0, -1.0, 2.0, 3.0, 2.0}};
@@ -1015,7 +1015,7 @@ TEST_CASE("algo::pow - double precision") {
 }
 
 TEST_CASE("algo::pow - special cases") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{0.0f, 1.0f, 2.0f, 16.0f}};
     alignas(32) vec_t y{{5.0f, 100.0f, 10.0f, 0.25f}};
@@ -1038,7 +1038,7 @@ TEST_CASE("algo::pow - special cases") {
 // =============================================================================
 
 TEST_CASE("algo::sinh - y = sinh(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0, 3.0}};
     alignas(32) vec_t y;
@@ -1059,7 +1059,7 @@ TEST_CASE("algo::sinh - y = sinh(x)") {
 }
 
 TEST_CASE("algo::sinh - in-place x = sinh(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
 
@@ -1077,7 +1077,7 @@ TEST_CASE("algo::sinh - in-place x = sinh(x)") {
 // =============================================================================
 
 TEST_CASE("algo::cosh - y = cosh(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0, 3.0}};
     alignas(32) vec_t y;
@@ -1098,7 +1098,7 @@ TEST_CASE("algo::cosh - y = cosh(x)") {
 }
 
 TEST_CASE("algo::cosh - in-place x = cosh(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
 
@@ -1116,7 +1116,7 @@ TEST_CASE("algo::cosh - in-place x = cosh(x)") {
 // =============================================================================
 
 TEST_CASE("algo::exp2 - y = exp2(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 10.0}};
     alignas(32) vec_t y;
@@ -1137,7 +1137,7 @@ TEST_CASE("algo::exp2 - y = exp2(x)") {
 }
 
 TEST_CASE("algo::exp2 - in-place x = exp2(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{0.0f, 1.0f, 2.0f, 3.0f}};
 
@@ -1155,7 +1155,7 @@ TEST_CASE("algo::exp2 - in-place x = exp2(x)") {
 // =============================================================================
 
 TEST_CASE("algo::log2 - y = log2(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 1024.0}};
     alignas(32) vec_t y;
@@ -1176,7 +1176,7 @@ TEST_CASE("algo::log2 - y = log2(x)") {
 }
 
 TEST_CASE("algo::log2 - in-place x = log2(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.0f, 2.0f, 4.0f, 8.0f}};
 
@@ -1194,7 +1194,7 @@ TEST_CASE("algo::log2 - in-place x = log2(x)") {
 // =============================================================================
 
 TEST_CASE("algo::log10 - y = log10(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0, 2.0, 5.0}};
     alignas(32) vec_t y;
@@ -1215,7 +1215,7 @@ TEST_CASE("algo::log10 - y = log10(x)") {
 }
 
 TEST_CASE("algo::log10 - in-place x = log10(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.0f, 10.0f, 100.0f, 1000.0f}};
 
@@ -1233,7 +1233,7 @@ TEST_CASE("algo::log10 - in-place x = log10(x)") {
 // =============================================================================
 
 TEST_CASE("algo::atan - y = atan(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0, 10.0}};
     alignas(32) vec_t y;
@@ -1254,7 +1254,7 @@ TEST_CASE("algo::atan - y = atan(x)") {
 }
 
 TEST_CASE("algo::atan - in-place x = atan(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-1.0f, 0.0f, 1.0f, 5.0f}};
 
@@ -1268,7 +1268,7 @@ TEST_CASE("algo::atan - in-place x = atan(x)") {
 }
 
 TEST_CASE("algo::atan - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-100.0, -10.0, -1.0, -0.1, 0.1, 1.0, 10.0, 100.0}};
     alignas(32) vec_t y;
@@ -1288,7 +1288,7 @@ TEST_CASE("algo::atan - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::atan2 - z = atan2(y, x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t y_vals{{1.0, 1.0, -1.0, -1.0, 0.0, 1.0, -1.0, 2.0}};
     alignas(32) vec_t x_vals{{1.0, -1.0, -1.0, 1.0, 1.0, 0.0, 0.0, 2.0}};
@@ -1319,7 +1319,7 @@ TEST_CASE("algo::atan2 - z = atan2(y, x)") {
 }
 
 TEST_CASE("algo::atan2 - float precision") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t y_vals{{1.0f, -1.0f, 1.0f, 0.0f}};
     alignas(32) vec_t x_vals{{1.0f, 1.0f, 0.0f, -1.0f}};
@@ -1338,7 +1338,7 @@ TEST_CASE("algo::atan2 - float precision") {
 }
 
 TEST_CASE("algo::atan2 - robotics use case (Cartesian to polar)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     // Robot positions in 2D space
     alignas(32) vec_t x_pos{{3.0, 0.0, -4.0, -5.0, 1.0, 1.732, -1.0, 0.0}};
@@ -1361,7 +1361,7 @@ TEST_CASE("algo::atan2 - robotics use case (Cartesian to polar)") {
 // =============================================================================
 
 TEST_CASE("algo::asin - y = asin(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-1.0, -0.866, -0.5, 0.0, 0.5, 0.866, 1.0, 0.707}};
     alignas(32) vec_t y;
@@ -1382,7 +1382,7 @@ TEST_CASE("algo::asin - y = asin(x)") {
 }
 
 TEST_CASE("algo::asin - in-place x = asin(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
 
@@ -1396,7 +1396,7 @@ TEST_CASE("algo::asin - in-place x = asin(x)") {
 }
 
 TEST_CASE("algo::asin - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x;
     alignas(32) vec_t y;
@@ -1421,7 +1421,7 @@ TEST_CASE("algo::asin - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::acos - y = acos(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-1.0, -0.866, -0.5, 0.0, 0.5, 0.866, 1.0, 0.707}};
     alignas(32) vec_t y;
@@ -1442,7 +1442,7 @@ TEST_CASE("algo::acos - y = acos(x)") {
 }
 
 TEST_CASE("algo::acos - in-place x = acos(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-1.0f, 0.0f, 0.5f, 1.0f}};
 
@@ -1456,7 +1456,7 @@ TEST_CASE("algo::acos - in-place x = acos(x)") {
 }
 
 TEST_CASE("algo::acos - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x;
     alignas(32) vec_t y;
@@ -1477,7 +1477,7 @@ TEST_CASE("algo::acos - double precision") {
 }
 
 TEST_CASE("algo::acos - asin/acos identity: asin(x) + acos(x) = π/2") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-0.9, -0.7, -0.3, 0.0, 0.3, 0.7, 0.9, 0.5}};
     alignas(32) vec_t y_sin, y_cos;
@@ -1501,7 +1501,7 @@ TEST_CASE("algo::acos - asin/acos identity: asin(x) + acos(x) = π/2") {
 // =============================================================================
 
 TEST_CASE("algo::asinh - y = asinh(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-10.0, -2.0, -1.0, 0.0, 1.0, 2.0, 10.0, 100.0}};
     alignas(32) vec_t y;
@@ -1522,7 +1522,7 @@ TEST_CASE("algo::asinh - y = asinh(x)") {
 }
 
 TEST_CASE("algo::asinh - in-place x = asinh(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-1.0f, 0.0f, 1.0f, 5.0f}};
 
@@ -1536,7 +1536,7 @@ TEST_CASE("algo::asinh - in-place x = asinh(x)") {
 }
 
 TEST_CASE("algo::asinh - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-1000.0, -100.0, -10.0, -1.0, 1.0, 10.0, 100.0, 1000.0}};
     alignas(32) vec_t y;
@@ -1556,7 +1556,7 @@ TEST_CASE("algo::asinh - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::acosh - y = acosh(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{1.0, 1.5, 2.0, 3.0, 5.0, 10.0, 50.0, 100.0}};
     alignas(32) vec_t y;
@@ -1577,7 +1577,7 @@ TEST_CASE("algo::acosh - y = acosh(x)") {
 }
 
 TEST_CASE("algo::acosh - in-place x = acosh(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{1.0f, 2.0f, 5.0f, 10.0f}};
 
@@ -1591,7 +1591,7 @@ TEST_CASE("algo::acosh - in-place x = acosh(x)") {
 }
 
 TEST_CASE("algo::acosh - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{1.0, 1.1, 2.0, 5.0, 10.0, 50.0, 100.0, 1000.0}};
     alignas(32) vec_t y;
@@ -1611,7 +1611,7 @@ TEST_CASE("algo::acosh - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::atanh - y = atanh(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-0.9, -0.7, -0.5, 0.0, 0.5, 0.7, 0.9, 0.99}};
     alignas(32) vec_t y;
@@ -1632,7 +1632,7 @@ TEST_CASE("algo::atanh - y = atanh(x)") {
 }
 
 TEST_CASE("algo::atanh - in-place x = atanh(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-0.5f, 0.0f, 0.5f, 0.9f}};
 
@@ -1646,7 +1646,7 @@ TEST_CASE("algo::atanh - in-place x = atanh(x)") {
 }
 
 TEST_CASE("algo::atanh - double precision") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x;
     alignas(32) vec_t y;
@@ -1671,7 +1671,7 @@ TEST_CASE("algo::atanh - double precision") {
 // =============================================================================
 
 TEST_CASE("algo::expm1 - y = expm1(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-2.0, -1.0, -0.1, 0.0, 0.1, 1.0, 2.0, 5.0}};
     alignas(32) vec_t y;
@@ -1687,7 +1687,7 @@ TEST_CASE("algo::expm1 - y = expm1(x)") {
 }
 
 TEST_CASE("algo::expm1 - in-place x = expm1(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-1.0f, 0.0f, 0.1f, 1.0f}};
 
@@ -1701,7 +1701,7 @@ TEST_CASE("algo::expm1 - in-place x = expm1(x)") {
 }
 
 TEST_CASE("algo::expm1 - small values (numerical stability)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-0.01, -0.001, -0.0001, 0.0, 0.0001, 0.001, 0.01, 0.1}};
     alignas(32) vec_t y;
@@ -1722,7 +1722,7 @@ TEST_CASE("algo::expm1 - small values (numerical stability)") {
 // =============================================================================
 
 TEST_CASE("algo::log1p - y = log1p(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-0.5, -0.1, 0.0, 0.1, 0.5, 1.0, 2.0, 9.0}};
     alignas(32) vec_t y;
@@ -1738,7 +1738,7 @@ TEST_CASE("algo::log1p - y = log1p(x)") {
 }
 
 TEST_CASE("algo::log1p - in-place x = log1p(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-0.5f, 0.0f, 0.1f, 1.0f}};
 
@@ -1752,7 +1752,7 @@ TEST_CASE("algo::log1p - in-place x = log1p(x)") {
 }
 
 TEST_CASE("algo::log1p - small values (numerical stability)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-0.01, -0.001, -0.0001, 0.0, 0.0001, 0.001, 0.01, 0.1}};
     alignas(32) vec_t y;
@@ -1773,7 +1773,7 @@ TEST_CASE("algo::log1p - small values (numerical stability)") {
 // =============================================================================
 
 TEST_CASE("algo::abs - y = abs(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-5.0, -3.0, -1.0, 0.0, 1.0, 3.0, 5.0, -10.0}};
     alignas(32) vec_t y;
@@ -1795,7 +1795,7 @@ TEST_CASE("algo::abs - y = abs(x)") {
 }
 
 TEST_CASE("algo::abs - in-place x = abs(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-5.0f, -1.0f, 1.0f, 5.0f}};
 
@@ -1814,7 +1814,7 @@ TEST_CASE("algo::abs - in-place x = abs(x)") {
 // =============================================================================
 
 TEST_CASE("algo::cbrt - y = cbrt(x)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-8.0, -1.0, 0.0, 1.0, 8.0, 27.0, 64.0, 125.0}};
     alignas(32) vec_t y;
@@ -1835,7 +1835,7 @@ TEST_CASE("algo::cbrt - y = cbrt(x)") {
 }
 
 TEST_CASE("algo::cbrt - in-place x = cbrt(x)") {
-    using vec_t = datapod::mat::vector<float, 4>;
+    using vec_t = datapod::mat::Vector<float, 4>;
 
     alignas(32) vec_t x{{-8.0f, 0.0f, 8.0f, 27.0f}};
 
@@ -1853,7 +1853,7 @@ TEST_CASE("algo::cbrt - in-place x = cbrt(x)") {
 // =============================================================================
 
 TEST_CASE("algo::clamp - y = clamp(x, lo, hi)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{-10.0, -5.0, -1.0, 0.0, 1.0, 5.0, 10.0, 15.0}};
     alignas(32) vec_t lo{{-5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0}};
@@ -1882,7 +1882,7 @@ TEST_CASE("algo::clamp - y = clamp(x, lo, hi)") {
 // =============================================================================
 
 TEST_CASE("algo::hypot - z = hypot(x, y)") {
-    using vec_t = datapod::mat::vector<double, 8>;
+    using vec_t = datapod::mat::Vector<double, 8>;
 
     alignas(32) vec_t x{{3.0, 0.0, 5.0, 1.0, 3.0, 0.0, 12.0, 15.0}};
     alignas(32) vec_t y{{4.0, 1.0, 12.0, 1.0, 4.0, 0.0, 5.0, 8.0}};

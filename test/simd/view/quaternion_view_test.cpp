@@ -17,7 +17,7 @@ namespace dp = datapod;
 // =============================================================================
 
 TEST_CASE("quaternion_view - Construction and size queries") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t data[8];
     for (std::size_t i = 0; i < 8; ++i) {
@@ -43,7 +43,7 @@ TEST_CASE("quaternion_view - Construction and size queries") {
 }
 
 TEST_CASE("quaternion_view - Element access") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t data[4] = {
         {1.0, 0.0, 0.0, 0.0},     // identity
@@ -77,7 +77,7 @@ TEST_CASE("quaternion_view - Element access") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - Conjugate in-place") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t data[4] = {{1.0, 0.0, 0.0, 0.0}, {0.5, 0.5, 0.5, 0.5}, {0.707, 0.0, 0.707, 0.0}, {0.0, 1.0, 0.0, 0.0}};
 
@@ -97,7 +97,7 @@ TEST_CASE("quaternion_view - Conjugate in-place") {
 }
 
 TEST_CASE("quaternion_view - Normalize in-place") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t data[3] = {
         {3.0, 4.0, 0.0, 0.0}, // norm = 5
@@ -129,7 +129,7 @@ TEST_CASE("quaternion_view - Normalize in-place") {
 }
 
 TEST_CASE("quaternion_view - Inverse in-place") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t data[2] = {
         {3.0, 4.0, 0.0, 0.0}, // norm = 5, inverse = (3, -4, 0, 0) / 25
@@ -151,7 +151,7 @@ TEST_CASE("quaternion_view - Inverse in-place") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - Conjugate to output") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t input[2] = {{0.5, 0.5, 0.5, 0.5}, {0.707, 0.0, 0.707, 0.0}};
     quat_t output[2];
@@ -173,7 +173,7 @@ TEST_CASE("quaternion_view - Conjugate to output") {
 }
 
 TEST_CASE("quaternion_view - Normalized to output") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t input[2] = {{3.0, 4.0, 0.0, 0.0}, {0.0, 0.0, 3.0, 4.0}};
     quat_t output[2];
@@ -192,7 +192,7 @@ TEST_CASE("quaternion_view - Normalized to output") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - Hamilton product") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     // Test i * j = k
     quat_t a[2] = {
@@ -221,7 +221,7 @@ TEST_CASE("quaternion_view - Hamilton product") {
 }
 
 TEST_CASE("quaternion_view - SLERP interpolation") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     // Interpolate between identity and 90-deg Z rotation
     const double angle = M_PI / 2.0;
@@ -254,7 +254,7 @@ TEST_CASE("quaternion_view - SLERP interpolation") {
 }
 
 TEST_CASE("quaternion_view - NLERP interpolation") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t a[2] = {quat_t::identity(), quat_t::identity()};
     const double angle = M_PI / 2.0;
@@ -277,7 +277,7 @@ TEST_CASE("quaternion_view - NLERP interpolation") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - Norms") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t data[3] = {
         {1.0, 0.0, 0.0, 0.0}, // norm = 1
@@ -295,7 +295,7 @@ TEST_CASE("quaternion_view - Norms") {
 }
 
 TEST_CASE("quaternion_view - Dot product") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t a[2] = {
         {0.5, 0.5, 0.5, 0.5}, {0.0, 1.0, 0.0, 0.0} // pure i
@@ -318,7 +318,7 @@ TEST_CASE("quaternion_view - Dot product") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - Rotate vectors") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     // 90 degree rotation about Z axis
     const double angle = M_PI / 2.0;
@@ -349,7 +349,7 @@ TEST_CASE("quaternion_view - Rotate vectors") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - To/From Euler angles") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     double roll[3] = {0.0, M_PI / 4.0, 0.0};
     double pitch[3] = {0.0, 0.0, M_PI / 4.0};
@@ -378,7 +378,7 @@ TEST_CASE("quaternion_view - To/From Euler angles") {
 }
 
 TEST_CASE("quaternion_view - To/From axis-angle") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     // 90 deg rotation about Z
     const double angle = M_PI / 2.0;
@@ -406,7 +406,7 @@ TEST_CASE("quaternion_view - To/From axis-angle") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - Subview") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     quat_t data[8];
     for (std::size_t i = 0; i < 8; ++i) {
@@ -426,7 +426,7 @@ TEST_CASE("quaternion_view - Subview") {
 // =============================================================================
 
 TEST_CASE("quaternion_view - Tail handling") {
-    using quat_t = dp::mat::quaternion<double>;
+    using quat_t = dp::mat::Quaternion<double>;
 
     // 5 quaternions (not a multiple of typical SIMD width 4)
     quat_t data[5] = {
@@ -473,7 +473,7 @@ TEST_CASE("quaternion_view - Spatial Quaternion support") {
 
 TEST_CASE("Quaternion view - Basic operations") {
     // Storage for the view
-    dp::mat::vector<dp::mat::quaternion<double>, 4> storage;
+    dp::mat::Vector<dp::mat::Quaternion<double>, 4> storage;
     on::Quaternion<double, 4> quats(storage);
 
     SUBCASE("Default construction - null view") {
@@ -488,7 +488,7 @@ TEST_CASE("Quaternion view - Basic operations") {
     }
 
     SUBCASE("Fill with identity") {
-        quats.fill(dp::mat::quaternion<double>::identity());
+        quats.fill(dp::mat::Quaternion<double>::identity());
         for (std::size_t i = 0; i < 4; ++i) {
             CHECK(quats[i].w == doctest::Approx(1.0));
             CHECK(quats[i].x == doctest::Approx(0.0));
@@ -508,7 +508,7 @@ TEST_CASE("Quaternion view - Basic operations") {
     }
 
     SUBCASE("Hamilton product - multiply_to") {
-        dp::mat::vector<dp::mat::quaternion<double>, 2> a_storage, b_storage, result_storage;
+        dp::mat::Vector<dp::mat::Quaternion<double>, 2> a_storage, b_storage, result_storage;
         on::Quaternion<double, 2> a(a_storage);
         on::Quaternion<double, 2> b(b_storage);
         on::Quaternion<double, 2> result(result_storage);
@@ -526,7 +526,7 @@ TEST_CASE("Quaternion view - Basic operations") {
     }
 
     SUBCASE("Hamilton product - multiply_inplace") {
-        dp::mat::vector<dp::mat::quaternion<double>, 2> a_storage, b_storage;
+        dp::mat::Vector<dp::mat::Quaternion<double>, 2> a_storage, b_storage;
         on::Quaternion<double, 2> a(a_storage);
         on::Quaternion<double, 2> b(b_storage);
 
@@ -543,7 +543,7 @@ TEST_CASE("Quaternion view - Basic operations") {
     }
 
     SUBCASE("Iteration") {
-        quats.fill(dp::mat::quaternion<double>::identity());
+        quats.fill(dp::mat::Quaternion<double>::identity());
         int count = 0;
         for (const auto &q : quats) {
             CHECK(q.w == doctest::Approx(1.0));

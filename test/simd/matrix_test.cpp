@@ -6,14 +6,14 @@ namespace simd = optinum::simd;
 
 TEST_CASE("Matrix construction") {
     SUBCASE("default construction") {
-        dp::mat::matrix<float, 3, 3> m;
+        dp::mat::Matrix<float, 3, 3> m;
         CHECK(m.rows() == 3);
         CHECK(m.cols() == 3);
         CHECK(m.size() == 9);
     }
 
     SUBCASE("from element assignment") {
-        dp::mat::matrix<float, 2, 2> m{};
+        dp::mat::Matrix<float, 2, 2> m{};
         m(0, 0) = 1.0f;
         m(0, 1) = 2.0f;
         m(1, 0) = 3.0f;
@@ -27,7 +27,7 @@ TEST_CASE("Matrix construction") {
 }
 
 TEST_CASE("Matrix element access") {
-    dp::mat::matrix<float, 2, 3> m;
+    dp::mat::Matrix<float, 2, 3> m;
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
     m(0, 2) = 3.0f;
@@ -43,7 +43,7 @@ TEST_CASE("Matrix element access") {
 }
 
 TEST_CASE("Matrix fill") {
-    dp::mat::matrix<double, 3, 3> m;
+    dp::mat::Matrix<double, 3, 3> m;
     m.fill(2.5);
 
     for (std::size_t i = 0; i < m.size(); ++i) {
@@ -52,7 +52,7 @@ TEST_CASE("Matrix fill") {
 }
 
 TEST_CASE("Matrix set_identity") {
-    dp::mat::matrix<float, 3, 3> m;
+    dp::mat::Matrix<float, 3, 3> m;
     m.fill(99.0f);
     m.set_identity();
 
@@ -64,34 +64,34 @@ TEST_CASE("Matrix set_identity") {
 }
 
 TEST_CASE("Matrix element-wise arithmetic via backend") {
-    dp::mat::matrix<float, 2, 2> a;
+    dp::mat::Matrix<float, 2, 2> a;
     a(0, 0) = 1.0f;
     a(0, 1) = 2.0f;
     a(1, 0) = 3.0f;
     a(1, 1) = 4.0f;
 
-    dp::mat::matrix<float, 2, 2> b;
+    dp::mat::Matrix<float, 2, 2> b;
     b(0, 0) = 5.0f;
     b(0, 1) = 6.0f;
     b(1, 0) = 7.0f;
     b(1, 1) = 8.0f;
 
     SUBCASE("addition") {
-        dp::mat::matrix<float, 2, 2> c;
+        dp::mat::Matrix<float, 2, 2> c;
         simd::backend::add<float, 4>(c.data(), a.data(), b.data());
         CHECK(c(0, 0) == 6.0f);
         CHECK(c(1, 1) == 12.0f);
     }
 
     SUBCASE("subtraction") {
-        dp::mat::matrix<float, 2, 2> c;
+        dp::mat::Matrix<float, 2, 2> c;
         simd::backend::sub<float, 4>(c.data(), b.data(), a.data());
         CHECK(c(0, 0) == 4.0f);
         CHECK(c(1, 1) == 4.0f);
     }
 
     SUBCASE("scalar multiplication") {
-        dp::mat::matrix<float, 2, 2> c;
+        dp::mat::Matrix<float, 2, 2> c;
         simd::backend::mul_scalar<float, 4>(c.data(), a.data(), 2.0f);
         CHECK(c(0, 0) == 2.0f);
         CHECK(c(1, 1) == 8.0f);
@@ -99,19 +99,19 @@ TEST_CASE("Matrix element-wise arithmetic via backend") {
 }
 
 TEST_CASE("Matrix multiplication via backend") {
-    dp::mat::matrix<float, 2, 2> a;
+    dp::mat::Matrix<float, 2, 2> a;
     a(0, 0) = 1.0f;
     a(0, 1) = 2.0f;
     a(1, 0) = 3.0f;
     a(1, 1) = 4.0f;
 
-    dp::mat::matrix<float, 2, 2> b;
+    dp::mat::Matrix<float, 2, 2> b;
     b(0, 0) = 5.0f;
     b(0, 1) = 6.0f;
     b(1, 0) = 7.0f;
     b(1, 1) = 8.0f;
 
-    dp::mat::matrix<float, 2, 2> c;
+    dp::mat::Matrix<float, 2, 2> c;
     simd::backend::matmul<float, 2, 2, 2>(c.data(), a.data(), b.data());
     // [1 2] * [5 6] = [1*5+2*7  1*6+2*8] = [19 22]
     // [3 4]   [7 8]   [3*5+4*7  3*6+4*8]   [43 50]
@@ -122,7 +122,7 @@ TEST_CASE("Matrix multiplication via backend") {
 }
 
 TEST_CASE("Matrix multiplication with identity") {
-    dp::mat::matrix<float, 3, 3> a;
+    dp::mat::Matrix<float, 3, 3> a;
     a(0, 0) = 1.0f;
     a(0, 1) = 2.0f;
     a(0, 2) = 3.0f;
@@ -133,10 +133,10 @@ TEST_CASE("Matrix multiplication with identity") {
     a(2, 1) = 8.0f;
     a(2, 2) = 9.0f;
 
-    dp::mat::matrix<float, 3, 3> I;
+    dp::mat::Matrix<float, 3, 3> I;
     I.set_identity();
 
-    dp::mat::matrix<float, 3, 3> result;
+    dp::mat::Matrix<float, 3, 3> result;
     simd::backend::matmul<float, 3, 3, 3>(result.data(), a.data(), I.data());
 
     for (std::size_t i = 0; i < 3; ++i) {
@@ -147,7 +147,7 @@ TEST_CASE("Matrix multiplication with identity") {
 }
 
 TEST_CASE("Matrix-vector multiplication via backend") {
-    dp::mat::matrix<float, 2, 3> m;
+    dp::mat::Matrix<float, 2, 3> m;
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
     m(0, 2) = 3.0f;
@@ -155,9 +155,9 @@ TEST_CASE("Matrix-vector multiplication via backend") {
     m(1, 1) = 5.0f;
     m(1, 2) = 6.0f;
 
-    dp::mat::vector<float, 3> v{1.0f, 2.0f, 3.0f};
+    dp::mat::Vector<float, 3> v{1.0f, 2.0f, 3.0f};
 
-    dp::mat::vector<float, 2> r;
+    dp::mat::Vector<float, 2> r;
     simd::backend::matvec<float, 2, 3>(r.data(), m.data(), v.data());
     // [1 2 3] * [1]   [1*1+2*2+3*3]   [14]
     // [4 5 6]   [2] = [4*1+5*2+6*3] = [32]
@@ -167,7 +167,7 @@ TEST_CASE("Matrix-vector multiplication via backend") {
 }
 
 TEST_CASE("Matrix transpose via backend") {
-    dp::mat::matrix<float, 2, 3> m;
+    dp::mat::Matrix<float, 2, 3> m;
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
     m(0, 2) = 3.0f;
@@ -175,7 +175,7 @@ TEST_CASE("Matrix transpose via backend") {
     m(1, 1) = 5.0f;
     m(1, 2) = 6.0f;
 
-    dp::mat::matrix<float, 3, 2> mt;
+    dp::mat::Matrix<float, 3, 2> mt;
     simd::backend::transpose<float, 2, 3>(mt.data(), m.data());
 
     CHECK(mt.rows() == 3);
@@ -187,7 +187,7 @@ TEST_CASE("Matrix transpose via backend") {
 }
 
 TEST_CASE("Matrix trace") {
-    dp::mat::matrix<float, 3, 3> m;
+    dp::mat::Matrix<float, 3, 3> m;
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
     m(0, 2) = 3.0f;
@@ -203,7 +203,7 @@ TEST_CASE("Matrix trace") {
 }
 
 TEST_CASE("Matrix frobenius_norm") {
-    dp::mat::matrix<float, 2, 2> m;
+    dp::mat::Matrix<float, 2, 2> m;
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
     m(1, 0) = 3.0f;
@@ -215,7 +215,7 @@ TEST_CASE("Matrix frobenius_norm") {
 }
 
 TEST_CASE("Matrix identity factory") {
-    dp::mat::matrix<double, 4, 4> I;
+    dp::mat::Matrix<double, 4, 4> I;
     I.set_identity();
 
     for (std::size_t i = 0; i < 4; ++i) {
@@ -230,19 +230,19 @@ TEST_CASE("Matrix identity factory") {
 }
 
 TEST_CASE("Matrix comparison") {
-    dp::mat::matrix<int, 2, 2> a;
+    dp::mat::Matrix<int, 2, 2> a;
     a(0, 0) = 1;
     a(0, 1) = 2;
     a(1, 0) = 3;
     a(1, 1) = 4;
 
-    dp::mat::matrix<int, 2, 2> b;
+    dp::mat::Matrix<int, 2, 2> b;
     b(0, 0) = 1;
     b(0, 1) = 2;
     b(1, 0) = 3;
     b(1, 1) = 4;
 
-    dp::mat::matrix<int, 2, 2> c;
+    dp::mat::Matrix<int, 2, 2> c;
     c(0, 0) = 1;
     c(0, 1) = 2;
     c(1, 0) = 3;
@@ -253,7 +253,7 @@ TEST_CASE("Matrix comparison") {
 }
 
 TEST_CASE("Matrix data access") {
-    dp::mat::matrix<float, 2, 2> m;
+    dp::mat::Matrix<float, 2, 2> m;
     m(0, 0) = 1.0f;
     m(0, 1) = 2.0f;
     m(1, 0) = 3.0f;

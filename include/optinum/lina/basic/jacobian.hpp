@@ -48,13 +48,13 @@ namespace optinum::lina {
      * auto J = lina::jacobian(f, x);  // J = [[2x, 1], [y, x]] at (1,2)
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>
+    dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>
     jacobian(const Function &f, const simd::Vector<T, N> &x, T h = (std::is_same_v<T, float> ? T(1e-5) : T(1e-8)),
              bool central = true) {
         const std::size_t n = x.size();
 
         // Copy input to owning storage
-        dp::mat::vector<T, N> x_base;
+        dp::mat::Vector<T, N> x_base;
         for (std::size_t i = 0; i < n; ++i) {
             x_base[i] = x[i];
         }
@@ -64,11 +64,11 @@ namespace optinum::lina {
         const std::size_t m = fx.size();
 
         // Allocate Jacobian matrix (always fully Dynamic, owning)
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> J(m, n);
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> J(m, n);
 
         // Temporary vectors for perturbations (owning types)
-        dp::mat::vector<T, N> x_plus = x_base;
-        dp::mat::vector<T, N> x_minus = x_base;
+        dp::mat::Vector<T, N> x_plus = x_base;
+        dp::mat::Vector<T, N> x_minus = x_base;
 
         // Compute each column of Jacobian (one per variable)
         for (std::size_t j = 0; j < n; ++j) {
@@ -130,23 +130,23 @@ namespace optinum::lina {
      * auto grad = lina::gradient(f, x);  // grad = [2x, 2y] = [6.0, 8.0]
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::vector<T, N> gradient(const Function &f, const simd::Vector<T, N> &x,
+    dp::mat::Vector<T, N> gradient(const Function &f, const simd::Vector<T, N> &x,
                                    T h = (std::is_same_v<T, float> ? T(1e-5) : T(1e-8)), bool central = true) {
         const std::size_t n = x.size();
 
         // Copy input to owning storage
-        dp::mat::vector<T, N> x_base;
+        dp::mat::Vector<T, N> x_base;
         for (std::size_t i = 0; i < n; ++i) {
             x_base[i] = x[i];
         }
 
-        dp::mat::vector<T, N> grad;
+        dp::mat::Vector<T, N> grad;
 
         T fx = f(simd::Vector<T, N>(x_base));
 
         // Temporary vectors for perturbations (owning types)
-        dp::mat::vector<T, N> x_plus = x_base;
-        dp::mat::vector<T, N> x_minus = x_base;
+        dp::mat::Vector<T, N> x_plus = x_base;
+        dp::mat::Vector<T, N> x_minus = x_base;
 
         // Compute each component of gradient
         for (std::size_t j = 0; j < n; ++j) {
@@ -226,8 +226,8 @@ namespace optinum::lina {
      * @brief Compute Jacobian matrix using finite differences (dp::mat::vector version)
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>
-    jacobian(const Function &f, const dp::mat::vector<T, N> &x, T h = (std::is_same_v<T, float> ? T(1e-5) : T(1e-8)),
+    dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic>
+    jacobian(const Function &f, const dp::mat::Vector<T, N> &x, T h = (std::is_same_v<T, float> ? T(1e-5) : T(1e-8)),
              bool central = true) {
         const std::size_t n = x.size();
 
@@ -236,11 +236,11 @@ namespace optinum::lina {
         const std::size_t m = fx.size();
 
         // Allocate Jacobian matrix
-        dp::mat::matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> J(m, n);
+        dp::mat::Matrix<T, dp::mat::Dynamic, dp::mat::Dynamic> J(m, n);
 
         // Temporary vectors for perturbations
-        dp::mat::vector<T, N> x_plus = x;
-        dp::mat::vector<T, N> x_minus = x;
+        dp::mat::Vector<T, N> x_plus = x;
+        dp::mat::Vector<T, N> x_minus = x;
 
         // Compute each column of Jacobian (one per variable)
         for (std::size_t j = 0; j < n; ++j) {
@@ -281,15 +281,15 @@ namespace optinum::lina {
      * @brief Compute gradient using finite differences (dp::mat::vector version)
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::vector<T, N> gradient(const Function &f, const dp::mat::vector<T, N> &x,
+    dp::mat::Vector<T, N> gradient(const Function &f, const dp::mat::Vector<T, N> &x,
                                    T h = (std::is_same_v<T, float> ? T(1e-5) : T(1e-8)), bool central = true) {
         const std::size_t n = x.size();
 
-        dp::mat::vector<T, N> grad;
+        dp::mat::Vector<T, N> grad;
 
         T fx = f(x);
-        dp::mat::vector<T, N> x_plus = x;
-        dp::mat::vector<T, N> x_minus = x;
+        dp::mat::Vector<T, N> x_plus = x;
+        dp::mat::Vector<T, N> x_minus = x;
 
         // Compute each component of gradient
         for (std::size_t j = 0; j < n; ++j) {

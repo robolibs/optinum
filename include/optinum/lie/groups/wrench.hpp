@@ -42,8 +42,8 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Vector3 = dp::mat::vector<T, 3>; // Owning storage type
-        using Vector6 = dp::mat::vector<T, 6>; // Owning storage type
+        using Vector3 = dp::mat::Vector<T, 3>; // Owning storage type
+        using Vector6 = dp::mat::Vector<T, 6>; // Owning storage type
 
         // ===== CONSTRUCTORS =====
 
@@ -315,9 +315,9 @@ namespace optinum::lie {
 
         template <typename NewScalar> [[nodiscard]] Wrench<NewScalar> cast() const noexcept {
             return Wrench<NewScalar>(
-                dp::mat::vector<NewScalar, 3>{{static_cast<NewScalar>(force_[0]), static_cast<NewScalar>(force_[1]),
+                dp::mat::Vector<NewScalar, 3>{{static_cast<NewScalar>(force_[0]), static_cast<NewScalar>(force_[1]),
                                                static_cast<NewScalar>(force_[2])}},
-                dp::mat::vector<NewScalar, 3>{{static_cast<NewScalar>(torque_[0]), static_cast<NewScalar>(torque_[1]),
+                dp::mat::Vector<NewScalar, 3>{{static_cast<NewScalar>(torque_[0]), static_cast<NewScalar>(torque_[1]),
                                                static_cast<NewScalar>(torque_[2])}});
         }
 

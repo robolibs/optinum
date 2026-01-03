@@ -23,10 +23,10 @@ namespace optinum::simd {
      * Row-major:    data[row * cols + col]
      */
     template <typename T, std::size_t R, std::size_t C>
-    [[nodiscard]] constexpr dp::mat::matrix<T, C, R> torowmajor(const Matrix<T, R, C> &m) noexcept {
+    [[nodiscard]] constexpr dp::mat::Matrix<T, C, R> torowmajor(const Matrix<T, R, C> &m) noexcept {
         // Transpose to convert layout
         // Column-major (R x C) → Row-major = Transpose
-        dp::mat::matrix<T, C, R> result{};
+        dp::mat::Matrix<T, C, R> result{};
         for (std::size_t i = 0; i < R; ++i) {
             for (std::size_t j = 0; j < C; ++j) {
                 result(j, i) = m(i, j);
@@ -42,9 +42,9 @@ namespace optinum::simd {
      * Returns transpose to convert layout.
      */
     template <typename T, std::size_t R, std::size_t C>
-    [[nodiscard]] constexpr dp::mat::matrix<T, C, R> tocolumnmajor(const Matrix<T, R, C> &m) noexcept {
+    [[nodiscard]] constexpr dp::mat::Matrix<T, C, R> tocolumnmajor(const Matrix<T, R, C> &m) noexcept {
         // Same as torowmajor - transpose converts between layouts
-        dp::mat::matrix<T, C, R> result{};
+        dp::mat::Matrix<T, C, R> result{};
         for (std::size_t i = 0; i < R; ++i) {
             for (std::size_t j = 0; j < C; ++j) {
                 result(j, i) = m(i, j);

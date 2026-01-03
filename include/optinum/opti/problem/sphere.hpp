@@ -21,7 +21,7 @@ namespace optinum::opti {
      *   Sphere<double, Dynamic> - Dynamic size
      */
     template <typename T, std::size_t N> struct Sphere {
-        using tensor_type = dp::mat::vector<T, N>;
+        using tensor_type = dp::mat::Vector<T, N>;
 
         /// Evaluate f(x) = sum(x_i^2) using SIMD dot product
         T evaluate(const tensor_type &x) const noexcept {

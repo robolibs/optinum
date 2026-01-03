@@ -33,7 +33,7 @@ namespace optinum::opti {
      *   Rastrigin<double, Dynamic> - Dynamic size
      */
     template <typename T, std::size_t N> struct Rastrigin {
-        using tensor_type = dp::mat::vector<T, N>;
+        using tensor_type = dp::mat::Vector<T, N>;
 
         static constexpr T A = T{10};                              ///< Amplitude of cosine modulation
         static constexpr T TWO_PI = T{2} * T{3.14159265358979323}; ///< 2*pi constant

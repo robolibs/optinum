@@ -10,12 +10,12 @@
 // For the underlying complex_view with SIMD width, use view/complex_view.hpp
 //
 // Usage:
-//   dp::mat::vector<dp::mat::complex<double>, 8> data;
+//   dp::mat::Vector<dp::mat::Complex<double>, 8> data;
 //   Complex<double, 8> view(data);  // Non-owning view
 //   view.conjugate_inplace();       // SIMD under the hood
 //
 // Or from raw pointer:
-//   dp::mat::complex<double> nums[8];
+//   dp::mat::Complex<double> nums[8];
 //   Complex<double, 8> view(nums);
 //   view.conjugate_inplace();
 // =============================================================================
@@ -36,7 +36,7 @@ namespace optinum::simd {
      * @brief Non-owning view over complex number arrays with transparent SIMD operations
      *
      * Non-owning view for N complex numbers. Operations use SIMD internally
-     * via complex_view. User works with dp::mat::complex<T> directly.
+     * via complex_view. User works with dp::mat::Complex<T> directly.
      *
      * Use cases:
      *   - FFT preprocessing
@@ -49,8 +49,8 @@ namespace optinum::simd {
         static_assert(std::is_floating_point_v<T>, "Complex<T, N> requires floating-point type");
 
       public:
-        using value_type = dp::mat::complex<T>;
-        using pod_type = dp::mat::vector<value_type, N>;
+        using value_type = dp::mat::Complex<T>;
+        using pod_type = dp::mat::Vector<value_type, N>;
         using real_type = T;
         using view_type = complex_view<T, detail::default_width<T>()>;
         using size_type = std::size_t;

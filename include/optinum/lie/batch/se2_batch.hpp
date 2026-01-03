@@ -42,10 +42,10 @@ namespace optinum::lie {
       public:
         // ===== TYPE ALIASES =====
         using Scalar = T;
-        using Complex = dp::mat::complex<T>;
-        using Translation = dp::mat::vector<T, 2>;
-        using Tangent = dp::mat::vector<T, 3>; // [vx, vy, theta]
-        using Point = dp::mat::vector<T, 2>;
+        using Complex = dp::mat::Complex<T>;
+        using Translation = dp::mat::Vector<T, 2>;
+        using Tangent = dp::mat::Vector<T, 3>; // [vx, vy, theta]
+        using Point = dp::mat::Vector<T, 2>;
         using Element = SE2<T>;
         using Rotation = SO2<T>;
         using RotationBatch = SO2Batch<T, N>;

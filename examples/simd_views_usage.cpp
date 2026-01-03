@@ -17,7 +17,7 @@ namespace dp = datapod;
 namespace on = optinum;
 
 // Helper to print a vector
-template <typename T, std::size_t N> void print_vector(const char *name, const dp::mat::vector<T, N> &v) {
+template <typename T, std::size_t N> void print_vector(const char *name, const dp::mat::Vector<T, N> &v) {
     std::cout << name << " = [";
     for (std::size_t i = 0; i < N; ++i) {
         std::cout << std::setw(8) << std::fixed << std::setprecision(3) << v[i];
@@ -29,7 +29,7 @@ template <typename T, std::size_t N> void print_vector(const char *name, const d
 
 // Helper to print a matrix
 template <typename T, std::size_t R, std::size_t C>
-void print_matrix(const char *name, const dp::mat::matrix<T, R, C> &m) {
+void print_matrix(const char *name, const dp::mat::Matrix<T, R, C> &m) {
     std::cout << name << " (" << R << "x" << C << ") =\n";
     for (std::size_t r = 0; r < R; ++r) {
         std::cout << "  [";
@@ -44,7 +44,7 @@ void print_matrix(const char *name, const dp::mat::matrix<T, R, C> &m) {
 
 // Helper to print a tensor (3D)
 template <typename T, std::size_t D0, std::size_t D1, std::size_t D2>
-void print_tensor(const char *name, const dp::mat::tensor<T, D0, D1, D2> &t) {
+void print_tensor(const char *name, const dp::mat::Tensor<T, D0, D1, D2> &t) {
     std::cout << name << " (" << D0 << "x" << D1 << "x" << D2 << ") =\n";
     for (std::size_t k = 0; k < D2; ++k) {
         std::cout << "  [:,:," << k << "] =\n";
@@ -70,9 +70,9 @@ void vector_examples() {
     std::cout << "================================================================\n\n";
 
     // Create vectors
-    dp::mat::vector<float, 8> x{{0.0f, 0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f}};
-    dp::mat::vector<float, 8> y{{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}};
-    dp::mat::vector<float, 8> z;
+    dp::mat::Vector<float, 8> x{{0.0f, 0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f}};
+    dp::mat::Vector<float, 8> y{{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}};
+    dp::mat::Vector<float, 8> z;
 
     print_vector("x", x);
     print_vector("y", y);
@@ -103,19 +103,19 @@ void vector_examples() {
     std::cout << "\n--- Math Transforms ---\n";
 
     // exp
-    dp::mat::vector<float, 8> exp_result;
+    dp::mat::Vector<float, 8> exp_result;
     auto v_exp = on::simd::view(exp_result);
     on::simd::exp(vx, v_exp);
     print_vector("exp(x)", exp_result);
 
     // sqrt (use positive values)
-    dp::mat::vector<float, 8> pos{{1.0f, 4.0f, 9.0f, 16.0f, 25.0f, 36.0f, 49.0f, 64.0f}};
-    dp::mat::vector<float, 8> sqrt_result;
+    dp::mat::Vector<float, 8> pos{{1.0f, 4.0f, 9.0f, 16.0f, 25.0f, 36.0f, 49.0f, 64.0f}};
+    dp::mat::Vector<float, 8> sqrt_result;
     on::simd::sqrt(on::simd::view(pos), on::simd::view(sqrt_result));
     print_vector("sqrt([1,4,9,16,25,36,49,64])", sqrt_result);
 
     // tanh
-    dp::mat::vector<float, 8> tanh_result;
+    dp::mat::Vector<float, 8> tanh_result;
     on::simd::tanh(vx, on::simd::view(tanh_result));
     print_vector("tanh(x)", tanh_result);
 
@@ -132,9 +132,9 @@ void matrix_examples() {
     std::cout << "================================================================\n\n";
 
     // Create matrices
-    dp::mat::matrix<float, 3, 4> A;
-    dp::mat::matrix<float, 3, 4> B;
-    dp::mat::matrix<float, 3, 4> C;
+    dp::mat::Matrix<float, 3, 4> A;
+    dp::mat::Matrix<float, 3, 4> B;
+    dp::mat::Matrix<float, 3, 4> C;
 
     // Initialize A with values 1..12
     for (std::size_t i = 0; i < 12; ++i) {
@@ -171,28 +171,28 @@ void matrix_examples() {
     std::cout << "\n--- Math Transforms ---\n";
 
     // Create a matrix with small values for exp
-    dp::mat::matrix<float, 3, 4> small;
+    dp::mat::Matrix<float, 3, 4> small;
     for (std::size_t i = 0; i < 12; ++i) {
         small[i] = static_cast<float>(i) * 0.1f;
     }
     print_matrix("small", small);
 
     // exp
-    dp::mat::matrix<float, 3, 4> exp_result;
+    dp::mat::Matrix<float, 3, 4> exp_result;
     on::simd::exp(on::simd::view<4>(small), on::simd::view<4>(exp_result));
     print_matrix("exp(small)", exp_result);
 
     // log (use positive values)
-    dp::mat::matrix<float, 3, 4> log_input;
+    dp::mat::Matrix<float, 3, 4> log_input;
     for (std::size_t i = 0; i < 12; ++i) {
         log_input[i] = static_cast<float>(i + 1);
     }
-    dp::mat::matrix<float, 3, 4> log_result;
+    dp::mat::Matrix<float, 3, 4> log_result;
     on::simd::log(on::simd::view<4>(log_input), on::simd::view<4>(log_result));
     print_matrix("log([1..12])", log_result);
 
     // sqrt
-    dp::mat::matrix<float, 3, 4> sqrt_result;
+    dp::mat::Matrix<float, 3, 4> sqrt_result;
     on::simd::sqrt(on::simd::view<4>(log_input), on::simd::view<4>(sqrt_result));
     print_matrix("sqrt([1..12])", sqrt_result);
 
@@ -209,9 +209,9 @@ void tensor_examples() {
     std::cout << "================================================================\n\n";
 
     // Create 2x3x2 tensors (total 12 elements)
-    dp::mat::tensor<float, 2, 3, 2> T1;
-    dp::mat::tensor<float, 2, 3, 2> T2;
-    dp::mat::tensor<float, 2, 3, 2> T3;
+    dp::mat::Tensor<float, 2, 3, 2> T1;
+    dp::mat::Tensor<float, 2, 3, 2> T2;
+    dp::mat::Tensor<float, 2, 3, 2> T3;
 
     // Initialize T1 with values
     for (std::size_t i = 0; i < 12; ++i) {
@@ -245,7 +245,7 @@ void tensor_examples() {
     std::cout << "\n--- Math Transforms ---\n";
 
     // exp (in-place)
-    dp::mat::tensor<float, 2, 3, 2> exp_tensor;
+    dp::mat::Tensor<float, 2, 3, 2> exp_tensor;
     for (std::size_t i = 0; i < 12; ++i) {
         exp_tensor[i] = static_cast<float>(i) * 0.2f - 1.0f; // values from -1 to ~1.2
     }
@@ -255,8 +255,8 @@ void tensor_examples() {
     print_tensor("exp(input) [in-place]", exp_tensor);
 
     // tanh
-    dp::mat::tensor<float, 2, 3, 2> tanh_input;
-    dp::mat::tensor<float, 2, 3, 2> tanh_result;
+    dp::mat::Tensor<float, 2, 3, 2> tanh_input;
+    dp::mat::Tensor<float, 2, 3, 2> tanh_result;
     for (std::size_t i = 0; i < 12; ++i) {
         tanh_input[i] = static_cast<float>(i) * 0.5f - 3.0f; // values from -3 to ~2.5
     }
@@ -276,9 +276,9 @@ void performance_demo() {
     std::cout << "================================================================\n\n";
 
     constexpr std::size_t N = 1024;
-    dp::mat::vector<float, N> input;
-    dp::mat::vector<float, N> output_simd;
-    dp::mat::vector<float, N> output_scalar;
+    dp::mat::Vector<float, N> input;
+    dp::mat::Vector<float, N> output_simd;
+    dp::mat::Vector<float, N> output_scalar;
 
     // Initialize
     for (std::size_t i = 0; i < N; ++i) {

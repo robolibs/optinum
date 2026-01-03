@@ -15,7 +15,7 @@ TEST_CASE("CEM: Sphere function optimization") {
     cem.config.tolerance = 1e-6;
 
     // 2D Sphere: f(x) = x[0]^2 + x[1]^2, minimum at (0, 0)
-    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -23,8 +23,8 @@ TEST_CASE("CEM: Sphere function optimization") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -47,7 +47,7 @@ TEST_CASE("CEM: Higher dimensional Sphere") {
 
     constexpr std::size_t dim = 5;
 
-    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -55,8 +55,8 @@ TEST_CASE("CEM: Higher dimensional Sphere") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(dim);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(dim);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(dim);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(dim);
     for (std::size_t i = 0; i < dim; ++i) {
         lower[i] = -10.0;
         upper[i] = 10.0;
@@ -80,14 +80,14 @@ TEST_CASE("CEM: Rosenbrock function") {
     cem.config.tolerance = 1e-8;
 
     // 2D Rosenbrock: f(x,y) = (1-x)^2 + 100*(y-x^2)^2, minimum at (1, 1)
-    auto rosenbrock = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto rosenbrock = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double a = 1.0 - x[0];
         double b = x[1] - x[0] * x[0];
         return a * a + 100.0 * b * b;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -108,7 +108,7 @@ TEST_CASE("CEM: Rastrigin function (multimodal)") {
     cem.config.tolerance = 1e-6;
 
     // 2D Rastrigin: highly multimodal, global minimum at (0, 0) = 0
-    auto rastrigin = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto rastrigin = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         const double A = 10.0;
         const double pi = 3.14159265358979323846;
         double sum = A * static_cast<double>(x.size());
@@ -118,8 +118,8 @@ TEST_CASE("CEM: Rastrigin function (multimodal)") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.12;
     lower[1] = -5.12;
     upper[0] = 5.12;
@@ -153,10 +153,10 @@ TEST_CASE("CEM: Configuration options") {
         cem.config.max_iterations = 20;
         cem.config.track_history = true;
 
-        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+        auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
@@ -176,10 +176,10 @@ TEST_CASE("CEM: Configuration options") {
         cem.config.population_size = 50;
         cem.config.max_iterations = 10;
 
-        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+        auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
@@ -196,10 +196,10 @@ TEST_CASE("CEM: Edge cases") {
     meta::CEM<double> cem;
 
     SUBCASE("Empty bounds returns invalid result") {
-        dp::mat::vector<double, dp::mat::Dynamic> lower(0);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(0);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(0);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(0);
 
-        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+        auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
             (void)x;
             return 0.0;
         };
@@ -209,10 +209,10 @@ TEST_CASE("CEM: Edge cases") {
     }
 
     SUBCASE("1D optimization") {
-        auto quadratic = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
+        auto quadratic = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
 
-        dp::mat::vector<double, dp::mat::Dynamic> lower(1);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(1);
         lower[0] = -10.0;
         upper[0] = 10.0;
 
@@ -226,15 +226,15 @@ TEST_CASE("CEM: Edge cases") {
     }
 
     SUBCASE("Mismatched bounds size returns invalid") {
-        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(3);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(3);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
         upper[1] = 5.0;
         upper[2] = 5.0;
 
-        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+        auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
             (void)x;
             return 0.0;
         };
@@ -250,7 +250,7 @@ TEST_CASE("CEM: Optimize from initial mean") {
     cem.config.max_iterations = 100;
     cem.config.initial_std = 1.0;
 
-    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -259,7 +259,7 @@ TEST_CASE("CEM: Optimize from initial mean") {
     };
 
     // Start near the optimum
-    dp::mat::vector<double, dp::mat::Dynamic> initial_mean(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> initial_mean(2);
     initial_mean[0] = 0.5;
     initial_mean[1] = -0.5;
 
@@ -274,7 +274,7 @@ TEST_CASE("CEM: Float type") {
     cem.config.max_iterations = 100;
     cem.config.tolerance = 1e-4f;
 
-    auto sphere = [](const dp::mat::vector<float, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<float, dp::mat::Dynamic> &x) {
         float sum = 0.0f;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -282,8 +282,8 @@ TEST_CASE("CEM: Float type") {
         return sum;
     };
 
-    dp::mat::vector<float, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<float, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<float, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<float, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0f;
     lower[1] = -5.0f;
     upper[0] = 5.0f;
@@ -296,7 +296,7 @@ TEST_CASE("CEM: Float type") {
 
 TEST_CASE("CEM: Elite fraction effect") {
     // Test that different elite fractions affect convergence
-    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -304,8 +304,8 @@ TEST_CASE("CEM: Elite fraction effect") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -333,7 +333,7 @@ TEST_CASE("CEM: Elite fraction effect") {
 }
 
 TEST_CASE("CEM: Std decay effect") {
-    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -341,8 +341,8 @@ TEST_CASE("CEM: Std decay effect") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;

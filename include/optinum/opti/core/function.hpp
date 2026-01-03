@@ -19,7 +19,7 @@ namespace optinum::opti {
      * @code
      * template <typename T, std::size_t N>
      * struct MyFunction {
-     *     using tensor_type = dp::mat::vector<T, N>;
+     *     using tensor_type = dp::mat::Vector<T, N>;
      *
      *     T evaluate(const tensor_type& x) const {
      *         // Compute f(x)
@@ -37,7 +37,7 @@ namespace optinum::opti {
      */
     template <typename FunctionType, typename T, std::size_t N> class FunctionWrapper {
       public:
-        using tensor_type = dp::mat::vector<T, N>;
+        using tensor_type = dp::mat::Vector<T, N>;
 
         /// Constructor
         explicit FunctionWrapper(FunctionType &func) : function(func) {}

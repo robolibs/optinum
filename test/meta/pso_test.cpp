@@ -18,7 +18,7 @@ TEST_CASE("PSO: Sphere function optimization") {
     pso.config.tolerance = 1e-6;
 
     // 2D Sphere: f(x) = x[0]^2 + x[1]^2, minimum at (0, 0)
-    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -26,8 +26,8 @@ TEST_CASE("PSO: Sphere function optimization") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -49,7 +49,7 @@ TEST_CASE("PSO: Higher dimensional Sphere") {
 
     constexpr std::size_t dim = 5;
 
-    auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double sum = 0.0;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -57,8 +57,8 @@ TEST_CASE("PSO: Higher dimensional Sphere") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(dim);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(dim);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(dim);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(dim);
     for (std::size_t i = 0; i < dim; ++i) {
         lower[i] = -10.0;
         upper[i] = 10.0;
@@ -82,14 +82,14 @@ TEST_CASE("PSO: Rosenbrock function") {
     pso.config.social_coeff = 1.8;
 
     // 2D Rosenbrock: f(x,y) = (1-x)^2 + 100*(y-x^2)^2, minimum at (1, 1)
-    auto rosenbrock = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto rosenbrock = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         double a = 1.0 - x[0];
         double b = x[1] - x[0] * x[0];
         return a * a + 100.0 * b * b;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0;
     lower[1] = -5.0;
     upper[0] = 5.0;
@@ -110,7 +110,7 @@ TEST_CASE("PSO: Rastrigin function (multimodal)") {
     pso.config.tolerance = 1e-6;
 
     // 2D Rastrigin: highly multimodal, global minimum at (0, 0) = 0
-    auto rastrigin = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+    auto rastrigin = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
         const double A = 10.0;
         const double pi = 3.14159265358979323846;
         double sum = A * static_cast<double>(x.size());
@@ -120,8 +120,8 @@ TEST_CASE("PSO: Rastrigin function (multimodal)") {
         return sum;
     };
 
-    dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
     lower[0] = -5.12;
     lower[1] = -5.12;
     upper[0] = 5.12;
@@ -153,10 +153,10 @@ TEST_CASE("PSO: Configuration options") {
         pso.config.max_iterations = 50;
         pso.config.track_history = true;
 
-        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
+        auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) { return x[0] * x[0] + x[1] * x[1]; };
 
-        dp::mat::vector<double, dp::mat::Dynamic> lower(2);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(2);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(2);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(2);
         lower[0] = -5.0;
         lower[1] = -5.0;
         upper[0] = 5.0;
@@ -176,10 +176,10 @@ TEST_CASE("PSO: Edge cases") {
     meta::PSO<double> pso;
 
     SUBCASE("Empty bounds returns invalid result") {
-        dp::mat::vector<double, dp::mat::Dynamic> lower(0);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(0);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(0);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(0);
 
-        auto sphere = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) {
+        auto sphere = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) {
             (void)x;
             return 0.0;
         };
@@ -189,10 +189,10 @@ TEST_CASE("PSO: Edge cases") {
     }
 
     SUBCASE("1D optimization") {
-        auto quadratic = [](const dp::mat::vector<double, dp::mat::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
+        auto quadratic = [](const dp::mat::Vector<double, dp::mat::Dynamic> &x) { return (x[0] - 3.0) * (x[0] - 3.0); };
 
-        dp::mat::vector<double, dp::mat::Dynamic> lower(1);
-        dp::mat::vector<double, dp::mat::Dynamic> upper(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> lower(1);
+        dp::mat::Vector<double, dp::mat::Dynamic> upper(1);
         lower[0] = -10.0;
         upper[0] = 10.0;
 
@@ -212,7 +212,7 @@ TEST_CASE("PSO: Float type") {
     pso.config.max_iterations = 300;
     pso.config.tolerance = 1e-4f;
 
-    auto sphere = [](const dp::mat::vector<float, dp::mat::Dynamic> &x) {
+    auto sphere = [](const dp::mat::Vector<float, dp::mat::Dynamic> &x) {
         float sum = 0.0f;
         for (std::size_t i = 0; i < x.size(); ++i) {
             sum += x[i] * x[i];
@@ -220,8 +220,8 @@ TEST_CASE("PSO: Float type") {
         return sum;
     };
 
-    dp::mat::vector<float, dp::mat::Dynamic> lower(2);
-    dp::mat::vector<float, dp::mat::Dynamic> upper(2);
+    dp::mat::Vector<float, dp::mat::Dynamic> lower(2);
+    dp::mat::Vector<float, dp::mat::Dynamic> upper(2);
     lower[0] = -5.0f;
     lower[1] = -5.0f;
     upper[0] = 5.0f;

@@ -46,30 +46,30 @@ namespace optinum::lina {
      * auto H = lina::hessian(f, x);  // H = [[2, 2], [2, 6]]
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::matrix<T, N, N> hessian(const Function &f, const simd::Vector<T, N> &x,
+    dp::mat::Matrix<T, N, N> hessian(const Function &f, const simd::Vector<T, N> &x,
                                      T h = (std::is_same_v<T, float> ? T(1e-4) : T(1e-5))) {
         static_assert(N != simd::Dynamic, "hessian() currently requires fixed-size vectors");
         const std::size_t n = x.size();
 
         // Copy input to owning storage
-        dp::mat::vector<T, N> x_base;
+        dp::mat::Vector<T, N> x_base;
         for (std::size_t i = 0; i < n; ++i) {
             x_base[i] = x[i];
         }
 
         // Allocate Hessian matrix (owning)
-        dp::mat::matrix<T, N, N> H;
+        dp::mat::Matrix<T, N, N> H;
 
         // Evaluate f at x (needed for diagonal elements)
         T fx = f(simd::Vector<T, N>(x_base));
 
         // Temporary vectors for perturbations (owning types)
-        dp::mat::vector<T, N> x_pp = x_base; // x + h*e_i + h*e_j
-        dp::mat::vector<T, N> x_pm = x_base; // x + h*e_i - h*e_j
-        dp::mat::vector<T, N> x_mp = x_base; // x - h*e_i + h*e_j
-        dp::mat::vector<T, N> x_mm = x_base; // x - h*e_i - h*e_j
-        dp::mat::vector<T, N> x_p = x_base;  // x + h*e_i
-        dp::mat::vector<T, N> x_m = x_base;  // x - h*e_i
+        dp::mat::Vector<T, N> x_pp = x_base; // x + h*e_i + h*e_j
+        dp::mat::Vector<T, N> x_pm = x_base; // x + h*e_i - h*e_j
+        dp::mat::Vector<T, N> x_mp = x_base; // x - h*e_i + h*e_j
+        dp::mat::Vector<T, N> x_mm = x_base; // x - h*e_i - h*e_j
+        dp::mat::Vector<T, N> x_p = x_base;  // x + h*e_i
+        dp::mat::Vector<T, N> x_m = x_base;  // x - h*e_i
 
         T h_sq = h * h;
         T four_h_sq = T(4) * h_sq;
@@ -150,22 +150,22 @@ namespace optinum::lina {
      * auto Hv = lina::hessian_vector_product(f, x, v);  // Hv = [2, 0]
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::vector<T, N> hessian_vector_product(const Function &f, const simd::Vector<T, N> &x,
+    dp::mat::Vector<T, N> hessian_vector_product(const Function &f, const simd::Vector<T, N> &x,
                                                  const simd::Vector<T, N> &v,
                                                  T h = (std::is_same_v<T, float> ? T(1e-4) : T(1e-5))) {
         const std::size_t n = x.size();
 
         // Copy inputs to owning storage
-        dp::mat::vector<T, N> x_base;
-        dp::mat::vector<T, N> v_base;
+        dp::mat::Vector<T, N> x_base;
+        dp::mat::Vector<T, N> v_base;
         for (std::size_t i = 0; i < n; ++i) {
             x_base[i] = x[i];
             v_base[i] = v[i];
         }
 
         // Compute x + h*v and x - h*v (owning types)
-        dp::mat::vector<T, N> x_plus;
-        dp::mat::vector<T, N> x_minus;
+        dp::mat::Vector<T, N> x_plus;
+        dp::mat::Vector<T, N> x_minus;
         for (std::size_t i = 0; i < n; ++i) {
             x_plus[i] = x_base[i] + h * v_base[i];
             x_minus[i] = x_base[i] - h * v_base[i];
@@ -176,7 +176,7 @@ namespace optinum::lina {
         auto grad_minus = gradient(f, simd::Vector<T, N>(x_minus), h);
 
         // H*v ≈ (∇f(x+hv) - ∇f(x-hv)) / (2h)
-        dp::mat::vector<T, N> Hv;
+        dp::mat::Vector<T, N> Hv;
 
         T two_h = T(2) * h;
         for (std::size_t i = 0; i < n; ++i) {
@@ -242,7 +242,7 @@ namespace optinum::lina {
         const std::size_t n = x.size();
 
         // Copy input to owning storage
-        dp::mat::vector<T, N> x_base;
+        dp::mat::Vector<T, N> x_base;
         for (std::size_t i = 0; i < n; ++i) {
             x_base[i] = x[i];
         }
@@ -251,8 +251,8 @@ namespace optinum::lina {
         T trace = T(0);
         T h_sq = h * h;
 
-        dp::mat::vector<T, N> x_p = x_base;
-        dp::mat::vector<T, N> x_m = x_base;
+        dp::mat::Vector<T, N> x_p = x_base;
+        dp::mat::Vector<T, N> x_m = x_base;
 
         for (std::size_t i = 0; i < n; ++i) {
             x_p[i] = x_base[i] + h;
@@ -279,24 +279,24 @@ namespace optinum::lina {
      * @brief Compute Hessian matrix using finite differences (dp::mat::vector version)
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::matrix<T, N, N> hessian(const Function &f, const dp::mat::vector<T, N> &x,
+    dp::mat::Matrix<T, N, N> hessian(const Function &f, const dp::mat::Vector<T, N> &x,
                                      T h = (std::is_same_v<T, float> ? T(1e-4) : T(1e-5))) {
         static_assert(N != dp::mat::Dynamic, "hessian() currently requires fixed-size vectors");
         const std::size_t n = x.size();
 
         // Allocate Hessian matrix (owning)
-        dp::mat::matrix<T, N, N> H;
+        dp::mat::Matrix<T, N, N> H;
 
         // Evaluate f at x (needed for diagonal elements)
         T fx = f(x);
 
         // Temporary vectors for perturbations (owning types)
-        dp::mat::vector<T, N> x_pp = x; // x + h*e_i + h*e_j
-        dp::mat::vector<T, N> x_pm = x; // x + h*e_i - h*e_j
-        dp::mat::vector<T, N> x_mp = x; // x - h*e_i + h*e_j
-        dp::mat::vector<T, N> x_mm = x; // x - h*e_i - h*e_j
-        dp::mat::vector<T, N> x_p = x;  // x + h*e_i
-        dp::mat::vector<T, N> x_m = x;  // x - h*e_i
+        dp::mat::Vector<T, N> x_pp = x; // x + h*e_i + h*e_j
+        dp::mat::Vector<T, N> x_pm = x; // x + h*e_i - h*e_j
+        dp::mat::Vector<T, N> x_mp = x; // x - h*e_i + h*e_j
+        dp::mat::Vector<T, N> x_mm = x; // x - h*e_i - h*e_j
+        dp::mat::Vector<T, N> x_p = x;  // x + h*e_i
+        dp::mat::Vector<T, N> x_m = x;  // x - h*e_i
 
         T h_sq = h * h;
         T four_h_sq = T(4) * h_sq;
@@ -357,14 +357,14 @@ namespace optinum::lina {
      * @brief Compute Hessian-vector product using finite differences (dp::mat::vector version)
      */
     template <typename Function, typename T, std::size_t N>
-    dp::mat::vector<T, N> hessian_vector_product(const Function &f, const dp::mat::vector<T, N> &x,
-                                                 const dp::mat::vector<T, N> &v,
+    dp::mat::Vector<T, N> hessian_vector_product(const Function &f, const dp::mat::Vector<T, N> &x,
+                                                 const dp::mat::Vector<T, N> &v,
                                                  T h = (std::is_same_v<T, float> ? T(1e-4) : T(1e-5))) {
         const std::size_t n = x.size();
 
         // Compute x + h*v and x - h*v
-        dp::mat::vector<T, N> x_plus;
-        dp::mat::vector<T, N> x_minus;
+        dp::mat::Vector<T, N> x_plus;
+        dp::mat::Vector<T, N> x_minus;
         for (std::size_t i = 0; i < n; ++i) {
             x_plus[i] = x[i] + h * v[i];
             x_minus[i] = x[i] - h * v[i];
@@ -375,7 +375,7 @@ namespace optinum::lina {
         auto grad_minus = gradient(f, x_minus, h);
 
         // H*v ≈ (∇f(x+hv) - ∇f(x-hv)) / (2h)
-        dp::mat::vector<T, N> Hv;
+        dp::mat::Vector<T, N> Hv;
 
         T two_h = T(2) * h;
         for (std::size_t i = 0; i < n; ++i) {
@@ -389,7 +389,7 @@ namespace optinum::lina {
      * @brief Compute the trace of the Hessian (Laplacian) - dp::mat::vector version
      */
     template <typename Function, typename T, std::size_t N>
-    T laplacian(const Function &f, const dp::mat::vector<T, N> &x,
+    T laplacian(const Function &f, const dp::mat::Vector<T, N> &x,
                 T h = (std::is_same_v<T, float> ? T(1e-4) : T(1e-5))) {
         const std::size_t n = x.size();
 
@@ -397,8 +397,8 @@ namespace optinum::lina {
         T trace = T(0);
         T h_sq = h * h;
 
-        dp::mat::vector<T, N> x_p = x;
-        dp::mat::vector<T, N> x_m = x;
+        dp::mat::Vector<T, N> x_p = x;
+        dp::mat::Vector<T, N> x_m = x;
 
         for (std::size_t i = 0; i < n; ++i) {
             x_p[i] = x[i] + h;

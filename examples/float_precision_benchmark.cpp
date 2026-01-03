@@ -21,9 +21,9 @@ int main() {
     constexpr size_t N = 1024;
     constexpr size_t ITERATIONS = 10000;
 
-    alignas(32) datapod::mat::vector<float, N> input;
-    alignas(32) datapod::mat::vector<float, N> output;
-    alignas(32) datapod::mat::vector<float, N> scalar_output;
+    alignas(32) datapod::mat::Vector<float, N> input;
+    alignas(32) datapod::mat::Vector<float, N> output;
+    alignas(32) datapod::mat::Vector<float, N> scalar_output;
 
     std::cout << "Float Precision (32-bit) SIMD Math Benchmark\n";
     std::cout << "Array size: " << N << " floats\n";
@@ -235,7 +235,7 @@ int main() {
 
     // atan2() benchmark
     {
-        alignas(32) datapod::mat::vector<float, N> y_vals;
+        alignas(32) datapod::mat::Vector<float, N> y_vals;
         for (size_t i = 0; i < N; ++i) {
             input[i] = -5.0f + (10.0f * i) / N;  // x values
             y_vals[i] = -5.0f + (10.0f * i) / N; // y values
@@ -590,8 +590,8 @@ int main() {
             input[i] = -10.0f + (20.0f * i) / N;
         }
 
-        alignas(32) datapod::mat::vector<float, N> lo_vals;
-        alignas(32) datapod::mat::vector<float, N> hi_vals;
+        alignas(32) datapod::mat::Vector<float, N> lo_vals;
+        alignas(32) datapod::mat::Vector<float, N> hi_vals;
         for (size_t i = 0; i < N; ++i) {
             lo_vals[i] = -5.0f;
             hi_vals[i] = 5.0f;
@@ -631,7 +631,7 @@ int main() {
 
     // hypot() benchmark
     {
-        alignas(32) datapod::mat::vector<float, N> input2;
+        alignas(32) datapod::mat::Vector<float, N> input2;
         for (size_t i = 0; i < N; ++i) {
             input[i] = -10.0f + (20.0f * i) / N;
             input2[i] = 5.0f + (10.0f * i) / N;

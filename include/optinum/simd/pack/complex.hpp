@@ -21,11 +21,11 @@ namespace optinum::simd {
      *
      * This is more efficient than interleaved [r0, i0, r1, i1, ...] for most operations.
      */
-    template <typename T, std::size_t W> class pack<dp::mat::complex<T>, W> {
+    template <typename T, std::size_t W> class pack<dp::mat::Complex<T>, W> {
         static_assert(std::is_floating_point_v<T>, "Complex pack requires floating-point type");
 
       public:
-        using value_type = dp::mat::complex<T>;
+        using value_type = dp::mat::Complex<T>;
         using real_type = T;
         using real_pack = pack<T, W>;
 

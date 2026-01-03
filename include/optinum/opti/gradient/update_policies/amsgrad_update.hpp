@@ -51,7 +51,7 @@ namespace optinum::opti {
          * @param gradient Current gradient g_t
          */
         template <typename T, std::size_t N>
-        void update(dp::mat::vector<T, N> &x, T step_size, const dp::mat::vector<T, N> &gradient) noexcept {
+        void update(dp::mat::Vector<T, N> &x, T step_size, const dp::mat::Vector<T, N> &gradient) noexcept {
             const std::size_t n = x.size();
 
             // Lazy initialization on first use
@@ -178,9 +178,9 @@ namespace optinum::opti {
         }
 
       private:
-        dp::mat::vector<double, dp::mat::Dynamic> m;     ///< First moment estimate (momentum)
-        dp::mat::vector<double, dp::mat::Dynamic> v;     ///< Second moment estimate (variance)
-        dp::mat::vector<double, dp::mat::Dynamic> v_hat; ///< Max of second moment estimates (AMSGrad key)
+        dp::mat::Vector<double, dp::mat::Dynamic> m;     ///< First moment estimate (momentum)
+        dp::mat::Vector<double, dp::mat::Dynamic> v;     ///< Second moment estimate (variance)
+        dp::mat::Vector<double, dp::mat::Dynamic> v_hat; ///< Max of second moment estimates (AMSGrad key)
         std::size_t iteration = 0;                       ///< Iteration counter for bias correction
     };
 

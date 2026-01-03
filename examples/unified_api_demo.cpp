@@ -15,7 +15,7 @@ int main() {
 
     std::cout << "1. Creating matrices and vectors:\n";
     // Use dp::mat::matrix for owning storage
-    datapod::mat::matrix<double, 3, 3> A_storage;
+    datapod::mat::Matrix<double, 3, 3> A_storage;
     optinum::Matrix<double, 3, 3> A(A_storage); // Non-owning view
     A.fill(2.0);
     A(0, 0) = 4.0;
@@ -23,7 +23,7 @@ int main() {
     A(2, 2) = 5.0;
 
     // Use dp::mat::vector for owning storage
-    datapod::mat::vector<double, 3> b_storage;
+    datapod::mat::Vector<double, 3> b_storage;
     optinum::Vector<double, 3> b(b_storage); // Non-owning view
     b.fill(1.0);
 

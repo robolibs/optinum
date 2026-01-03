@@ -30,7 +30,7 @@ namespace optinum::lina {
      *         Returns empty matrix if A has full rank
      */
     template <typename T, std::size_t M, std::size_t N>
-    [[nodiscard]] datapod::mat::matrix<T, N, N> null(const simd::Matrix<T, M, N> &a, T tol = T{-1}) noexcept {
+    [[nodiscard]] datapod::mat::Matrix<T, N, N> null(const simd::Matrix<T, M, N> &a, T tol = T{-1}) noexcept {
         static_assert(std::is_floating_point_v<T>, "null() requires floating-point type");
 
         // Compute SVD
@@ -58,7 +58,7 @@ namespace optinum::lina {
         // Extract right singular vectors corresponding to zero singular values
         // These are columns r to N-1 of V
         // Since SVD gives us V^T, rows r to N-1 of V^T are the null space vectors
-        datapod::mat::matrix<T, N, N> null_basis{};
+        datapod::mat::Matrix<T, N, N> null_basis{};
 
         if (null_dim > 0) {
             for (std::size_t i = 0; i < N; ++i) {

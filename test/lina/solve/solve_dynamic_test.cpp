@@ -17,8 +17,8 @@ using optinum::simd::Vector;
 namespace dp = datapod;
 
 // Owning storage types
-using DynMatStorage = dp::mat::matrix<double, dp::mat::Dynamic, dp::mat::Dynamic>;
-using DynVecStorage = dp::mat::vector<double, dp::mat::Dynamic>;
+using DynMatStorage = dp::mat::Matrix<double, dp::mat::Dynamic, dp::mat::Dynamic>;
+using DynVecStorage = dp::mat::Vector<double, dp::mat::Dynamic>;
 
 // View types
 using DynMat = Matrix<double, Dynamic, Dynamic>;

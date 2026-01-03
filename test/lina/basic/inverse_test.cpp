@@ -8,7 +8,7 @@ namespace dp = datapod;
 
 TEST_CASE("lina::inverse 2x2") {
     // A = [4 7; 2 6], A^{-1} = (1/10)*[6 -7; -2 4]
-    dp::mat::matrix<double, 2, 2> a;
+    dp::mat::Matrix<double, 2, 2> a;
     a(0, 0) = 4.0;
     a(1, 0) = 2.0;
     a(0, 1) = 7.0;
@@ -22,7 +22,7 @@ TEST_CASE("lina::inverse 2x2") {
 }
 
 TEST_CASE("lina::try_inverse detects singular") {
-    dp::mat::matrix<double, 2, 2> a;
+    dp::mat::Matrix<double, 2, 2> a;
     a(0, 0) = 1.0;
     a(1, 0) = 2.0;
     a(0, 1) = 2.0;
