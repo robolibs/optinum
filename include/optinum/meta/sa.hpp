@@ -30,13 +30,11 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
-
-    namespace dp = ::datapod;
 
     /**
      * Cooling schedule types for temperature reduction

@@ -7,7 +7,6 @@
 
 using optinum::opti::LevenbergMarquardt;
 
-namespace dp = datapod;
 
 // =============================================================================
 // TEST SUITE: Levenberg-Marquardt Optimizer

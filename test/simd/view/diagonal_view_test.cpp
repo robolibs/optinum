@@ -3,7 +3,7 @@
 // Tests for diagonal_view - non-owning view over matrix diagonals
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/pack/sse.hpp>

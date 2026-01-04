@@ -1,12 +1,10 @@
 #pragma once
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Sphere function - simplest benchmark for optimization

@@ -1,11 +1,10 @@
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/de.hpp>
 
 #include <cmath>
 
 using namespace optinum;
-namespace dp = datapod;
 
 TEST_CASE("DE: Sphere function optimization") {
     meta::DifferentialEvolution<double> de;

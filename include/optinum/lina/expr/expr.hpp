@@ -5,7 +5,7 @@
 // Minimal expression templates for rank-1/2 elementwise + scalar ops
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -14,8 +14,6 @@
 #include <type_traits>
 
 namespace optinum::lina::expr {
-
-    namespace dp = ::datapod;
 
     // -------------------------------------------------------------------------
     // Vector expressions

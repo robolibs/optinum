@@ -1,4 +1,4 @@
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/swats.hpp>
 #include <optinum/opti/gradient/gradient_descent.hpp>
@@ -7,7 +7,6 @@
 #include <cmath>
 
 using namespace optinum;
-namespace dp = datapod;
 
 TEST_CASE("SWATS: Basic functionality") {
     meta::SWATS<double> swats;

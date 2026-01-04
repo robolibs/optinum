@@ -21,8 +21,6 @@
 
 namespace optinum::lie {
 
-    namespace dp = ::datapod;
-
     // ===== SO2Batch: Batched 2D Rotations with SIMD =====
     //
     // Stores N SO2 rotations as unit complex numbers (cos, sin) and provides

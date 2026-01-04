@@ -4,7 +4,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 // =============================================================================
 // Cofactor Matrix Tests

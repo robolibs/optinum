@@ -1,10 +1,8 @@
 #pragma once
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Function wrapper interface for optimization

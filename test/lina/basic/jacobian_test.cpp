@@ -10,7 +10,6 @@ namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 using optinum::simd::Vector;
 
-namespace dp = datapod;
 
 // =============================================================================
 // TEST SUITE: Jacobian Computation

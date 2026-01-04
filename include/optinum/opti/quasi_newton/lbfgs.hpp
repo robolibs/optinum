@@ -5,7 +5,7 @@
 // L-BFGS (Limited-memory BFGS) optimizer for unconstrained optimization
 // =============================================================================
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/types.hpp>
 #include <optinum/opti/line_search/line_search.hpp>
@@ -21,8 +21,6 @@
 #include <string>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief L-BFGS (Limited-memory BFGS) optimizer for unconstrained optimization

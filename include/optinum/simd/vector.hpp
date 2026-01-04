@@ -1,6 +1,6 @@
 #pragma once
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/backend/norm.hpp>
@@ -12,8 +12,6 @@
 #include <variant>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // Import Dynamic constant from datapod
     using dp::mat::Dynamic;

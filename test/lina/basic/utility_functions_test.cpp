@@ -10,7 +10,6 @@ namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 using optinum::simd::Vector;
 
-namespace dp = datapod;
 
 constexpr double TOL = 1e-6;
 bool approx_equal(double a, double b, double tol = TOL) { return std::abs(a - b) < tol; }

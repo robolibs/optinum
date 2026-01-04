@@ -6,7 +6,7 @@
 #include <doctest/doctest.h>
 
 #include <cmath>
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/algo/transform.hpp>
 #include <optinum/simd/bridge.hpp>
 

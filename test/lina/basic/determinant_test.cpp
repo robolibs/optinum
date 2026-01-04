@@ -4,7 +4,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::determinant 2x2") {
     // [1 2; 3 4] det = -2

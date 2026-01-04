@@ -4,7 +4,6 @@
 #include <cmath>
 
 using namespace optinum;
-namespace dp = datapod;
 
 TEST_CASE("GA: Sphere function optimization") {
     meta::GeneticAlgorithm<double> ga;

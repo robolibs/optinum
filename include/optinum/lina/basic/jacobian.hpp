@@ -5,8 +5,7 @@
 // Finite-difference Jacobian and gradient computation
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
@@ -14,8 +13,6 @@
 #include <type_traits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Compute Jacobian matrix using finite differences

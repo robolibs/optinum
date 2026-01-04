@@ -10,7 +10,6 @@
 #include <cmath>
 
 namespace on = optinum::simd;
-namespace dp = datapod;
 
 // =============================================================================
 // complex_view Basic Tests

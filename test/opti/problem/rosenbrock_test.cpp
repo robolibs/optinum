@@ -6,7 +6,6 @@
 
 using optinum::opti::Rosenbrock;
 using optinum::simd::Dynamic;
-namespace dp = datapod;
 
 TEST_CASE("Rosenbrock evaluate") {
     Rosenbrock<double, 2> rosenbrock;

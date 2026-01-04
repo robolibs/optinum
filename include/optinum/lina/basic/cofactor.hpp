@@ -14,7 +14,7 @@
 //
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/basic/determinant.hpp>
 #include <optinum/simd/matrix.hpp>
 

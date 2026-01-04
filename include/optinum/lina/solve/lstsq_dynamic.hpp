@@ -6,8 +6,7 @@
 // Uses SIMD for matrix-vector operations.
 // =============================================================================
 
-#include <datapod/adapters/error.hpp>
-#include <datapod/adapters/result.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/decompose/qr_dynamic.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
@@ -20,8 +19,6 @@
 #include <limits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     namespace lstsq_dynamic_detail {
 

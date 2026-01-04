@@ -5,7 +5,7 @@
 // Complex math functions for pack<complex<T>, W>
 // =============================================================================
 
-#include <datapod/matrix/math/complex.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/math/acos.hpp>
 #include <optinum/simd/math/acosh.hpp>
 #include <optinum/simd/math/asin.hpp>
@@ -25,8 +25,6 @@
 #include <optinum/simd/pack/complex.hpp>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // ===== Exponential functions =====
 

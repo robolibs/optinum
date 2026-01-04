@@ -20,8 +20,6 @@
 
 namespace optinum::lie {
 
-    namespace dp = ::datapod;
-
     // ===== SE2Batch: Batched 2D Rigid Transforms with SIMD =====
     //
     // Stores N SE2 poses (rotation + translation) and provides SIMD-accelerated operations.

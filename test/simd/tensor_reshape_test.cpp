@@ -14,7 +14,6 @@ namespace on = optinum;
 
 TEST_CASE("Tensor reshape() - Basic functionality") {
     using namespace on::simd;
-    namespace dp = datapod;
 
     SUBCASE("Reshape 2x3x4 to 3x2x4") {
         dp::mat::Tensor<float, 2, 3, 4> storage;
@@ -85,7 +84,6 @@ TEST_CASE("Tensor reshape() - Basic functionality") {
 
 TEST_CASE("Tensor reshape() - 4D tensors") {
     using namespace on::simd;
-    namespace dp = datapod;
 
     SUBCASE("Reshape 2x2x2x3 to 3x4x2x1") {
         dp::mat::Tensor<float, 2, 2, 2, 3> storage;
@@ -136,7 +134,6 @@ TEST_CASE("Tensor reshape() - Constexpr compatibility") {
 
 TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
     using namespace on::simd;
-    namespace dp = datapod;
 
     SUBCASE("squeeze<1, N, M> -> <N, M, 1>") {
         dp::mat::Tensor<float, 1, 3, 4> storage;
@@ -207,7 +204,6 @@ TEST_CASE("Tensor squeeze() - Rank 3 to Rank 3") {
 
 TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
     using namespace on::simd;
-    namespace dp = datapod;
 
     SUBCASE("squeeze<1, N, M, P> -> <N, M, P>") {
         dp::mat::Tensor<float, 1, 2, 3, 4> storage;
@@ -279,7 +275,6 @@ TEST_CASE("Tensor squeeze() - Rank 4 to Rank 3") {
 
 TEST_CASE("Tensor squeeze() - Multiple dimensions of size 1") {
     using namespace on::simd;
-    namespace dp = datapod;
 
     SUBCASE("squeeze<1, 1, N, M> -> <N, M, 1>") {
         dp::mat::Tensor<float, 1, 1, 3, 4> storage;
@@ -317,7 +312,6 @@ TEST_CASE("Tensor squeeze() - Multiple dimensions of size 1") {
 
 TEST_CASE("Tensor reshape() and squeeze() - Integration") {
     using namespace on::simd;
-    namespace dp = datapod;
 
     SUBCASE("Reshape then squeeze") {
         dp::mat::Tensor<float, 2, 3, 4> storage;
@@ -364,7 +358,6 @@ TEST_CASE("Tensor reshape() and squeeze() - Integration") {
 
 TEST_CASE("Tensor reshape() - Element access after reshape") {
     using namespace on::simd;
-    namespace dp = datapod;
 
     dp::mat::Tensor<float, 2, 3, 4> storage;
     Tensor<float, 2, 3, 4> t(storage);

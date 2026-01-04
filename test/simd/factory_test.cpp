@@ -8,7 +8,6 @@
 #include <optinum/simd/simd.hpp>
 #include <random>
 
-namespace dp = datapod;
 namespace simd = optinum::simd;
 
 TEST_CASE("Vector - fill()") {

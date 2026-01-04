@@ -5,13 +5,11 @@
 // Layout conversion utilities (column-major ↔ row-major)
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/tensor.hpp>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Convert matrix from column-major to row-major layout

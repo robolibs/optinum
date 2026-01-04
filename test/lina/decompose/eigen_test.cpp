@@ -6,7 +6,6 @@ namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 using optinum::simd::Vector;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::eigen_sym A*v ~= lambda*v") {
     dp::mat::Matrix<double, 3, 3> a;

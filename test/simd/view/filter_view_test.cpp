@@ -3,7 +3,7 @@
 // Tests for filter_view - non-owning view over masked/filtered elements
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/simd/pack/sse.hpp>
 #include <optinum/simd/vector.hpp>

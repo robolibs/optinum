@@ -4,7 +4,6 @@
 #include <cmath>
 
 using optinum::simd::pack;
-namespace dp = datapod;
 
 TEST_CASE("Quaternion pack construction") {
     using quat_t = dp::mat::Quaternion<float>;

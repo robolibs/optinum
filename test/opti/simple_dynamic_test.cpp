@@ -2,7 +2,6 @@
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
-namespace dp = datapod;
 using namespace optinum::opti;
 
 int main() {

@@ -5,8 +5,7 @@
 // quaternion_view<T,W> - Non-owning view over quaternion array with SIMD access
 // =============================================================================
 
-#include <datapod/matrix/math/quaternion.hpp>
-#include <datapod/spatial/quaternion.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/pack/quaternion.hpp>
 
 #include <array>
@@ -14,8 +13,6 @@
 #include <type_traits>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // =============================================================================
     // quaternion_view<T, W> - SIMD view over quaternion arrays

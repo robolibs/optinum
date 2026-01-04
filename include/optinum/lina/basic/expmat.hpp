@@ -5,7 +5,7 @@
 // Matrix exponential via Padé approximation with scaling and squaring
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/simd/backend/elementwise.hpp>

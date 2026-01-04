@@ -20,8 +20,7 @@
 //   view.conjugate_inplace();
 // =============================================================================
 
-#include <datapod/matrix/math/complex.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/bridge.hpp>
 
 #include <cstddef>
@@ -29,8 +28,6 @@
 #include <type_traits>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Non-owning view over complex number arrays with transparent SIMD operations

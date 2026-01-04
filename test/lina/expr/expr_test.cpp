@@ -5,7 +5,6 @@ namespace expr = optinum::lina::expr;
 using optinum::simd::Matrix;
 using optinum::simd::Vector;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::expr vector expression eval") {
     dp::mat::Vector<float, 3> a;

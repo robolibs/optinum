@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cmath>
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <iostream>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
@@ -15,8 +15,6 @@
 #include <variant>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // Matrix: Non-owning 2D view over arrays with SIMD-accelerated operations
     //

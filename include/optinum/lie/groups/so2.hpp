@@ -4,17 +4,13 @@
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
-#include <datapod/matrix/math/complex.hpp>
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
-
-    namespace dp = ::datapod;
 
     // ===== SO2: Special Orthogonal Group in 2D =====
     //

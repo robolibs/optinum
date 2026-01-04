@@ -4,7 +4,6 @@
 #include <optinum/simd/simd.hpp>
 #include <sstream>
 
-namespace dp = datapod;
 namespace simd = optinum::simd;
 
 TEST_CASE("Print scalar") {

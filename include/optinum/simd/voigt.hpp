@@ -5,13 +5,11 @@
 // Voigt notation conversion for mechanics (stress/strain tensors)
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Convert 3x3 symmetric tensor to Voigt notation (6-vector)

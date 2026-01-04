@@ -7,7 +7,6 @@
 
 using namespace optinum;
 using namespace optinum::lie;
-namespace dp = ::datapod;
 
 // ============================================================================
 // RxSO2 Tests

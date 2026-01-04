@@ -5,7 +5,7 @@
 // Solve triangular systems: Lx = b (lower) or Ux = b (upper)
 // =============================================================================
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>

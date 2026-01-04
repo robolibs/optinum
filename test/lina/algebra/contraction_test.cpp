@@ -5,7 +5,6 @@ namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 using optinum::simd::Vector;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::inner (vector)") {
     dp::mat::Vector<float, 3> a;

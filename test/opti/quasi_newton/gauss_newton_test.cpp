@@ -5,8 +5,8 @@
 #include <cmath>
 #include <vector>
 
+using datapod::mat::Dynamic;
 using optinum::opti::GaussNewton;
-using optinum::simd::dp::mat::Dynamic;
 namespace dp = datapod;
 
 // =============================================================================

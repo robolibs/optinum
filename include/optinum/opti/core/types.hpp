@@ -3,11 +3,9 @@
 #include <cstddef>
 #include <string>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Result of an optimization procedure

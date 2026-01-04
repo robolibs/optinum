@@ -6,7 +6,7 @@
 // =============================================================================
 
 #include <cstdint>
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/view/complex_view.hpp>
 #include <optinum/simd/view/matrix_view.hpp>
 #include <optinum/simd/view/quaternion_view.hpp>

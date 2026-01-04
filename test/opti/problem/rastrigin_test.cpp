@@ -6,7 +6,6 @@
 
 using optinum::opti::Rastrigin;
 using optinum::simd::Dynamic;
-namespace dp = datapod;
 
 TEST_CASE("Rastrigin evaluate") {
     Rastrigin<double, 2> rastrigin;

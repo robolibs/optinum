@@ -8,7 +8,6 @@
 using namespace optinum::lie;
 using namespace optinum;
 
-namespace dp = ::datapod;
 
 // ===== HELPER FUNCTIONS =====
 

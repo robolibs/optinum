@@ -4,7 +4,7 @@
 // optinum/lina/basic/identity.hpp
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 
 #include <cstddef>

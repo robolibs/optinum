@@ -7,7 +7,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 TEST_CASE("DARE: Simple 2x2 stable system") {
     // Simple stable discrete-time system

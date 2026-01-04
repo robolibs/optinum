@@ -31,13 +31,11 @@
 
 #include <cstddef>
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/backend.hpp>
 #include <optinum/simd/bridge.hpp>
 
 namespace optinum::meta {
-
-    namespace dp = ::datapod;
 
     /**
      * Lookahead optimizer wrapper

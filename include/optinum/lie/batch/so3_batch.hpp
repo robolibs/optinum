@@ -21,8 +21,6 @@
 
 namespace optinum::lie {
 
-    namespace dp = ::datapod;
-
     // ===== SO3Batch: Batched 3D Rotations with SIMD =====
     //
     // Stores N SO3 rotations and provides SIMD-accelerated operations.

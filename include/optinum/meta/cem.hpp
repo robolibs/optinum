@@ -32,15 +32,13 @@
 #include <random>
 #include <vector>
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 #include <optinum/simd/math/sqrt.hpp>
 #include <optinum/simd/pack/pack.hpp>
 
 namespace optinum::meta {
-
-    namespace dp = ::datapod;
 
     /**
      * Result of CEM optimization

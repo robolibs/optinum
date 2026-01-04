@@ -3,7 +3,7 @@
 #include <cmath>
 #include <limits>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/opti/core/callbacks.hpp>
 #include <optinum/opti/core/function.hpp>
 #include <optinum/opti/core/types.hpp>
@@ -12,8 +12,6 @@
 #include <optinum/simd/bridge.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Gradient Descent optimizer

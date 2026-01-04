@@ -6,8 +6,7 @@
 // Uses SIMD for row elimination and forward/back substitution.
 // =============================================================================
 
-#include <datapod/matrix.hpp>
-#include <datapod/sequential/array.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
@@ -19,8 +18,6 @@
 #include <type_traits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     template <typename T, std::size_t N> struct LU {
         dp::mat::Matrix<T, N, N> l{};  // owns data

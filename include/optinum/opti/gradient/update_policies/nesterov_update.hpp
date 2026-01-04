@@ -1,11 +1,9 @@
 #pragma once
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/backend.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Nesterov Accelerated Gradient (NAG) update policy

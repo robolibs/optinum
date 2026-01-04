@@ -20,8 +20,7 @@
 //   Quaternion<double, 8> view(ptr, 8);
 // =============================================================================
 
-#include <datapod/matrix/math/quaternion.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/bridge.hpp>
 
 #include <cstddef>
@@ -29,8 +28,6 @@
 #include <type_traits>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Non-owning view over quaternion arrays with transparent SIMD operations

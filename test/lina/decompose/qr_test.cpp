@@ -6,7 +6,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::qr reconstructs A ~= Q*R") {
     dp::mat::Matrix<double, 3, 2> a;

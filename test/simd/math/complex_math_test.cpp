@@ -3,7 +3,6 @@
 #include <optinum/simd/math/complex_math.hpp>
 
 using optinum::simd::pack;
-namespace dp = datapod;
 
 TEST_CASE("Complex exp") {
     using complex_t = dp::mat::Complex<double>;

@@ -4,14 +4,12 @@
 #include <optinum/lie/groups/se3.hpp>
 #include <optinum/lie/groups/twist.hpp>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 #include <cmath>
 #include <type_traits>
 
 namespace optinum::lie {
-
-    namespace dp = ::datapod;
 
     // ===== WRENCH CLASS =====
     //
