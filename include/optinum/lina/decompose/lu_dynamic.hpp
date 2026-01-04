@@ -6,7 +6,7 @@
 // Uses SIMD for column operations (column-major layout).
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
@@ -18,8 +18,6 @@
 #include <type_traits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Result of dynamic LU decomposition with partial pivoting

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <datapod/matrix/tensor.hpp>
+#include <datapod/datapod.hpp>
 #include <iostream>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
@@ -10,8 +10,6 @@
 #include <type_traits>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // Tensor: N-dimensional fixed-size non-owning view (rank >= 3) with SIMD-accelerated operations
     // Non-owning view over datapod::mat::Tensor<T, Dims...> or raw T* data

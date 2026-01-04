@@ -5,7 +5,7 @@
 // complex_view<T,W> - Non-owning view over complex array with SIMD access
 // =============================================================================
 
-#include <datapod/matrix/math/complex.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/pack/complex.hpp>
 
 #include <array>
@@ -13,8 +13,6 @@
 #include <type_traits>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // =============================================================================
     // complex_view<T, W> - SIMD view over complex number arrays

@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/opti/problem/sphere.hpp>
 #include <optinum/opti/quasi_newton/lbfgs.hpp>
 
@@ -8,7 +8,6 @@
 
 using namespace optinum;
 using namespace optinum::opti;
-namespace dp = datapod;
 
 // =============================================================================
 // Test Functions

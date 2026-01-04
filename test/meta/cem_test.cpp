@@ -1,11 +1,10 @@
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/cem.hpp>
 
 #include <cmath>
 
 using namespace optinum;
-namespace dp = datapod;
 
 TEST_CASE("CEM: Sphere function optimization") {
     meta::CEM<double> cem;

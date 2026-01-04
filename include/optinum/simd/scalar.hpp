@@ -1,10 +1,8 @@
 #pragma once
 
-#include <datapod/matrix/scalar.hpp>
+#include <datapod/datapod.hpp>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // Scalar: non-owning view over a single arithmetic value
     // Non-owning view over datapod::mat::Scalar<T> or raw T* data

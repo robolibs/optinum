@@ -6,7 +6,6 @@
 
 using optinum::opti::Ackley;
 using optinum::simd::Dynamic;
-namespace dp = datapod;
 
 TEST_CASE("Ackley evaluate") {
     Ackley<double, 2> ackley;

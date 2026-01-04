@@ -1,11 +1,10 @@
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/cmaes.hpp>
 
 #include <cmath>
 
 using namespace optinum;
-namespace dp = datapod;
 
 TEST_CASE("CMAES: Sphere function optimization") {
     meta::CMAES<double> cmaes;

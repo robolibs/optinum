@@ -4,7 +4,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::cholesky reconstructs A = L*L^T") {
     dp::mat::Matrix<double, 3, 3> a;

@@ -3,15 +3,12 @@
 #include <optinum/lie/core/constants.hpp>
 #include <optinum/lie/groups/so3.hpp>
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 #include <cmath>
 #include <type_traits>
 
 namespace optinum::lie {
-
-    namespace dp = ::datapod;
 
     // ===== EULER ANGLE CONVENTIONS =====
     //

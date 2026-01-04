@@ -5,8 +5,7 @@
 // Linear system solvers for dynamic/runtime-sized matrices
 // =============================================================================
 
-#include <datapod/adapters/error.hpp>
-#include <datapod/adapters/result.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/decompose/lu_dynamic.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -14,8 +13,6 @@
 #include <cstddef>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     using DynVecD = simd::Vector<double, simd::Dynamic>;
     using DynVecF = simd::Vector<float, simd::Dynamic>;

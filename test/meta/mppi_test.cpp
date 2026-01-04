@@ -1,11 +1,10 @@
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/mppi.hpp>
 
 #include <cmath>
 
 using namespace optinum;
-namespace dp = datapod;
 
 TEST_CASE("MPPI: Simple 1D integrator") {
     // Simple 1D system: x_{t+1} = x_t + u_t * dt

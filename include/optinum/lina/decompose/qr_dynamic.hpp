@@ -6,8 +6,7 @@
 // Uses SIMD for column operations where memory is contiguous.
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
@@ -19,8 +18,6 @@
 #include <type_traits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Result of dynamic QR decomposition

@@ -2,7 +2,6 @@
 #include <optinum/simd/simd.hpp>
 #include <sstream>
 
-namespace dp = datapod;
 namespace simd = optinum::simd;
 
 // =============================================================================
@@ -251,7 +250,6 @@ TEST_CASE("Matrix linear access") {
 // =============================================================================
 
 TEST_CASE("Tensor stream output") {
-    namespace dp = datapod;
 
     SUBCASE("2x2x2 tensor") {
         dp::mat::Tensor<int, 2, 2, 2> storage;
@@ -299,7 +297,6 @@ TEST_CASE("Tensor stream output") {
 // =============================================================================
 
 TEST_CASE("Tensor type conversion using cast_to") {
-    namespace dp = datapod;
 
     SUBCASE("int to float") {
         dp::mat::Tensor<int, 2, 2, 2> ti_storage;

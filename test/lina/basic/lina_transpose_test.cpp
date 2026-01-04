@@ -4,7 +4,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::transpose") {
     dp::mat::Matrix<int, 2, 3> a;

@@ -4,7 +4,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::inverse 2x2") {
     // A = [4 7; 2 6], A^{-1} = (1/10)*[6 -7; -2 4]

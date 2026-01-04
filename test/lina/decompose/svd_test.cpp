@@ -4,7 +4,6 @@
 namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 
-namespace dp = datapod;
 
 template <typename T, std::size_t M, std::size_t N>
 static dp::mat::Matrix<T, M, N> reconstruct(const lina::SVD<T, M, N> &f) {

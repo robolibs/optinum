@@ -3,12 +3,10 @@
 #include <algorithm>
 #include <cmath>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/backend.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * AdaBound update policy

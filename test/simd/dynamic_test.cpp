@@ -1,7 +1,6 @@
 #include <doctest/doctest.h>
 #include <optinum/simd/simd.hpp>
 
-namespace dp = datapod;
 namespace simd = optinum::simd;
 
 TEST_CASE("Dynamic Vector - Basic operations") {

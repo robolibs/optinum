@@ -5,7 +5,7 @@
 // Orthonormal basis via QR decomposition
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/basic/rank.hpp>
 #include <optinum/lina/decompose/qr.hpp>
 #include <optinum/simd/matrix.hpp>

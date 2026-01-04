@@ -1,7 +1,6 @@
 #include <doctest/doctest.h>
 #include <optinum/simd/simd.hpp>
 
-namespace dp = datapod;
 
 TEST_CASE("Scalar construction") {
     SUBCASE("default construction") {

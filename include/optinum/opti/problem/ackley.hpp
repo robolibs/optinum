@@ -2,11 +2,9 @@
 
 #include <cmath>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Ackley function - multimodal benchmark with a nearly flat outer region

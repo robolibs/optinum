@@ -9,7 +9,6 @@
 #include <optinum/simd/vector.hpp>
 
 namespace on = optinum;
-namespace dp = datapod;
 
 // =============================================================================
 // Debug Configuration Tests

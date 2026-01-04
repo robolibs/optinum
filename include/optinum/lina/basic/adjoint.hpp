@@ -20,7 +20,7 @@
 //
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/basic/cofactor.hpp>
 #include <optinum/lina/basic/transpose.hpp>
 #include <optinum/simd/matrix.hpp>

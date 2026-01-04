@@ -2,11 +2,9 @@
 
 #include <cmath>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Rastrigin function - highly multimodal benchmark for optimization

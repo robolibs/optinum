@@ -24,8 +24,6 @@
 
 namespace optinum::lie {
 
-    namespace dp = ::datapod;
-
     // ===== RxSO3Batch: Batched Scaled 3D Rotations with SIMD =====
     //
     // Stores N RxSO3 transforms (rotation + positive scale) and provides SIMD-accelerated operations.

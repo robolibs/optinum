@@ -5,7 +5,7 @@
 // Cholesky factorization for symmetric positive definite matrices
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 
@@ -14,8 +14,6 @@
 #include <type_traits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     template <typename T, std::size_t N> struct Cholesky {
         dp::mat::Matrix<T, N, N> l{}; // Owning storage for L

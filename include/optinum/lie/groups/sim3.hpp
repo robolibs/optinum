@@ -4,16 +4,13 @@
 #include <optinum/lie/groups/rxso3.hpp>
 #include <optinum/lie/groups/se3.hpp>
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
-
-    namespace dp = ::datapod;
 
     // ===== Sim3: 3D Similarity Group =====
     //

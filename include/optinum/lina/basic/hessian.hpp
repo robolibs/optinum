@@ -5,8 +5,7 @@
 // Finite-difference Hessian computation
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/basic/jacobian.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -15,8 +14,6 @@
 #include <type_traits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Compute Hessian matrix using finite differences

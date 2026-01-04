@@ -5,12 +5,10 @@
 // SIMD pack specialization for complex numbers (split representation)
 // =============================================================================
 
-#include <datapod/matrix/math/complex.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/pack/pack.hpp>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief SIMD pack for complex numbers using split representation

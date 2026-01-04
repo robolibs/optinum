@@ -2,11 +2,9 @@
 
 #include <optinum/opti/core/types.hpp>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * Base callback interface for optimization monitoring

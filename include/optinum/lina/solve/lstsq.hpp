@@ -5,17 +5,13 @@
 // Least squares (fixed-size) via QR decomposition
 // =============================================================================
 
-#include <datapod/adapters/error.hpp>
-#include <datapod/adapters/result.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/decompose/qr.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     template <typename T, std::size_t M, std::size_t N>
     [[nodiscard]] dp::Result<dp::mat::Vector<T, N>, dp::Error> try_lstsq(const simd::Matrix<T, M, N> &a,

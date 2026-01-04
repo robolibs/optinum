@@ -5,8 +5,7 @@
 // Moore-Penrose pseudo-inverse via SVD
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/decompose/svd.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>

@@ -6,15 +6,13 @@
 // Uses SIMD backend for accelerated operations.
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     template <typename T, std::size_t N>
     [[nodiscard]] constexpr T inner(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) noexcept {

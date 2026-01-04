@@ -5,7 +5,7 @@
 // SIMD pack specialization for quaternions (split representation)
 // =============================================================================
 
-#include <datapod/matrix/math/quaternion.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/mask.hpp>
 #include <optinum/simd/math/simd_math.hpp>
 #include <optinum/simd/pack/pack.hpp>
@@ -13,8 +13,6 @@
 #include <cmath>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief SIMD pack for quaternions using split representation

@@ -5,7 +5,7 @@
 // Line search algorithms: Armijo (backtracking) and Wolfe conditions
 // =============================================================================
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/bridge.hpp>
 
@@ -14,8 +14,6 @@
 #include <string>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Result of a line search operation

@@ -5,8 +5,7 @@
 // Discrete Algebraic Riccati Equation (DARE) solver
 // =============================================================================
 
-#include <datapod/adapters/error.hpp>
-#include <datapod/adapters/result.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/basic/inverse.hpp>
 #include <optinum/lina/basic/matmul.hpp>
 #include <optinum/lina/basic/norm.hpp>
@@ -18,8 +17,6 @@
 #include <limits>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Solve the Discrete Algebraic Riccati Equation (DARE)

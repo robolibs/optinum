@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/opti/line_search/line_search.hpp>
 #include <optinum/opti/problem/sphere.hpp>
 
@@ -8,7 +8,6 @@
 
 using namespace optinum;
 using namespace optinum::opti;
-namespace dp = datapod;
 
 // Helper to negate a vector (dp::mat::vector doesn't have unary minus)
 template <typename T, std::size_t N> dp::mat::Vector<T, N> negate(const dp::mat::Vector<T, N> &v) {

@@ -8,7 +8,6 @@
 
 using namespace optinum;
 using namespace optinum::lie;
-namespace dp = datapod;
 
 // ============================================================================
 // SO2Batch Tests

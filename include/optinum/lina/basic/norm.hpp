@@ -4,8 +4,7 @@
 // optinum/lina/basic/norm.hpp
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
@@ -13,8 +12,6 @@
 #include <cmath>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     template <typename T, std::size_t N>
     [[nodiscard]] constexpr T dot(const simd::Vector<T, N> &a, const simd::Vector<T, N> &b) noexcept {

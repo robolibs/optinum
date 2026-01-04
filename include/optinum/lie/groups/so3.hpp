@@ -6,15 +6,13 @@
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
-#include <datapod/matrix/math/quaternion.hpp>
+#include <datapod/datapod.hpp>
 
 #include <cmath>
 #include <random>
 #include <type_traits>
 
 namespace optinum::lie {
-
-    namespace dp = ::datapod;
 
     // ===== SO3: Special Orthogonal Group in 3D =====
     //

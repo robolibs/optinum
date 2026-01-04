@@ -1,4 +1,4 @@
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <doctest/doctest.h>
 #include <optinum/meta/pso.hpp>
 #include <optinum/opti/problem/ackley.hpp>
@@ -9,7 +9,6 @@
 #include <cmath>
 
 using namespace optinum;
-namespace dp = datapod;
 
 TEST_CASE("PSO: Sphere function optimization") {
     meta::PSO<double> pso;

@@ -1,11 +1,10 @@
 #include <doctest/doctest.h>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/opti/opti.hpp>
 
 using namespace optinum;
 using namespace optinum::opti;
-namespace dp = datapod;
 
 TEST_CASE("AdaGradUpdate - Sphere function 2D") {
     using Vec2 = dp::mat::Vector<double, 2>;

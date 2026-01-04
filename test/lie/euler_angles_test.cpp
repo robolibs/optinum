@@ -12,7 +12,6 @@ using namespace optinum;
 
 template <typename T> bool approx_equal(T a, T b, T tol = T(1e-10)) { return std::abs(a - b) < tol; }
 
-namespace dp = ::datapod;
 
 template <typename T, std::size_t N>
 bool vec_approx_equal(const dp::mat::Vector<T, N> &a, const dp::mat::Vector<T, N> &b, T tol = T(1e-10)) {

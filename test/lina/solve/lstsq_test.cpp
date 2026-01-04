@@ -6,7 +6,6 @@ namespace lina = optinum::lina;
 using optinum::simd::Matrix;
 using optinum::simd::Vector;
 
-namespace dp = datapod;
 
 TEST_CASE("lina::lstsq recovers exact solution for consistent overdetermined system") {
     // A (3x2), x (2), b = A x

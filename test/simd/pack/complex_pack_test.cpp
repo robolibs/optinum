@@ -2,7 +2,6 @@
 #include <optinum/simd/pack/complex.hpp>
 
 using optinum::simd::pack;
-namespace dp = datapod;
 
 TEST_CASE("Complex pack construction") {
     using complex_t = dp::mat::Complex<float>;

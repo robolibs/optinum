@@ -5,7 +5,7 @@
 
 #include <doctest/doctest.h>
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/simd/bridge.hpp>
 
 namespace on = optinum;

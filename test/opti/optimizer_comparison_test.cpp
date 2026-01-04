@@ -1,11 +1,10 @@
 #include <doctest/doctest.h>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/optinum.hpp>
 
 using namespace optinum;
 using namespace optinum::opti;
-namespace dp = datapod;
 
 TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam") {
     using Vec_old2 = Vector<double, 2>;

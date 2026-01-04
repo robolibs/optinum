@@ -5,8 +5,7 @@
 // Levenberg-Marquardt optimizer for nonlinear least squares
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/basic/jacobian.hpp>
 #include <optinum/lina/decompose/lu.hpp>
 #include <optinum/opti/core/callbacks.hpp>
@@ -22,8 +21,6 @@
 #include <string>
 
 namespace optinum::opti {
-
-    namespace dp = ::datapod;
 
     /**
      * @brief Levenberg-Marquardt optimizer for nonlinear least squares

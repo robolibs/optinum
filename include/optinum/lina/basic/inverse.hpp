@@ -5,17 +5,13 @@
 // Matrix inverse with specialized kernels for small matrices
 // =============================================================================
 
-#include <datapod/adapters/error.hpp>
-#include <datapod/adapters/result.hpp>
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/decompose/lu.hpp>
 #include <optinum/simd/backend/inverse_small.hpp>
 #include <optinum/simd/matrix.hpp>
 #include <optinum/simd/vector.hpp>
 
 namespace optinum::lina {
-
-    namespace dp = ::datapod;
 
     template <typename T, std::size_t N>
     [[nodiscard]] constexpr dp::Result<dp::mat::Matrix<T, N, N>, dp::Error>

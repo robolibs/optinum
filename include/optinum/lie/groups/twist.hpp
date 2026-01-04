@@ -4,14 +4,12 @@
 #include <optinum/lie/groups/angular_velocity.hpp>
 #include <optinum/lie/groups/se3.hpp>
 
-#include <datapod/matrix/vector.hpp>
+#include <datapod/datapod.hpp>
 
 #include <cmath>
 #include <type_traits>
 
 namespace optinum::lie {
-
-    namespace dp = ::datapod;
 
     // ===== TWIST CLASSES =====
     //

@@ -5,7 +5,7 @@
 // Null space basis via SVD
 // =============================================================================
 
-#include <datapod/matrix/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <optinum/lina/decompose/svd.hpp>
 #include <optinum/simd/matrix.hpp>
 

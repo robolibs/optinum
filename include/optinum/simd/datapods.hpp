@@ -13,7 +13,7 @@
 // All SIMD operations work via simd::view() internally.
 // =============================================================================
 
-#include <datapod/matrix.hpp>
+#include <datapod/datapod.hpp>
 #include <iomanip>
 #include <optinum/simd/backend/dot.hpp>
 #include <optinum/simd/backend/elementwise.hpp>
@@ -26,8 +26,6 @@
 #include <type_traits>
 
 namespace optinum::simd {
-
-    namespace dp = ::datapod;
 
     // Import Dynamic constant from datapod
     using dp::mat::Dynamic;

@@ -2,7 +2,6 @@
 #include <optinum/opti/problem/sphere.hpp>
 
 using optinum::opti::Sphere;
-namespace dp = datapod;
 
 TEST_CASE("Sphere evaluate") {
     Sphere<double, 3> sphere;
