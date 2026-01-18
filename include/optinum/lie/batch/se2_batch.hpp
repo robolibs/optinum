@@ -320,8 +320,10 @@ namespace optinum::lie {
 
         void transform(T *px, T *py) const noexcept {
             rotations_.rotate(px, py);
-            simd::backend::add_runtime<T>(px, px, tx_.data(), N);
-            simd::backend::add_runtime<T>(py, py, ty_.data(), N);
+            for (std::size_t i = 0; i < N; ++i) {
+                px[i] += tx_[i];
+                py[i] += ty_[i];
+            }
         }
 
         void transform(const T *px_in, const T *py_in, T *px_out, T *py_out) const noexcept {
@@ -331,8 +333,10 @@ namespace optinum::lie {
         }
 
         void inverse_transform(T *px, T *py) const noexcept {
-            simd::backend::sub_runtime<T>(px, px, tx_.data(), N);
-            simd::backend::sub_runtime<T>(py, py, ty_.data(), N);
+            for (std::size_t i = 0; i < N; ++i) {
+                px[i] -= tx_[i];
+                py[i] -= ty_[i];
+            }
             auto inv_rot = rotations_.inverse();
             inv_rot.rotate(px, py);
         }
