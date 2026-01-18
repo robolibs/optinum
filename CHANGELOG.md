@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.17] - 2026-01-18
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Refactor build definitions into `PROJECT` file
+
 ## [0.0.16] - 2026-01-04
 
 ### <!-- 0 -->⛰️  Features
