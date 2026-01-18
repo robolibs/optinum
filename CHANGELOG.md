@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.18] - 2026-01-18
+
+### <!-- 7 -->⚙️ Miscellaneous Tasks
+
+- Improve dependency handling and SIMD usage
+
 ## [0.0.17] - 2026-01-18
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
