@@ -7,8 +7,6 @@ using namespace optinum;
 using namespace optinum::opti;
 
 TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam") {
-    using Vec_old2 = Vector<double, 2>;
-
     Sphere<double, 2> sphere;
 
     SUBCASE("All optimizers converge from (5, 3)") {
@@ -156,8 +154,6 @@ TEST_CASE("Optimizer Comparison - VanillaUpdate vs Momentum vs RMSprop vs Adam")
 }
 
 TEST_CASE("Optimizer Comparison - 10D Sphere") {
-    using Vec_old10 = Vector<double, 10>;
-
     Sphere<double, 10> sphere;
 
     dp::mat::Vector<double, 10> x_init;
@@ -233,7 +229,6 @@ TEST_CASE("Optimizer Comparison - 10D Sphere") {
 }
 
 TEST_CASE("Optimizer state reset") {
-    using Vec_old2 = Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("Momentum automatic reset") {
@@ -314,7 +309,6 @@ TEST_CASE("Optimizer state reset") {
 }
 
 TEST_CASE("AMSGrad specific behavior") {
-    using Vec_old2 = Vector<double, 2>;
     Sphere<double, 2> sphere;
 
     SUBCASE("AMSGrad v_hat is non-decreasing") {
