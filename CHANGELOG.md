@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.19] - 2026-03-02
+
+### <!-- 1 -->🐛 Bug Fixes
+
+- Cmake policy thing mistake
+
 ## [0.0.18] - 2026-01-18
 
 ### <!-- 7 -->⚙️ Miscellaneous Tasks
