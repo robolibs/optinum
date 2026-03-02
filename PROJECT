@@ -19,10 +19,10 @@
 # ==============================================================================
 
 optinum
-0.0.19
+0.0.20
 
 [lib]
-datapod|https://github.com/robolibs/datapod.git|0.0.40
+datapod|https://github.com/robolibs/datapod.git|0.0.52
 
 [example]
 # pkg::rerun_sdk
